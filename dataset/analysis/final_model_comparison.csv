@@ -1,0 +1,5 @@
+Model,Validation_Acc,Test_Acc,Diff_Acc,Validation_Macro_F1,Test_Macro_F1,Diff_Macro_F1,Validation_Weighted_F1,Test_Weighted_F1
+TF-IDF + Logistic Regression,78.67%,80.67%,+2.00%,0.7514,0.7943,+0.0429,0.7752,0.8005
+BiLSTM,70.33%,74.00%,+3.67%,0.6932,0.7496,+0.0564,0.7000,0.7395
+DistilBERT Context=128,76.33%,76.00%,-0.33%,0.7144,0.7530,+0.0386,0.7602,0.7577
+DistilBERT Context=256,77.67%,75.33%,-2.34%,0.7409,0.7551,+0.0142,0.7727,0.7511

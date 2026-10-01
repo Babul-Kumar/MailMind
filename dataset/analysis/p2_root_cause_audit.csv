@@ -1,0 +1,24 @@
+email_id,subject,sender,model_priority,model_confidence,final_priority,refinement_applied,refinement_reason,action_required,deadline_detected,deadline_datetime,topic
+1a0f73aadbb683f8,Security alert,Google <no-reply@accounts.google.com>,P4,0.356,P2,True,Security verification: user authorization or account activity review required,True,False,,security
+1a0f66895a13fcf1,Your file is waiting,Jessica from PDFAid <jessica@pdfaid.com>,P2,0.3473,P2,False,,False,False,,other
+1a0f5b820b77832f,naukri campus : Last few days to enroll for Quiz,Naukri Campus Jobs <eventnc@naukri.com>,P2,0.3714,P2,False,,False,False,,academic
+1a0f56d84ee0b346,Updates to DoraHacks’ Terms of Use,DoraHacks <hackathon@mail.dorahacks.io>,P2,0.3915,P2,False,,False,False,,security
+1a0f39859033bf37,Action Required: Your inactive Neon Azure projects will be deleted in 5 days,Neon Team <azure-deprecation@neon.tech>,P2,0.4373,P2,False,,True,True,2026-10-05,other
+1a0f3954c46b370f,Qwen3.8-Flash is still on us,Qoder <notice-noreply@qoder.com>,P2,0.3826,P2,False,,False,False,,other
+1a0f35cdc8d4e52b,Does your work cost less on Opus 5.5 now that its tokens are 20% cheaper? My 3-prompt guide shows which jobs do be…,"""Nate from Nate’s Substack"" <natesnewsletter@substack.com>",P2,0.4091,P2,False,,False,False,,academic
+1a0f2fef8628e139,How DoorDash Built a Toolbox for AI Agents,ByteByteGo <bytebytego@substack.com>,P2,0.4296,P2,False,,False,False,,security
+1a0f29f24e1977d2,Your Supabase Project Portfolio is going to be paused.,ant.wilson@supabase.com,P2,0.3893,P2,False,,True,False,,operational
+1a0f07a437841033,Why is the SSC CGL a bad choice nowadays?,Quora Digest <english-quora-digest@quora.com>,P2,0.3887,P2,False,,False,False,,academic
+1a0ee908ef6392ad,🔔 Important Update: Changes to ZebPay’s Terms of Use.,"""Team ZebPay 🦓"" <no-reply@email.zebpay.com>",P2,0.4103,P2,False,,False,False,,operational
+1a0ee66ed3c429da,The collab nobody saw coming,Unstop <noreply@jobs.unstop.news>,P2,0.345,P2,False,,False,False,,other
+1a0edd93af726524,Why Do LLMs Lie?,ByteByteGo <bytebytego@substack.com>,P2,0.4084,P2,False,,False,False,,billing
+1a0ed7a707a20e3f,"🔥 The Big Billion Days Exclusive: iPhone 17 at ₹77,999*",Flipkart <no-reply@rmp.flipkart.com>,P2,0.4141,P2,False,,False,False,,other
+1a0ec9895bfdbe37,Ready to Go Beyond Git Basics? Register Now,CipherSchools <support@cipherschools.com>,P2,0.4077,P2,False,,False,False,,academic
+1a0ec54cfb620955,Make 1 trade ➡️ Pay 0 membership fee!,Team ZebPay <no-reply@email.zebpay.com>,P2,0.4068,P2,False,,False,False,,billing
+1a0ec04773691891,Reneet Result,Quora Digest <english-quora-digest@quora.com>,P2,0.3942,P2,False,,False,False,,academic
+1a0e9abaeb08bd95,[GitHub] You have used 100% of the Codespaces storage included for the Babul-Kumar account,GitHub <noreply@github.com>,P2,0.4277,P2,False,,False,False,,operational
+1a0e8db09e818303,"🔥The Big Billion Days Exclusive: iPhone 17 at ₹77,999*",Flipkart <no-reply@rmp.flipkart.com>,P2,0.4141,P2,False,,False,False,,other
+1a0e8b21b05a7715,AI Agents Can Think. Now They Can Pay.,ByteByteGo <bytebytego@substack.com>,P2,0.354,P2,False,,False,False,,security
+1a0e694739074358,Congratulations! You've Been Selected for the Data Science and Machine Learning Internship Program at Infotact Solutions,Infotact HR <hr@infotactlearning.in>,P2,0.3883,P2,False,,False,False,,promotional
+1a0e5fb95c266989,🚨 Important Message to All Students,Macbease <support@macbease.com>,P2,0.4217,P2,False,,False,False,,other
+1a0e482c34cc3357,🚨 Important Message to All Students,Macbease <support@macbease.com>,P2,0.4217,P2,False,,False,False,,other

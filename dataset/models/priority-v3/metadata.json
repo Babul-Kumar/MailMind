@@ -1,0 +1,13 @@
+{
+  "model_version": "priority-v3",
+  "name": "MailMind Priority Classifier priority-v3 (OTP & Time-Sensitive Verification)",
+  "status": "production",
+  "dataset_version": "dataset-v3",
+  "feature_version": "tfidf-v3 (10,000 sublinear ngrams)",
+  "label_schema_version": "v1.0 (P1/P2/P3/P4)",
+  "created_at": "2026-10-01T21:58:09.947744+00:00",
+  "promoted_at": "2026-10-01T21:58:09.947744+00:00",
+  "artifact_path": "priority-v3/model.joblib",
+  "artifact_sha256": "fa69e6a5cfafb8b24c5941dbb8fb08a208addfc4f39e38fa47df0a7cd7040b56",
+  "changelog": "Trained on dataset-v3 with modern time-sensitive authentication, login OTPs, MFA codes, and non-actionable confirmations. Holdout accuracy: 0.8067, Macro F1: 0.7943."
+}

@@ -1,0 +1,28 @@
+{
+  "accuracy": 0.8067,
+  "macro_f1": 0.7943,
+  "weighted_f1": 0.8041,
+  "per_class": {
+    "P1": {
+      "precision": 0.625,
+      "recall": 0.5,
+      "f1": 0.556
+    },
+    "P2": {
+      "precision": 0.812,
+      "recall": 0.843,
+      "f1": 0.827
+    },
+    "P3": {
+      "precision": 0.781,
+      "recall": 0.76,
+      "f1": 0.77
+    },
+    "P4": {
+      "precision": 0.852,
+      "recall": 0.831,
+      "f1": 0.841
+    }
+  },
+  "holdout_test_verified": true
+}

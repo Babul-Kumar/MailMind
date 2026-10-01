@@ -1,0 +1,28 @@
+{
+  "dataset_version": "dataset-v3",
+  "name": "Enron + Reviewed Modern Gmail Priority Benchmark v3 (OTP & Time-Sensitive Auth)",
+  "total_examples": 2047,
+  "train_examples": 1437,
+  "validation_examples": 310,
+  "test_examples": 300,
+  "class_distribution_train": {
+    "P2": 674,
+    "P4": 384,
+    "P3": 322,
+    "P1": 57
+  },
+  "source_categories": [
+    "Enron Corporate Email Communications",
+    "Reviewed Modern Gmail Verification & Registration",
+    "Reviewed Modern Gmail Security Incident Alerts",
+    "Reviewed Modern Gmail Educational Competitions & Portals",
+    "Reviewed Modern Promotional Negation",
+    "Reviewed Modern Login OTP & Time-Sensitive Verification Codes",
+    "Reviewed Non-Actionable Verification Confirmations"
+  ],
+  "label_schema_version": "v1.0 (P1/P2/P3/P4)",
+  "deduplication_status": "Deduplicated by normalized subject+body hash",
+  "leakage_checks": "Verified 100% disjoint against untouched holdout test.csv and modern_email_holdout.csv",
+  "created_at": "2026-10-01T21:58:05.612457+00:00",
+  "changelog": "Added reviewed modern Gmail examples for time-sensitive authentication codes (OTP, MFA, password reset, sign-in codes) and non-actionable confirmations. Zero overlap with holdouts."
+}

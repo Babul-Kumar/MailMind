@@ -1,0 +1,213 @@
+review_id,email_id,subject,reviewer_label,candidate_label_v1,candidate_score_v1,candidate_label_v2,candidate_score_v2,agreement_v1,agreement_v2
+REV_0001,enr_011916,Enron In Action 12.04.00,P3,P4,2.0,P3,2.22,0,1
+REV_0002,enr_292191,Re: hey,P4,P1,4.46,P2,2.5,0,0
+REV_0003,enr_020526,Information in Entelligence vs Global Counterparty,P2,P3,2.7,P2,3.3,0,1
+REV_0004,enr_049417,FW: H-1B status and transfer expenses,P2,P2,5.8,P2,5.1,1,1
+REV_0005,enr_039313,ERV Notification:  (Violation/Notification Memo - 09/14/2001),P2,P3,3.0,P2,2.5,0,1
+REV_0006,enr_449209,Start Date: 2/7/02; HourAhead hour: 1;,P3,P3,2.5,P3,2.5,1,1
+REV_0007,enr_001333,Have you checked your credit rating lately?,P4,P2,3.2,P4,10.5,0,1
+REV_0008,enr_369659,Re: Next pdx.pm meeting,P4,P4,3.0,P4,3.0,1,1
+REV_0009,enr_069364,Fwd: RE: Select Cmte Sept 6 hearing and letter,P2,P1,3.26,P4,1.0,0,0
+REV_0010,enr_495094,See What's New at CapacityCenter.Com,P3,P3,3.0,P3,3.0,1,1
+REV_0011,enr_308569,Signature Pages for the PDA and SPA attached,P2,P1,3.54,P2,4.6,0,1
+REV_0012,enr_183186,Organization Announcement,P3,P3,4.0,P3,4.0,1,1
+REV_0013,enr_095832,TRV Notification:  (CE P/L - 11/21/2001),P2,P3,3.0,P2,2.5,0,1
+REV_0014,enr_021926,Re: CommodityLogic IT Support,P2,P2,4.0,P2,5.6,1,1
+REV_0015,enr_393803,Nolan Deposition: Day 2,P2,P1,4.46,P2,3.9,0,1
+REV_0016,enr_504304,Traders added to Estate EPMI Performance books,P1,P1,5.75,P2,2.1,1,0
+REV_0017,enr_043742,Award Deadline Notification,P4,P2,2.7,P2,2.7,0,0
+REV_0018,enr_389930,IIR Nuclear Report,P3,P1,4.7,P2,2.0,0,0
+REV_0019,enr_492173,Real Deals from Travelocity,P4,P4,4.5,P4,15.0,1,1
+REV_0020,enr_054963,Real Deals From Travelocity.com,P4,P4,4.5,P4,15.0,1,1
+REV_0021,enr_011323,Re: favor,P2,P2,2.5,P2,2.5,1,1
+REV_0022,enr_392292,Fw: FW:],P2,P4,2.5,P4,2.5,0,0
+REV_0023,enr_101894,Nomination for Purchase and Sale,P4,P4,3.0,P2,1.3,1,0
+REV_0024,enr_062266,California Update--07.25.01,P3,P3,4.2,P3,2.7,1,1
+REV_0025,enr_406231,AWADmail Issue 71,P4,P4,6.0,P4,6.0,1,1
+REV_0026,enr_290782,Data for Comments and for Economist's Report,P1,P1,6.71,P3,2.5,1,0
+REV_0027,enr_147083,Start Date: 4/22/01; HourAhead hour: 14;  <CODESITE>,P3,P3,2.5,P3,2.5,1,1
+REV_0028,enr_000513,California - Jan 13 meeting,P2,P2,2.5,P2,2.5,1,1
+REV_0029,enr_010972,RE: Redraw?,P2,P2,5.2,P2,2.5,1,1
+REV_0030,enr_265036,Sunday Weather Update 06/03,P2,P1,5.2,P2,2.3,0,1
+REV_0031,enr_022512,India,P2,P2,4.0,P2,2.5,1,1
+REV_0032,enr_020125,FW: Job Opportunities in ENA,P2,P2,5.5,P2,2.8,1,1
+REV_0033,enr_019111,"EES / EWS / EPMI Meeting - Midwest Retail Load -  Physical Delivery
+ Issues",P2,P2,6.2,P2,7.5,1,1
+REV_0034,enr_021670,RE: OU Candidates,P2,P2,3.3,P2,2.3,1,1
+REV_0035,enr_146967,Start Date: 4/23/01; HourAhead hour: 14;  <CODESITE>,P3,P3,2.5,P3,2.5,1,1
+REV_0036,enr_063475,Comments on Alan's Affidavit,P2,P1,6.26,P2,6.3,0,1
+REV_0037,enr_290303,*EMCA* Roof,P2,P4,8.0,P4,8.0,0,0
+REV_0038,enr_087101,Start Date: 10/20/01; HourAhead hour: 13;  <CODESITE>,P3,P3,2.5,P3,2.5,1,1
+REV_0039,enr_029383,SAP System Response Update,P3,P3,2.7,P2,1.3,1,0
+REV_0040,enr_288297,"Power Mart '01 - Pre-register for your FREE exhibition pass
+ today             !",P2,P1,3.76,P4,9.5,0,0
+REV_0041,enr_490266,Move Coordination,P2,P1,3.9,P2,2.8,0,1
+REV_0042,enr_389727,Williams Energy News Live -- today's video newscast,P4,P4,5.5,P2,6.2,1,0
+REV_0043,enr_444809,"Power Mart '01 - Pre-register for your FREE exhibition pass today
+              !",P2,P1,3.76,P4,9.5,0,0
+REV_0044,enr_005424,ALL daily charts and matrices as attachments 10/29,P2,P2,3.2,P2,3.2,1,1
+REV_0045,enr_044119,Too weird!!,P2,P4,7.5,P4,7.5,0,0
+REV_0046,enr_044221,Enron Board Elects New Corporate Secretary,P2,P2,2.8,P2,3.6,1,1
+REV_0047,enr_034368,"Call Center Meeting w/Shelley, Donna, Sheila and Gerry - 4102",P2,P2,2.5,P2,2.5,1,1
+REV_0048,enr_001527,How do I eat crow and still make it tasty???????,P2,P2,6.0,P2,5.7,1,1
+REV_0049,enr_034282,FW: itinerary for grace lynn blair 27aug travel,P4,P1,4.2,P2,1.3,0,0
+REV_0050,enr_369023,re: your free $10,P2,P4,6.0,P4,6.0,0,0
+REV_0051,enr_376651,Breakfast With The Fool: Coke May Be Sowing Oats,P4,P4,10.0,P4,10.0,1,1
+REV_0052,enr_406190,This Week's Top 20,P2,P1,3.26,P2,4.7,0,1
+REV_0053,enr_044518,<<Concur Expense Document>> - Labor Day OT Meal,P3,P3,4.0,P3,4.0,1,1
+REV_0054,enr_477547,Aquilla wants to revise ETA asap. Pls call today.,P2,P1,4.46,P2,4.5,0,1
+REV_0055,enr_009812,"Coffee & Donuts, Friday 8:00 - 9:00 a.m.",P2,P2,2.8,P2,2.8,1,1
+REV_0056,enr_280392,Instant $75 Matching Bonus,P2,P4,6.0,P4,6.0,0,0
+REV_0057,enr_147088,Start Date: 4/22/01; HourAhead hour: 10;  <CODESITE>,P3,P3,2.5,P3,2.5,1,1
+REV_0058,enr_143321,Re: Promotion,P4,P4,2.0,P4,2.0,1,1
+REV_0059,enr_013001,Ameriflash Newsletter,P3,P3,2.75,P2,3.8,1,0
+REV_0060,enr_501374,Florida Recount Update,P1,P1,5.9,P1,5.9,1,1
+REV_0061,enr_043716,Weekend Outage Report for 12-07-01 through 12-09-01,P1,P3,5.2,P3,5.2,0,0
+REV_0062,enr_034089,North End Team Shipper/Interconnect Assignments,P2,P2,3.8,P2,5.9,1,1
+REV_0063,enr_165654,Weather Alarms(tm),P2,P4,3.5,P4,3.5,0,0
+REV_0064,enr_087593,Start Date: 10/6/01; HourAhead hour: 19;  <CODESITE>,P3,P3,2.5,P3,2.5,1,1
+REV_0065,enr_052619,Ontario Power Marketing Opportunities,P2,P4,4.5,P2,5.2,0,1
+REV_0066,enr_018528,"Save an additional 10%, four days only",P4,P4,13.0,P4,13.0,1,1
+REV_0067,enr_044695,"NYISO - Budget, Standards and Performance Subcommittee SPECIAL
+ Meeting - 8/13/2001",P2,P2,7.2,P2,9.3,1,1
+REV_0068,enr_040783,"In the Zone, Online-Gaming Newsletter",P4,P4,8.0,P4,8.0,1,1
+REV_0069,enr_228813,"US and Canada: US Administration Faces Crisis Over Energy Policy -
+ Financial Times",P2,P1,5.2,P1,8.2,0,0
+REV_0070,enr_040626,DRAFT- TAP Power Outage,P3,P3,2.5,P3,2.5,1,1
+REV_0071,enr_051042,"Japan's Oji Paper unveils plans for a huge capacity expansion in
+ Asia",P3,P3,3.0,P2,4.3,1,0
+REV_0072,enr_039068,RE: Pug's Fax,P2,P1,5.2,P2,3.5,0,1
+REV_0073,enr_061626,Re: LA Times Article,P3,P3,4.0,P4,1.0,1,0
+REV_0074,enr_510586,Start Date: 12/21/01; HourAhead hour: 21;,P3,P3,2.5,P3,2.5,1,1
+REV_0075,enr_007966,Yahoo lead.....,P2,P2,7.7,P2,1.3,1,1
+REV_0076,enr_408390,This Week's Top 20,P4,P1,3.26,P2,4.7,0,0
+REV_0077,enr_261475,Master Plan,P4,P4,2.0,P4,2.0,1,1
+REV_0078,enr_039640,FW: Transatlantic meetings,P2,P2,4.3,P2,1.3,1,1
+REV_0079,enr_059422,EMERGENCY,P2,P1,4.26,P2,5.2,0,1
+REV_0080,enr_381423,Fwd: FW: Wanna play pool?,P2,P4,2.5,P4,2.5,0,0
+REV_0081,enr_043698,Real Deals From Travelocity.com,P4,P1,6.46,P1,6.46,0,0
+REV_0082,enr_001460,E-delivery Notification - Confirms,P2,P2,4.2,P2,4.2,1,1
+REV_0083,enr_058660,"California Update #2, 5/23/01",P3,P3,2.7,P2,1.3,1,0
+REV_0084,enr_459178,Diabetes E-News Now!  Health Care Professional Edition 5/17/2001,P4,P4,6.0,P2,6.7,1,0
+REV_0085,enr_368895,"DAILY: Oh, How It Hurts!",P2,P4,5.5,P4,5.5,0,0
+REV_0086,enr_043723,Attention Body Shop Members -- UPDATE on Body Shop Closure,P3,P3,3.7,P3,3.7,1,1
+REV_0087,enr_508070,Company Sleuth Daily Report for WMSON,P4,P4,5.0,P4,5.0,1,1
+REV_0088,enr_474239,DW Alert: NOMURA Says It's Staying Put In CMO Trading,P2,P1,3.26,P2,4.4,0,1
+REV_0089,enr_402961,FW: Passwords?,P2,P1,5.26,P2,1.3,0,1
+REV_0090,enr_489016,AEP Press Release Update,P2,P4,5.5,P2,4.0,0,1
+REV_0091,enr_368827,A Christmas Carol - Charles Dickens at The Alley Theatre,P4,P4,2.5,P4,2.5,1,1
+REV_0092,enr_165690,Power Online Newsletter,P4,P4,6.0,P2,6.7,1,0
+REV_0093,enr_296740,World Wildlife Fund: Conservation News Delivered to your Inbox,P2,P1,3.26,P4,6.0,0,0
+REV_0094,enr_166199,Fwd: So Very True...,P2,P1,3.76,P4,1.5,0,0
+REV_0095,enr_001371,Your Weekly Movie Showtimes from Amazon.com,P4,P4,8.0,P4,8.0,1,1
+REV_0096,enr_264811,Enron In Action 05.29.01,P4,P4,2.0,P4,2.0,1,1
+REV_0097,enr_006462,RE: prom,P2,P2,2.5,P2,2.5,1,1
+REV_0098,enr_017919,Market Notice Report for PJM ISO (12/08 10:16),P3,P3,3.0,P3,1.5,1,1
+REV_0099,enr_067922,Last chance for special offer on Palm OS Upgrade!,P4,P4,4.5,P4,15.0,1,1
+REV_0100,enr_047208,Commissioner.COM E-Reports for Feeley's FFL 11/26/01,P4,P4,3.6,P4,12.0,1,1
+REV_0101,enr_011119,Re:,P2,P2,2.5,P2,2.5,1,1
+REV_0102,enr_025473,\\spr1inf1\sapfiles\ifout\04000\20020115-DENWE.XLS,P2,P2,5.8,P2,6.6,1,1
+REV_0103,enr_367852,Commissioner.COM E-Reports for Spoogers FFL 12/25/01,P1,P1,4.26,P1,4.26,1,1
+REV_0104,enr_058658,"California Update #2, 5/23/01",P2,P3,2.7,P2,4.8,0,1
+REV_0105,enr_048079,Re: Clonch lawsuit,P1,P1,3.9,P1,3.9,1,1
+REV_0106,enr_006386,,P2,P2,2.5,P2,2.5,1,1
+REV_0107,enr_041469,"Draft, Flagstaff Spring meeting",P2,P2,3.5,P2,4.0,1,1
+REV_0108,enr_368025,RE:,P2,P1,3.76,P2,1.3,0,1
+REV_0109,enr_006659,,P2,P2,5.0,P2,4.0,1,1
+REV_0110,enr_048723,RE:,P2,P2,2.8,P2,1.3,1,1
+REV_0111,enr_030974,Details on Simulcast,P2,P2,2.5,P2,2.5,1,1
+REV_0112,enr_286040,Update on Ammonia Shutdowns/Terra Chemical,P3,P3,4.2,P3,2.7,1,1
+REV_0113,enr_157447,EPSA Power Mktg Call 1-800-937-6563 / ask for EPSA call,P3,P3,2.7,P2,3.3,1,0
+REV_0114,enr_458135,Meeting with Kenny Ha,P4,P4,3.5,P4,3.5,1,1
+REV_0115,enr_016329,RE: UBS,P2,P2,9.7,P2,4.0,1,1
+REV_0116,enr_268768,UN Wire Alert -- 17 October 2000,P2,P1,3.2,P1,3.2,0,0
+REV_0117,enr_039168,ERV Notification:  (Violation/Notification Memo - 08/29/2001),P2,P3,3.0,P2,2.5,0,1
+REV_0118,enr_021659,Re: Authorised Traders : Montreal & Chicago,P2,P2,3.5,P2,7.0,1,1
+REV_0119,enr_091891,Steve Susman,P1,P1,4.0,P1,4.0,1,1
+REV_0120,enr_070347,A New Tool for New Times,P4,P4,4.5,P2,5.6,1,0
+REV_0121,enr_280511,Refinance Without Perfect Credit,P2,P4,5.5,P4,5.5,0,0
+REV_0122,enr_088024,FW: True Orange E-Mail-Fax #61,P3,P3,2.7,P4,1.0,1,0
+REV_0123,enr_337515,Start Date: 2/2/02; HourAhead hour: 8;,P3,P3,2.5,P3,2.5,1,1
+REV_0124,enr_213478,"Is everything ok, mr. casamento",P2,P1,3.26,P1,3.26,0,0
+REV_0125,enr_056184,"Computing  Services OUTAGE for Sunday, April 8th",P2,P1,3.7,P1,3.7,0,0
+REV_0126,enr_280542,"The SmartMoney.com Daily Views - January 18, 2002",P4,P4,4.5,P2,4.7,1,0
+REV_0127,enr_266275,Welcome to the EPSON Store!,P2,P1,3.26,P1,3.26,0,0
+REV_0128,enr_040759,Winter Capacity,P2,P2,5.2,P2,6.5,1,1
+REV_0129,enr_262836,,P3,P3,2.7,P3,2.7,1,1
+REV_0130,enr_508186,NEW!! Find out ANYTHING about ANYONE with your PC!,P2,P1,5.26,P1,3.26,0,0
+REV_0131,enr_064020,Real Estate Firm Night Invitation,P4,P4,2.5,P4,2.5,1,1
+REV_0132,enr_410901,A.Word.A.Day--pyrrhic victory,P2,P4,5.5,P4,5.5,0,0
+REV_0133,enr_038096,Quality IT Services from Izhuta.,P2,P2,5.9,P2,6.7,1,1
+REV_0134,enr_032400,TradersNews Energy: Users Meeting/Happy Hour TOMORROW!,P2,P2,3.9,P2,4.7,1,1
+REV_0135,enr_036500,RE: Year 2002 Blanco Hub/Ignacio La Plata O&M Budgets,P2,P2,2.5,P2,1.3,1,1
+REV_0136,enr_244440,Expense Reports Awaiting Your Approval,P2,P3,2.0,P2,2.45,0,1
+REV_0137,enr_339471,Patrice's Notifications for 11/13/01,P2,P4,8.5,P4,8.5,0,0
+REV_0138,enr_290785,Re: *EMCA* Mosquitoes,P4,P4,5.5,P4,2.5,1,1
+REV_0139,enr_137833,Fw: FW: Fw: These are hilarious,P4,P4,3.5,P4,1.5,1,1
+REV_0140,enr_053847,Sambuca Signals,P4,P4,4.5,P4,4.5,1,1
+REV_0141,enr_157951,"2001 Annual Technology 4 Attorneys Road Show Coming to Oregon on
+ April  3,4,5, 2001",P2,P3,2.7,P3,2.7,0,0
+REV_0142,enr_494387,"FWD: [ordinarylife] Summary of November 18, 2001",P2,P1,3.26,P4,3.0,0,0
+REV_0143,enr_137845,Real Deals From Travelocity.com,P4,P4,4.5,P4,15.0,1,1
+REV_0144,enr_033720,RE: Hi,P2,P2,4.0,P2,4.0,1,1
+REV_0145,enr_275831,Farm-fresh biopower,P4,P4,3.5,P2,4.0,1,0
+REV_0146,enr_040564,Additonal PCB Sampling on the SoCal System,P2,P2,2.5,P2,4.3,1,1
+REV_0147,enr_005337,ALL daily charts and matrices as hot links 10/24,P2,P2,3.2,P2,3.2,1,1
+REV_0148,enr_023027,GSS Organizational Changes,P3,P3,2.0,P3,2.4,1,1
+REV_0149,enr_496625,FW: TW A/R,P2,P1,4.3,P2,2.8,0,1
+REV_0150,enr_256550,Re: Allegheny Energy 1935 Act filing,P1,P1,3.2,P2,1.3,1,0
+REV_0151,enr_389922,Hydro relicensing case pits dam owner against power purchaser,P4,P4,3.0,P2,5.2,1,0
+REV_0152,enr_021380,Doorstep Expenses,P2,P2,3.3,P2,1.3,1,1
+REV_0153,enr_001559,FW: Chase Backtest,P2,P2,4.3,P2,5.1,1,1
+REV_0154,enr_172686,"PGE Position Reports - As of December 21, 2001",P3,P3,3.0,P3,1.5,1,1
+REV_0155,enr_059548,leading edge conference ticket,P2,P1,4.46,P1,4.46,0,0
+REV_0156,enr_279905,Big Chart Shows Signs of a Change in Leadership,P4,P1,3.26,P1,3.26,0,0
+REV_0157,enr_016202,FW: Sun-Sentinel News Local,P2,P2,2.8,P2,1.3,1,1
+REV_0158,enr_033692,"Next stop, Cupid Junction!",P4,P4,3.5,P4,3.5,1,1
+REV_0159,enr_003115,Re: ??,P2,P2,2.5,P2,2.5,1,1
+REV_0160,enr_060593,Dinner in the City,P2,P4,3.0,P4,3.0,0,0
+REV_0161,enr_000237,,P2,P2,2.8,P2,2.8,1,1
+REV_0162,enr_024875,"Canceled: Re-scheduled: WHS/Retail Systems Integration Analysis -
+ Results/Recommendations",P2,P2,4.0,P2,2.5,1,1
+REV_0163,enr_157682,The Power of Who - expertfinder,P2,P1,3.76,P3,2.7,0,0
+REV_0164,enr_338037,Schedule Crawler: HourAhead Failure,P3,P3,2.5,P3,2.5,1,1
+REV_0165,enr_040658,This email was sent by megan_la,P2,P4,2.5,P4,2.5,0,0
+REV_0166,enr_050871,Start Date: 10/18/01; HourAhead hour: 7;  <CODESITE>,P3,P3,2.5,P3,2.5,1,1
+REV_0167,enr_408439,"CITYSEARCH WEEKEND PREVIEW: Halloween Tricks & Treats, Tool and
+ Tannhauser.",P2,P4,5.5,P4,5.5,0,0
+REV_0168,enr_147922,Start Date: 3/3/01; HourAhead hour: 19;  <CODESITE>,P3,P3,2.5,P3,2.5,1,1
+REV_0169,enr_510141,"URGENT - NEGOTIATION SKILLS PARTICIPATION QUESTIONNAIRE IS DUE
+ TODAY!",P2,P1,3.9,P1,3.9,0,0
+REV_0170,enr_185382,JDF Update,P4,P4,2.0,P3,2.22,1,0
+REV_0171,enr_146226,Start Date: 4/25/01; HourAhead hour: 12;  <CODESITE>,P3,P3,2.5,P3,2.5,1,1
+REV_0172,enr_032470,FW: NERC Issues 2001/2002 Winter Reliability Assessment,P2,P2,3.5,P4,2.0,1,0
+REV_0173,enr_357824,bibulous: Dictionary.com Word of the Day,P2,P4,8.0,P4,8.0,0,0
+REV_0174,enr_377771,"Price Reservations 22 January 2002 Real-Time and Hour-Ahead
+ Markets, and 23 January 2002 Day-Ahead Market",P4,P4,4.5,P4,4.5,1,1
+REV_0175,enr_416712,SITA,P2,P1,3.26,P2,4.0,0,1
+REV_0176,enr_249462,Japan Strategy Update - August,P3,P3,4.2,P2,4.7,1,0
+REV_0177,enr_021609,Managing Director and Vice President Elections,P2,P2,2.8,P2,1.3,1,1
+REV_0178,enr_221979,RE: New document in PSerc Document Archive archive,P3,P3,2.7,P4,1.5,1,0
+REV_0179,enr_047675,RE: Entergy Jan-Dec02,P2,P2,6.7,P2,2.1,1,1
+REV_0180,enr_459251,Diabetes E-News Now! Health Care Professional Edition 5/24/2001,P4,P4,6.0,P4,6.0,1,1
+REV_0181,enr_018008,Another Move Up the Career Ladder,P3,P3,2.7,P2,1.5,1,0
+REV_0182,enr_022415,Unify Performance Issues are Priority Number One,P2,P2,2.8,P2,2.1,1,1
+REV_0183,enr_059195,New Interest Rates and Loan Consolidation,P4,P4,3.5,P2,3.5,1,0
+REV_0184,enr_441875,Updated: Weekly Fundamentals Meeting,P3,P3,2.7,P2,2.5,1,0
+REV_0185,enr_049291,Severance,P2,P2,2.5,P2,2.5,1,1
+REV_0186,enr_048706,RE: Georgia-Pacific Documents,P2,P2,6.2,P4,1.5,1,0
+REV_0187,enr_499805,tax loss selling,P4,P4,3.0,P4,3.0,1,1
+REV_0188,enr_459250,Diabetes E-News Now! Health Care Professional Edition 5/24/2001,P4,P4,6.0,P4,6.0,1,1
+REV_0189,enr_511737,Start Date: 12/31/01; HourAhead hour: 3;,P3,P3,3.7,P3,3.7,1,1
+REV_0190,enr_257402,ENA Estate Group,P3,P3,2.7,P2,2.5,1,0
+REV_0191,enr_032968,Access to UBSWenergy Production Environment,P2,P2,2.8,P2,4.0,1,1
+REV_0192,enr_509586,MDAS FAQ's,P2,P1,3.26,P1,3.26,0,0
+REV_0193,enr_306260,Siemens - Westinghouse  31 Jan AM Update.,P3,P3,3.7,P2,5.2,1,0
+REV_0194,enr_436602,Give holiday gifts your personal touch!,P2,P1,3.26,P2,5.4,0,1
+REV_0195,enr_356436,FW: Weather repiort,P4,P1,8.71,P2,1.3,0,0
+REV_0196,enr_435380,Memo on policy paper conclusions and staff call,P2,P1,4.46,P2,5.2,0,1
+REV_0197,enr_395042,Re: Update on Calif PX price cap/RELIANT INVESTIGATION,P2,P3,2.7,P2,1.3,0,1
+REV_0198,enr_033420,RE: TMS Shipper Scheduled Quantities Report,P2,P2,2.8,P3,1.5,1,0
+REV_0199,enr_041209,Lockridge Remediation Site,P2,P2,2.8,P2,4.0,1,1
+REV_0200,enr_508133,"Save 60%-80% Inkjets-Laser Cartridges  Fax Supplies Manufacture
+ Direct",P4,P4,6.0,P4,6.0,1,1

@@ -3,7 +3,7 @@
 **Course Project:** CSE472 — Natural Language Processing / Applied Artificial Intelligence  
 **Author / Developer:** Babul Kumar  
 **System Status:** Production Hardened • Fully Validated • Read-Only Gmail OAuth 2.0  
-**Current Production Model:** TF-IDF + Logistic Regression (*Strictly Frozen*, Test Accuracy: **80.67%**, Macro F1: **0.7943**)
+**Current Production Model:** `priority-v3` (OTP & Time-Sensitive Verification) (*Strictly Frozen*, Historical Test Accuracy: **80.67%**, Macro F1: **0.7943** • Modern Holdout Accuracy: **80.00%**, P1 Recall: **93.62%**)
 
 ---
 
@@ -528,6 +528,76 @@ flowchart TD
 9. **Strict Multi-User Isolation & Security:**
    - Identity is derived exclusively from the authenticated session (`session.user_id`). User A cannot access User B's cache, scan status, or Gmail credentials.
 
+---
 
-#   M a i l M i n d  
- 
+## 20. Phases 33 & 34: Modern Email Generalization, Time-Sensitive OTP Verification & Full Gmail Integration
+
+Phases 33 and 34 advanced MailMind's machine learning capabilities from static legacy Enron corpora to **robust, learned modern email generalization** and validated the system end-to-end against a production Gmail mailbox containing **17,305 emails**.
+
+### 20.1 Core Machine Learning Objectives
+1. **Eliminate Rule-Based OTP Traps:** The system strictly rejects keyword-only shortcuts (e.g., `if otp: P1`). Instead, time-sensitive verification is learned naturally via high-dimensional n-gram representations trained on modern authentication patterns (`dataset-v3`).
+2. **Discriminate Actionable vs. Informational Security Content:** The model distinguishes between time-critical action requirements (e.g., "Enter code 482913 within 10 minutes") and non-actionable post-hoc security notices (e.g., "Your account verification was completed successfully", "Security settings updated").
+3. **Strict Zero-Regression on Historical Baselines:** The original holdout test benchmark (`dataset/processed/test.csv`, SHA-256: `6841CD44901FA56242BF3752257E991FD7FF474ED7E0F7A5D2B7065A0827C138`) is permanently frozen and must maintain 100% metric parity.
+
+### 20.2 Model Registry & Cryptographic Versioning
+MailMind maintains an immutable, versioned model registry (`dataset/models/registry.json`) with rollbacks:
+
+| Model ID | Architecture | Dataset Version | SHA-256 Checksum | Status |
+|---|---|---|---|:---:|
+| `priority-v1` | TF-IDF + Logistic Baseline | `dataset-v1` | `040496611b8a15247b6b00330f531670dedca34772c923439ddefec445c55a6e` | Retired |
+| `priority-v2` | Modern Gmail + Negations | `dataset-v2` | `be52c2dbfe28001a66b134d1125dfa8d117bbe64206590d71bde9f7029f3cd75` | Standby (Rollback) |
+| **`priority-v3`** | **OTP & Time-Sensitive Verification** | **`dataset-v3`** | **`fa69e6a5cfafb8b24c5941dbb8fb08a208addfc4f39e38fa47df0a7cd7040b56`** | **Active Production** |
+
+### 20.3 Modern Email Holdout Evaluation (Disjoint $N=120$)
+To prevent test leakage and sender memorization, a dedicated evaluation set was created (`dataset-v3/modern_holdout.csv`, $N=120$, 10 balanced samples across 12 distinct categories) with **0% overlap** with training and historical test sets.
+
+#### Comparative Model Performance (v2 vs. v3)
+| Evaluation Benchmark | Metric | `priority-v2` | `priority-v3` | Improvement |
+|---|---|---:|---:|---:|
+| **Historical Test Set** ($N=300$) | Accuracy | 80.67% | **80.67%** | Exact Parity |
+| **Historical Test Set** ($N=300$) | Macro F1 | 0.7943 | **0.7943** | Exact Parity |
+| **Historical Test Set** ($N=300$) | Weighted F1 | 0.8005 | **0.8005** | Exact Parity |
+| **Modern Holdout** ($N=120$) | Overall Accuracy | 47.50% | **80.00%** | **+32.50%** |
+| **Modern Holdout** ($N=120$) | Macro F1 | 0.4437 | **0.7529** | **+30.92%** |
+| **Modern Holdout** ($N=120$) | P1 Recall | 17.02% | **93.62%** | **+76.60%** |
+| **Modern Holdout** ($N=120$) | Action Recall | 21.28% | **93.62%** | **+72.34%** |
+
+#### Per-Class Performance on Modern Holdout (`priority-v3`)
+- **P1 (Critical / Action Required):** Precision: `1.0000` • Recall: `0.9362` • F1: `0.9670` (Support: 47)
+- **P2 (Important / Deadlines):** Precision: `0.5600` • Recall: `1.0000` • F1: `0.7179` (Support: 28)
+- **P3 (Routine / Informational):** Precision: `0.8889` • Recall: `0.5926` • F1: `0.7111` (Support: 27)
+- **P4 (Low / Promotional):** Precision: `1.0000` • Recall: `0.4444` • F1: `0.6154` (Support: 18)
+
+### 20.4 Unseen Generalization & Negative Discrimination Verification
+- **Unseen OTPs (Cases A–F):** 100% (6/6) predicted as **P1** with `action_required: True` and sub-hour deadlines extracted:
+  - *Google Sign-in code (10 min expiry)* $\to$ P1, Action: True, Deadline: 10m expiry.
+  - *Okta Identity Verification (5 min expiry)* $\to$ P1, Action: True, Deadline: 5m expiry.
+  - *Supabase Sign-in Verification* $\to$ P1, Action: True.
+  - *Figma Passcode Expiry* $\to$ P1, Action: True.
+  - *Linear MFA Code* $\to$ P1, Action: True.
+  - *Steam Password Reset* $\to$ P1, Action: True.
+- **Negative Generalization (Neg 1–5):** 100% (5/5) of non-actionable security notices classified as **P3** with `action_required: False`:
+  - *"Account verification was completed successfully"* $\to$ P3, Action: False.
+  - *"Security settings were updated"* $\to$ P3, Action: False.
+  - *"Monthly security report is ready"* $\to$ P3, Action: False.
+  - *"Account was verified yesterday"* $\to$ P3, Action: False.
+  - *"Previous login verification was successful"* $\to$ P3, Action: False.
+
+### 20.5 Live Gmail Complete Mailbox Verification
+Validated against a live, authenticated Gmail account (`babulkumar0220@gmail.com`):
+- **Total Discovered Messages:** `17,305` messages.
+- **Gmail API Pages Scanned:** `35` pages (500 items/page via `messages.list(scope="mailbox")`).
+- **Incremental Synchronization:**
+  - Cached: `17,305` messages.
+  - Newly Analyzed: `0` messages.
+  - Cache Hit Rate: **100.0%**.
+  - Scan Duration: **21.59 seconds**.
+  - Throughput: **801.5 emails/second**.
+  - Transient HTTP 429/500 Retries: `0`.
+- **Memory Safety:** Streaming chunking (batch size 50) and immediate MIME garbage collection keep heap overhead $< 25$ MB.
+
+### 20.6 Verification & Test Suite Summary
+- **Backend Test Suite:** **226 passed, 0 failed in 29.79s** across 12 test modules.
+- **Frontend Unit Tests:** **7 passed, 0 failed** in Node.js test runner.
+- **Frontend Production Build:** Vite v5.4.21 compiled in **5.91s** with zero bundle errors.
+

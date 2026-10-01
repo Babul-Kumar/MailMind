@@ -1,0 +1,36 @@
+# Google OAuth credentials, tokens, cache, and scans
+google_auth/credentials.json
+google_auth/token.json
+google_auth/sessions/
+google_auth/cache/
+google_auth/scans/
+google_auth/*.db*
+google_auth/*.json
+
+# Environment variables & secrets
+.env
+.env.*
+
+# Python environment & cache
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Large Datasets & Large Model Weights (>100MB GitHub limit)
+dataset/emails.csv
+*.safetensors
+*.parquet
+*.db
+*.sqlite
+*.sqlite3
+
+# Scratch & Logs
+scratch/
+*.log

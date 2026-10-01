@@ -1,0 +1,45 @@
+{
+  "active_model": "priority-v3",
+  "previous_model": "priority-v2",
+  "versions": {
+    "priority-v1": {
+      "model_version": "priority-v1",
+      "name": "TF-IDF + Logistic Regression Baseline",
+      "status": "retired",
+      "dataset_version": "dataset-v1",
+      "feature_version": "tfidf-v1 (10,000 sublinear ngrams)",
+      "label_schema_version": "v1.0 (P1/P2/P3/P4)",
+      "created_at": "2026-09-20T00:00:00Z",
+      "promoted_at": "2026-10-01T22:39:56Z",
+      "artifact_path": "priority-v1/model.joblib",
+      "artifact_sha256": "040496611b8a15247b6b00330f531670dedca34772c923439ddefec445c55a6e",
+      "changelog": "Initial baseline production model trained on Enron corporate communications."
+    },
+    "priority-v2": {
+      "model_version": "priority-v2",
+      "name": "MailMind Priority Classifier priority-v2",
+      "status": "retired",
+      "dataset_version": "dataset-v2",
+      "feature_version": "tfidf-v2 (10,000 sublinear ngrams)",
+      "label_schema_version": "v1.0 (P1/P2/P3/P4)",
+      "created_at": "2026-10-01T15:37:29Z",
+      "promoted_at": "2026-10-01T22:39:56Z",
+      "artifact_path": "priority-v2/model.joblib",
+      "artifact_sha256": "be52c2dbfe28001a66b134d1125dfa8d117bbe64206590d71bde9f7029f3cd75",
+      "changelog": "Candidate priority-v2 trained on dataset-v2. Trained with modern Gmail verification, security incident, and promotional negation examples. Holdout accuracy: 0.8067, Macro F1: 0.7943."
+    },
+    "priority-v3": {
+      "model_version": "priority-v3",
+      "name": "MailMind Priority Classifier priority-v3 (OTP & Time-Sensitive Verification)",
+      "status": "production",
+      "dataset_version": "dataset-v3",
+      "feature_version": "tfidf-v3 (10,000 sublinear ngrams)",
+      "label_schema_version": "v1.0 (P1/P2/P3/P4)",
+      "created_at": "2026-10-01T21:58:09.947744+00:00",
+      "promoted_at": "2026-10-01T22:39:56Z",
+      "artifact_path": "priority-v3/model.joblib",
+      "artifact_sha256": "fa69e6a5cfafb8b24c5941dbb8fb08a208addfc4f39e38fa47df0a7cd7040b56",
+      "changelog": "Trained on dataset-v3 with modern time-sensitive authentication, login OTPs, MFA codes, and non-actionable confirmations. Holdout accuracy: 0.8067, Macro F1: 0.7943."
+    }
+  }
+}

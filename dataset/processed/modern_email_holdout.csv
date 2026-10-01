@@ -1,0 +1,13 @@
+holdout_id,subject,body,final_label,expected_action,topic
+mod_holdout_01,Workday: Your one-time login verification passcode,Your authentication passcode is 729104. This single-use code is valid for 5 minutes. Enter the passcode on the sign-in screen to proceed.,P1,True,security
+mod_holdout_02,Chase Online: Temporary verification code,We received a sign-in request from a new device. Use code 391028 to verify your identity. Valid for 10 minutes only. Do not share.,P1,True,security
+mod_holdout_03,Notion: Login code for your workspace,Your magic login code is 840291. It will expire in 15 minutes. Enter this code to sign in to your Notion team account.,P1,True,security
+mod_holdout_04,Password reset request for your Discord account,"You requested a password reset. Your temporary reset code is 619283. This code expires in 10 minutes. If you did not request this, secure your account.",P1,True,security
+mod_holdout_05,Cloudflare: Dashboard login MFA token,Use MFA verification token 501928 to complete your cloud portal authentication. This token expires in 5 minutes.,P1,True,security
+mod_holdout_06,Greenhouse Recruitment: Portal access verification,"Dear Applicant, your access code for the interview submission portal is 481920. Code is valid only for 10:00 mins.",P1,True,security
+mod_holdout_07,Account verified: Welcome to your developer portal,"Congratulations, your organization account verification was successfully completed. You now have full API sandbox access. Enjoy building!",P3,False,operational
+mod_holdout_08,Security settings update: Two-factor authentication enabled,This is a confirmation that two-factor authentication was enabled for your profile. No further action is required.,P3,False,security
+mod_holdout_09,Monthly account security summary - October,Review your monthly security digest and recent login locations. All services operated normally this past month.,P4,False,security
+mod_holdout_10,NPTEL: Assignment 12 deadline is approaching,"Dear Candidates, the deadline for submitting Assignment 12 is tomorrow at 23:59 IST. Please submit your answers before the deadline.",P2,True,academic
+mod_holdout_11,Invoice #49102 overdue - payment required,Your invoice for September services is overdue. Please pay now to avoid service interruption to your enterprise account.,P2,True,billing
+mod_holdout_12,Flash Sale: 60% off all developer subscriptions today only,Celebrate our annual sale! Get 60% flat discount on pro annual plans. Use coupon code DEV60 at checkout. Buy now.,P4,False,promotional

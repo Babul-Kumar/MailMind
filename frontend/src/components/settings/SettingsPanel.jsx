@@ -1,0 +1,413 @@
+import React, { useState } from 'react';
+import { Modal } from '../common/Modal';
+import { Button } from '../common/Button';
+import { Sliders, Inbox as InboxIcon, Cpu, Shield, RefreshCw, Layers, Database } from 'lucide-react';
+
+export function SettingsPanel({
+  isOpen,
+  onClose,
+  pageSize = 50,
+  onChangePageSize,
+  gmailQuery = '',
+  onUpdateQuery,
+  scanStatus,
+  onStartScan,
+  onRescan,
+  onCancelScan,
+  profile,
+  theme,
+  onToggleTheme,
+  density = 'comfortable',
+  onChangeDensity,
+}) {
+  const [activeTab, setActiveTab] = useState('general');
+  const [localQuery, setLocalQuery] = useState(gmailQuery);
+  const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
+  const [scanScope, setScanScope] = useState('mailbox');
+
+  const handleApply = () => {
+    if (onChangePageSize) onChangePageSize(Number(selectedPageSize));
+    if (onUpdateQuery) onUpdateQuery(localQuery);
+    onClose();
+  };
+
+  const tabs = [
+    { id: 'general', label: 'General', icon: Sliders },
+    { id: 'mailbox', label: 'Complete Mailbox', icon: InboxIcon },
+    { id: 'model', label: 'AI & Model', icon: Cpu },
+    { id: 'privacy', label: 'Privacy', icon: Shield },
+  ];
+
+  const isScanningActive = scanStatus && ['QUEUED', 'SCANNING', 'ANALYZING', 'FINALIZING'].includes(scanStatus.status);
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Options & Settings" maxWidth="620px">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+        {/* Tab Navigation */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.4rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            paddingBottom: '0.6rem',
+          }}
+          role="tablist"
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  backgroundColor: isActive ? 'var(--bg-card)' : 'transparent',
+                  color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                  border: isActive ? '1px solid var(--border-subtle)' : '1px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)',
+                }}
+              >
+                <Icon size={14} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        <div style={{ minHeight: '260px' }}>
+          {/* TAB 1: GENERAL */}
+          {activeTab === 'general' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-main)' }}>Appearance</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Currently using {theme === 'dark' ? 'Dark' : 'Light'} theme
+                  </div>
+                </div>
+                <Button variant="secondary" size="sm" onClick={onToggleTheme}>
+                  Switch to {theme === 'dark' ? 'Light' : 'Dark'}
+                </Button>
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border-divider)', paddingTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-main)' }}>Display Density</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Adjust row height and spacing in the inbox
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button
+                    onClick={() => onChangeDensity?.('comfortable')}
+                    style={{
+                      padding: '0.35rem 0.7rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      backgroundColor: density === 'comfortable' ? 'var(--accent)' : 'var(--bg-input)',
+                      color: density === 'comfortable' ? '#ffffff' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Comfortable
+                  </button>
+                  <button
+                    onClick={() => onChangeDensity?.('compact')}
+                    style={{
+                      padding: '0.35rem 0.7rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      backgroundColor: density === 'compact' ? 'var(--accent)' : 'var(--bg-input)',
+                      color: density === 'compact' ? '#ffffff' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Compact
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border-divider)', paddingTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-main)' }}>Display Pagination</div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                    Emails rendered per page (analysis covers complete mailbox)
+                  </div>
+                </div>
+                <select
+                  value={selectedPageSize}
+                  onChange={(e) => setSelectedPageSize(Number(e.target.value))}
+                  style={{
+                    padding: '0.4rem 0.7rem',
+                    backgroundColor: 'var(--bg-input)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.82rem',
+                  }}
+                >
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
+                  <option value={200}>200 per page</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: COMPLETE MAILBOX */}
+          {activeTab === 'mailbox' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Mailbox Scope Selection */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                  Analysis Scope:
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => setScanScope('mailbox')}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '0.2rem',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: scanScope === 'mailbox' ? 'var(--bg-card)' : 'var(--bg-input)',
+                      border: `1px solid ${scanScope === 'mailbox' ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.82rem', color: scanScope === 'mailbox' ? 'var(--accent)' : 'var(--text-main)' }}>
+                      <Layers size={14} />
+                      <span>Complete Mailbox (Default)</span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Analyzes all accessible messages (Inbox, Sent, Archive, custom labels).
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setScanScope('label')}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '0.2rem',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: scanScope === 'label' ? 'var(--bg-card)' : 'var(--bg-input)',
+                      border: `1px solid ${scanScope === 'label' ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, fontSize: '0.82rem', color: scanScope === 'label' ? 'var(--accent)' : 'var(--text-main)' }}>
+                      <InboxIcon size={14} />
+                      <span>Inbox Only</span>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Restricts analysis strictly to the Gmail INBOX label.
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Scan Actions & Progress Status */}
+              <div
+                style={{
+                  padding: '0.85rem',
+                  backgroundColor: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.65rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    <Database size={15} color="var(--accent)" />
+                    <span>Mailbox Scan Operations</span>
+                  </div>
+                  {scanStatus && (
+                    <span style={{ fontSize: '0.74rem', padding: '0.15rem 0.5rem', borderRadius: '4px', backgroundColor: 'var(--bg-surface-hover)', color: 'var(--text-muted)' }}>
+                      Status: <strong>{scanStatus.status}</strong>
+                    </span>
+                  )}
+                </div>
+
+                {scanStatus && (
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.4rem' }}>
+                    <div>Discovered: <strong>{scanStatus.discovered?.toLocaleString() || 0}</strong></div>
+                    <div>Already Cached: <strong>{scanStatus.cached?.toLocaleString() || 0}</strong></div>
+                    <div>Newly Analyzed: <strong>{scanStatus.analyzed?.toLocaleString() || 0}</strong></div>
+                    <div>Failed: <strong>{scanStatus.failed || 0}</strong></div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={isScanningActive}
+                    onClick={() => {
+                      onStartScan?.({ scope: scanScope, mode: 'incremental' });
+                    }}
+                  >
+                    <RefreshCw size={13} className={isScanningActive ? 'animate-spin' : ''} />
+                    <span>Sync New &amp; Changed</span>
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={isScanningActive}
+                    onClick={() => {
+                      onRescan?.({ scope: scanScope });
+                    }}
+                  >
+                    <span>Full Rescan</span>
+                  </Button>
+
+                  {isScanningActive && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => onCancelScan?.()}
+                    >
+                      <span>Cancel Scan</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Advanced Gmail Query Filter */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                  Optional Gmail API Search Filter:
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. newer_than:30d or category:primary"
+                  value={localQuery}
+                  onChange={(e) => setLocalQuery(e.target.value)}
+                  style={{
+                    padding: '0.5rem 0.8rem',
+                    backgroundColor: 'var(--bg-input)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem',
+                  }}
+                />
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  Restricts discovered message IDs to match Gmail query syntax. Leave blank to scan complete mailbox.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: AI & MODEL */}
+          {activeTab === 'model' && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                backgroundColor: 'var(--bg-card)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.88rem' }}>
+                  Model Architecture (CSE472)
+                </span>
+                <span style={{ fontSize: '0.72rem', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 600 }}>
+                  Production Model · Version Controlled
+                </span>
+              </div>
+              <div><strong>Active Model:</strong> priority-v2 (Candidate promoted with human verification)</div>
+              <div><strong>Core Architecture:</strong> TF-IDF (10,000 sublinear n-grams) + Logistic Regression (L2)</div>
+              <div><strong>Held-Out Accuracy:</strong> 80.67% &bull; <strong>Macro F1:</strong> 0.7943 (Untouched test.csv)</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingTop: '0.3rem', borderTop: '1px solid var(--border-divider)' }}>
+                <strong style={{ color: 'var(--text-main)' }}>Priority Classes:</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.18rem', paddingLeft: '0.5rem' }}>
+                  <span><strong>P1 · Critical</strong> — Immediate action, hard deadline, crisis, security incident, or serious operational consequence.</span>
+                  <span><strong>P2 · Important</strong> — Meaningful action or response with genuine time constraint.</span>
+                  <span><strong>P3 · Routine</strong> — Informational or non-urgent.</span>
+                  <span><strong>P4 · Low</strong> — Promotional, noise, or no meaningful action.</span>
+                </div>
+              </div>
+              <div><strong>Lifecycle Governance:</strong> The active production model is strictly immutable during live inference. New models are trained offline on versioned datasets (e.g. dataset-v2), evaluated against holdouts, and promoted explicitly with instant rollback capability.</div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-divider)', paddingTop: '0.5rem' }}>
+                Registry: <code>dataset/models/registry.json</code> &bull; Active: <code>priority-v2</code> &bull; Rollback: <code>priority-v1</code>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: PRIVACY */}
+          {activeTab === 'privacy' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ padding: '0.85rem', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Authenticated Gmail Account
+                </div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '0.2rem' }}>
+                  {profile?.email_address
+                    ? (() => {
+                        const atIdx = profile.email_address.indexOf('@');
+                        if (atIdx === -1) return profile.email_address;
+                        const local = profile.email_address.slice(0, atIdx);
+                        const domain = profile.email_address.slice(atIdx);
+                        const visible = local.length > 6 ? local.slice(0, Math.min(local.length, 10)) : local.slice(0, Math.max(2, Math.floor(local.length / 2)));
+                        return `${visible}••••${domain}`;
+                      })()
+                    : 'Loading profile...'}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <div><strong>OAuth Scope:</strong> <code>https://www.googleapis.com/auth/gmail.readonly</code></div>
+                <div><strong>Permissions:</strong> Zero send, compose, delete, or modify permissions. The app can only inspect messages to organize them for you.</div>
+                <div><strong>Local Processing:</strong> All feature extraction, priority classification, and deadline parsing happen locally on your machine. No email content is sent to external cloud APIs.</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', marginTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.85rem' }}>
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleApply}>
+            Save Preferences
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}

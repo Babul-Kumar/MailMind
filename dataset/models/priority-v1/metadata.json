@@ -1,0 +1,13 @@
+{
+  "model_version": "priority-v1",
+  "name": "TF-IDF + Logistic Regression Baseline",
+  "status": "production",
+  "dataset_version": "dataset-v1",
+  "feature_version": "tfidf-v1 (10,000 sublinear ngrams)",
+  "label_schema_version": "v1.0 (P1/P2/P3/P4)",
+  "created_at": "2026-09-20T00:00:00Z",
+  "promoted_at": "2026-09-20T00:00:00Z",
+  "artifact_path": "priority-v1/model.joblib",
+  "artifact_sha256": "040496611b8a15247b6b00330f531670dedca34772c923439ddefec445c55a6e",
+  "changelog": "Initial baseline production model trained on Enron corporate communications."
+}

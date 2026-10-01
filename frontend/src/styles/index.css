@@ -1,0 +1,191 @@
+@import './tokens.css';
+@import './animations.css';
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+input, select {
+  font-family: inherit;
+}
+
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Responsive email detail drawer */
+.email-detail-drawer {
+  width: min(560px, 45vw);
+  max-width: 100%;
+}
+
+.drawer-back-btn {
+  display: none !important;
+}
+
+.drawer-close-x {
+  display: inline-flex !important;
+}
+
+@media (max-width: 900px) {
+  .email-detail-drawer {
+    width: min(480px, 60vw);
+  }
+}
+
+@media (max-width: 768px) {
+  .email-detail-drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .drawer-back-btn {
+    display: inline-flex !important;
+  }
+
+  .drawer-close-x {
+    display: none !important;
+  }
+}
+
+/* Email Row Desktop */
+.email-row {
+  display: grid;
+  grid-template-columns: 56px 160px 1fr 75px;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1.15rem;
+  border-bottom: 1px solid var(--border-divider);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  user-select: none;
+}
+
+.email-row-col-date {
+  text-align: right;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Mobile Responsive Email Row (<= 640px) */
+@media (max-width: 640px) {
+  .email-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.35rem !important;
+    padding: 0.85rem 1rem !important;
+  }
+
+  .email-row-col-badge {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .email-row-col-date {
+    display: none !important;
+  }
+
+  .email-row-mobile-date {
+    display: block !important;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .email-row-col-sender {
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+  }
+
+  .email-row-subject-line {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.2rem !important;
+    white-space: normal !important;
+  }
+
+  .email-row-dash {
+    display: none !important;
+  }
+
+  .email-row-subject {
+    font-size: 0.86rem !important;
+    font-weight: 600 !important;
+    max-width: 100% !important;
+  }
+
+  .email-row-snippet {
+    font-size: 0.8rem !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+  }
+}
+
+/* Compact Density Mode */
+[data-density="compact"] .email-row {
+  padding: 0.45rem 1.15rem !important;
+  gap: 0.65rem !important;
+}
+
+[data-density="compact"] .email-row-action-line {
+  display: none !important;
+}
+
+/* Min-width safety for very small screens (320px) */
+@media (max-width: 320px) {
+  .email-row {
+    padding: 0.65rem 0.65rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .email-row-col-sender {
+    font-size: 0.82rem !important;
+  }
+}

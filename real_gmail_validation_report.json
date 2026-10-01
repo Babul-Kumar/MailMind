@@ -1,0 +1,27 @@
+{
+  "user_email": "babulkumar0220@gmail.com",
+  "user_id": "1710120",
+  "gmail_messages_total": 17303,
+  "stage_1_full_scan": {
+    "discovered": 17303,
+    "pages_scanned": 35,
+    "already_cached": 0,
+    "newly_analyzed": 17303,
+    "failed": 0,
+    "api_calls": 973,
+    "retry_count": 245,
+    "total_duration_sec": 698.15,
+    "throughput_emails_per_sec": 24.8,
+    "peak_memory_mb": 272.2,
+    "cache_hit_rate": 0.0,
+    "sqlite_cache_count": 17303
+  },
+  "stage_2_incremental_sync": {
+    "discovered": 17303,
+    "already_cached": 17303,
+    "newly_analyzed": 0,
+    "failed": 0,
+    "cache_hit_rate": 100.0,
+    "duration_sec": 24.13
+  }
+}

@@ -1,0 +1,85 @@
+:root {
+  /* Common Brand & Priority Tokens */
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-light: rgba(99, 102, 241, 0.12);
+  --sparkle-color: #818cf8;
+
+  /* Priority Badges */
+  --p1-color: #ef4444;
+  --p1-bg: rgba(239, 68, 68, 0.12);
+  --p1-border: rgba(239, 68, 68, 0.28);
+
+  --p2-color: #f59e0b;
+  --p2-bg: rgba(245, 158, 11, 0.12);
+  --p2-border: rgba(245, 158, 11, 0.28);
+
+  --p3-color: #3b82f6;
+  --p3-bg: rgba(59, 130, 246, 0.12);
+  --p3-border: rgba(59, 130, 246, 0.28);
+
+  --p4-color: #94a3b8;
+  --p4-bg: rgba(148, 163, 184, 0.12);
+  --p4-border: rgba(148, 163, 184, 0.24);
+
+  /* Radius & Shadows */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
+  --shadow-drawer: -6px 0 24px rgba(0, 0, 0, 0.35);
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+/* Dark Theme (Default on :root) */
+:root,
+[data-theme="dark"] {
+  --bg-app: #0b0f19;
+  --bg-main: #0b0f19;
+  --bg-surface: #111827;
+  --bg-surface-hover: #1e293b;
+  --bg-surface-selected: #1e2538;
+  --bg-input: #0d1322;
+  --bg-card: #151d30;
+  --border-subtle: #242f48;
+  --border-divider: #1b2337;
+  --border-focus: #6366f1;
+
+  --text-main: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --badge-bg: rgba(255, 255, 255, 0.06);
+  --badge-text: #cbd5e1;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg-app: #f1f5f9;
+  --bg-main: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f8fafc;
+  --bg-surface-selected: #eef2ff;
+  --bg-input: #ffffff;
+  --bg-card: #ffffff;
+  --border-subtle: #cbd5e1;
+  --border-divider: #e2e8f0;
+  --border-focus: #6366f1;
+
+  --text-main: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+
+  --badge-bg: rgba(15, 23, 42, 0.06);
+  --badge-text: #334155;
+}
