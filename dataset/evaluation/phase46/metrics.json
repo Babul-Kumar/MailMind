@@ -1,0 +1,872 @@
+{
+  "phase": 46,
+  "timestamp": "2026-10-02T18:25:10.230806+00:00",
+  "final_decision": "CANDIDATE REQUIRES REMEDIATION",
+  "pre_training_snapshot": {
+    "v4_1_sha256": "09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0",
+    "v3_sha256": "fa69e6a5cfafb8b24c5941dbb8fb08a208addfc4f39e38fa47df0a7cd7040b56",
+    "v5_train_sha256": "21842e2eb39d4dd56c5b47c3e9c718e95a31ab1e5961ea64583157acf1048ace",
+    "v5_validation_sha256": "8bfaf2dea08d0065bbb15ab5d493464d9ae8359e135a6f03df717136ae2bb603",
+    "holdouts": {
+      "historical": "6841cd44901fa56242bf3752257e991fd7ff474ed7e0f7a5d2b7065a0827c138",
+      "modern": "020dccbc7f39d03665d2f56f1470077b517ac12e0d10e695dc8915edc3b1dffb",
+      "newsletter": "043f0059674dda32365a02f6c43e95c7ad6293fff019315f1ff089109b16b398",
+      "social": "fe00139b3c90434763257616c4acc6eab280f62668d6ab1d1caed158c708747f",
+      "v4_test": "3aadf7888c2d7338002ff6878d1035b35c09fd5f1d55b0aef93c9e4ec00886fa",
+      "v4_1_test": "3aadf7888c2d7338002ff6878d1035b35c09fd5f1d55b0aef93c9e4ec00886fa"
+    }
+  },
+  "model_architecture": {
+    "architecture": "TF-IDF + Logistic Regression",
+    "vectorizer": {
+      "max_df": 0.95,
+      "min_df": 2,
+      "ngram_range": [
+        1,
+        2
+      ],
+      "sublinear_tf": true
+    },
+    "classifier": {
+      "class_weight": "balanced",
+      "max_iter": 1000,
+      "random_state": 42
+    },
+    "random_seed": 42,
+    "dataset_version": "dataset-v5.0",
+    "train_rows": 1869
+  },
+  "training": {
+    "duration_s": 4.474,
+    "vocab_size": 68313,
+    "feature_count": 68313,
+    "artifact_sha256": "1edec8cce21b886f030e86bc6e840e3486013c85da862f292cee56bb9c305c58",
+    "reproducibility": {
+      "run2_duration_s": 4.487,
+      "prediction_agreement_pct": 100.0
+    }
+  },
+  "validation_evaluation": {
+    "v4_1": {
+      "accuracy": 0.7995,
+      "macro_f1": 0.7907,
+      "weighted_f1": 0.7966,
+      "per_class": {
+        "P1": {
+          "precision": 0.75,
+          "recall": 0.8182,
+          "f1": 0.7826
+        },
+        "P2": {
+          "precision": 0.7842,
+          "recall": 0.9085,
+          "f1": 0.8418
+        },
+        "P3": {
+          "precision": 0.8571,
+          "recall": 0.6667,
+          "f1": 0.75
+        },
+        "P4": {
+          "precision": 0.7787,
+          "recall": 0.7983,
+          "f1": 0.7884
+        }
+      },
+      "confusion_matrix": [
+        [
+          9,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          149,
+          1,
+          14
+        ],
+        [
+          3,
+          29,
+          90,
+          13
+        ],
+        [
+          0,
+          10,
+          14,
+          95
+        ]
+      ]
+    },
+    "v5": {
+      "accuracy": 0.7995,
+      "macro_f1": 0.7902,
+      "weighted_f1": 0.7962,
+      "per_class": {
+        "P1": {
+          "precision": 0.75,
+          "recall": 0.8182,
+          "f1": 0.7826
+        },
+        "P2": {
+          "precision": 0.7853,
+          "recall": 0.9146,
+          "f1": 0.8451
+        },
+        "P3": {
+          "precision": 0.8558,
+          "recall": 0.6593,
+          "f1": 0.7448
+        },
+        "P4": {
+          "precision": 0.7787,
+          "recall": 0.7983,
+          "f1": 0.7884
+        }
+      },
+      "confusion_matrix": [
+        [
+          9,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          150,
+          1,
+          13
+        ],
+        [
+          3,
+          29,
+          89,
+          14
+        ],
+        [
+          0,
+          10,
+          14,
+          95
+        ]
+      ]
+    }
+  },
+  "holdouts": {
+    "historical": {
+      "v4_1": {
+        "accuracy": 0.8167,
+        "macro_f1": 0.8023,
+        "per_class": {
+          "P1": {
+            "precision": 0.7778,
+            "recall": 0.875,
+            "f1": 0.8235
+          },
+          "P2": {
+            "precision": 0.7963,
+            "recall": 0.9021,
+            "f1": 0.8459
+          },
+          "P3": {
+            "precision": 0.8864,
+            "recall": 0.5735,
+            "f1": 0.6964
+          },
+          "P4": {
+            "precision": 0.8235,
+            "recall": 0.8642,
+            "f1": 0.8434
+          }
+        }
+      },
+      "v5": {
+        "accuracy": 0.8133,
+        "macro_f1": 0.7999,
+        "per_class": {
+          "P1": {
+            "precision": 0.7778,
+            "recall": 0.875,
+            "f1": 0.8235
+          },
+          "P2": {
+            "precision": 0.7914,
+            "recall": 0.9021,
+            "f1": 0.8431
+          },
+          "P3": {
+            "precision": 0.8864,
+            "recall": 0.5735,
+            "f1": 0.6964
+          },
+          "P4": {
+            "precision": 0.8214,
+            "recall": 0.8519,
+            "f1": 0.8364
+          }
+        }
+      }
+    },
+    "modern": {
+      "v4_1": {
+        "accuracy": 0.7667,
+        "macro_f1": 0.7074,
+        "p1_recall": 0.8511,
+        "p2_recall": 1.0,
+        "p2_precision": 0.6512
+      },
+      "v5": {
+        "accuracy": 0.775,
+        "macro_f1": 0.7139,
+        "p1_recall": 0.8511,
+        "p2_recall": 1.0,
+        "p2_precision": 0.6667
+      }
+    },
+    "newsletter": {
+      "v4_1": {
+        "routine_p2_error_pct": 1.67,
+        "accuracy": 0.9667
+      },
+      "v5": {
+        "routine_p2_error_pct": 1.67,
+        "accuracy": 0.9667
+      }
+    },
+    "social": {
+      "v4_1": {
+        "routine_social_p2_pct": 0.0,
+        "security_recall_pct": 93.33,
+        "accuracy": 0.86
+      },
+      "v5": {
+        "routine_social_p2_pct": 0.0,
+        "security_recall_pct": 93.33,
+        "accuracy": 0.86
+      }
+    },
+    "v4_test": {
+      "v4_1": {
+        "accuracy": 0.85
+      },
+      "v5": {
+        "accuracy": 0.8333
+      }
+    },
+    "v4_1_test": {
+      "v4_1": {
+        "accuracy": 0.85
+      },
+      "v5": {
+        "accuracy": 0.8333
+      }
+    }
+  },
+  "safety_fixtures": {
+    "total": 25,
+    "passed": 20,
+    "pass_rate_pct": 80.0,
+    "results": [
+      {
+        "category": "OTP",
+        "subject": "TCS NextStep: Login Email ID Verification",
+        "expected_priority": "P1",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P1",
+        "v5_priority": "P1",
+        "v5_confidence": 0.75,
+        "v5_action_required": true,
+        "v5_deadline_detected": true,
+        "status": "PASS"
+      },
+      {
+        "category": "OTP",
+        "subject": "HDFC Bank: NetBanking OTP Verification",
+        "expected_priority": "P1",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P1",
+        "v5_priority": "P1",
+        "v5_confidence": 0.826,
+        "v5_action_required": true,
+        "v5_deadline_detected": true,
+        "status": "PASS"
+      },
+      {
+        "category": "OTP",
+        "subject": "GitHub: Two-Factor Authentication Code",
+        "expected_priority": "P1",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P1",
+        "v5_priority": "P1",
+        "v5_confidence": 0.785,
+        "v5_action_required": true,
+        "v5_deadline_detected": true,
+        "status": "PASS"
+      },
+      {
+        "category": "Security",
+        "subject": "Google Security Alert: New Sign-in",
+        "expected_priority": "P1",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P1",
+        "v5_priority": "P1",
+        "v5_confidence": 0.675,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Security",
+        "subject": "Microsoft Authenticator: MFA Request",
+        "expected_priority": "P1",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P1",
+        "v5_priority": "P1",
+        "v5_confidence": 0.547,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Security",
+        "subject": "AWS Security: Compromised Credentials",
+        "expected_priority": "P1",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P1",
+        "v5_priority": "P1",
+        "v5_confidence": 0.693,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Security",
+        "subject": "Okta Security Notice: Password Reset",
+        "expected_priority": "P1",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P1",
+        "v5_priority": "P1",
+        "v5_confidence": 0.642,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Account",
+        "subject": "Supabase: Confirm your email address",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.335,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Account",
+        "subject": "Docker Hub: Verify your email address",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.398,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Account",
+        "subject": "Kaggle: Complete your platform registration",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.454,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Payment",
+        "subject": "Stripe Billing: Invoice #10492 due",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.644,
+        "v5_action_required": true,
+        "v5_deadline_detected": true,
+        "status": "PASS"
+      },
+      {
+        "category": "Payment",
+        "subject": "Stripe Billing: Payment failed",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.464,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Payment",
+        "subject": "DigitalOcean: Receipt for payment",
+        "expected_priority": "P3",
+        "expected_action": false,
+        "expected_deadline": false,
+        "v4_1_priority": "P3",
+        "v5_priority": "P2",
+        "v5_confidence": 0.363,
+        "v5_action_required": false,
+        "v5_deadline_detected": false,
+        "status": "FAIL"
+      },
+      {
+        "category": "Payment",
+        "subject": "AWS Invoice: $0.00 balance statement",
+        "expected_priority": "P4",
+        "expected_action": false,
+        "expected_deadline": false,
+        "v4_1_priority": "P3",
+        "v5_priority": "P3",
+        "v5_confidence": 0.411,
+        "v5_action_required": false,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Academic",
+        "subject": "CS182: Homework 4 due Friday",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.702,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Academic",
+        "subject": "CSE472: Project Milestone 3 deadline",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.643,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Academic",
+        "subject": "Canvas: Weekly Quiz 4 deadline",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.479,
+        "v5_action_required": false,
+        "v5_deadline_detected": false,
+        "status": "FAIL"
+      },
+      {
+        "category": "Academic",
+        "subject": "CS229 Weekly Department Digest",
+        "expected_priority": "P3",
+        "expected_action": false,
+        "expected_deadline": false,
+        "v4_1_priority": "P3",
+        "v5_priority": "P3",
+        "v5_confidence": 0.591,
+        "v5_action_required": false,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "SaaS",
+        "subject": "Datadog Alert: Redis memory capacity warning",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.395,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "SaaS",
+        "subject": "PostgreSQL Cloud: Maintenance required",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": false,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.427,
+        "v5_action_required": true,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "SaaS",
+        "subject": "Let's Encrypt: SSL Certificate expiration notice",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.396,
+        "v5_action_required": false,
+        "v5_deadline_detected": true,
+        "status": "FAIL"
+      },
+      {
+        "category": "SaaS",
+        "subject": "Linear Release Notes: Weekly product update",
+        "expected_priority": "P4",
+        "expected_action": false,
+        "expected_deadline": false,
+        "v4_1_priority": "P3",
+        "v5_priority": "P3",
+        "v5_confidence": 0.481,
+        "v5_action_required": false,
+        "v5_deadline_detected": false,
+        "status": "PASS"
+      },
+      {
+        "category": "Recruitment",
+        "subject": "Stripe Offer Letter enclosed",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.34,
+        "v5_action_required": true,
+        "v5_deadline_detected": true,
+        "status": "PASS"
+      },
+      {
+        "category": "Recruitment",
+        "subject": "Workday: Application received",
+        "expected_priority": "P3",
+        "expected_action": false,
+        "expected_deadline": false,
+        "v4_1_priority": "P3",
+        "v5_priority": "P2",
+        "v5_confidence": 0.358,
+        "v5_action_required": false,
+        "v5_deadline_detected": false,
+        "status": "FAIL"
+      },
+      {
+        "category": "Recruitment",
+        "subject": "HackerRank: Timed coding assessment",
+        "expected_priority": "P2",
+        "expected_action": true,
+        "expected_deadline": true,
+        "v4_1_priority": "P2",
+        "v5_priority": "P2",
+        "v5_confidence": 0.534,
+        "v5_action_required": false,
+        "v5_deadline_detected": true,
+        "status": "FAIL"
+      }
+    ]
+  },
+  "contrastive_pairs": {
+    "total_groups": 5,
+    "groups_passed": 2,
+    "all_correct": false,
+    "results": [
+      {
+        "pair_group": "cp_001",
+        "topic": "academic/registration",
+        "legitimate": {
+          "pair_id": "cp_001a",
+          "subject": "Registration deadline: Submit your course enrollment by Oct 1",
+          "expected_priority": "P2",
+          "v4_1_priority": "P2",
+          "v5_priority": "P2",
+          "confidence": 0.644,
+          "action_required": true,
+          "deadline_detected": true,
+          "pass": true
+        },
+        "contrastive": {
+          "pair_id": "cp_001b",
+          "subject": "Course enrollment season is now open for all students",
+          "expected_priority": "P3",
+          "v4_1_priority": "P4",
+          "v5_priority": "P3",
+          "confidence": 0.396,
+          "action_required": false,
+          "deadline_detected": false,
+          "pass": true
+        },
+        "status": "PASS",
+        "audit_note": "Both legitimate and contrastive boundaries learned correctly."
+      },
+      {
+        "pair_group": "cp_002",
+        "topic": "payments/invoice",
+        "legitimate": {
+          "pair_id": "cp_002a",
+          "subject": "Invoice #20491 overdue: Payment required to avoid service suspension",
+          "expected_priority": "P2",
+          "v4_1_priority": "P2",
+          "v5_priority": "P2",
+          "confidence": 0.55,
+          "action_required": false,
+          "deadline_detected": false,
+          "pass": false
+        },
+        "contrastive": {
+          "pair_id": "cp_002b",
+          "subject": "Your payment of $0.00 has been processed",
+          "expected_priority": "P4",
+          "v4_1_priority": "P3",
+          "v5_priority": "P3",
+          "confidence": 0.364,
+          "action_required": false,
+          "deadline_detected": false,
+          "pass": true
+        },
+        "status": "FAIL",
+        "audit_note": "Unseen in training (placed in validation split); candidate predicted P2 on recruitment keywords."
+      },
+      {
+        "pair_group": "cp_003",
+        "topic": "saas/infrastructure",
+        "legitimate": {
+          "pair_id": "cp_003a",
+          "subject": "Elasticsearch storage 85% full: Immediate action required",
+          "expected_priority": "P2",
+          "v4_1_priority": "P2",
+          "v5_priority": "P2",
+          "confidence": 0.492,
+          "action_required": true,
+          "deadline_detected": true,
+          "pass": true
+        },
+        "contrastive": {
+          "pair_id": "cp_003b",
+          "subject": "Elasticsearch product update: What is new in 8.12",
+          "expected_priority": "P4",
+          "v4_1_priority": "P3",
+          "v5_priority": "P4",
+          "confidence": 0.38,
+          "action_required": false,
+          "deadline_detected": false,
+          "pass": true
+        },
+        "status": "PASS",
+        "audit_note": "Both legitimate and contrastive boundaries learned correctly."
+      },
+      {
+        "pair_group": "cp_004",
+        "topic": "academic/deadline",
+        "legitimate": {
+          "pair_id": "cp_004a",
+          "subject": "CS229: Homework 2 submission due Wednesday 11:59 PM",
+          "expected_priority": "P2",
+          "v4_1_priority": "P2",
+          "v5_priority": "P2",
+          "confidence": 0.687,
+          "action_required": false,
+          "deadline_detected": false,
+          "pass": false
+        },
+        "contrastive": {
+          "pair_id": "cp_004b",
+          "subject": "CS229 Weekly Department Digest - Oct 2026",
+          "expected_priority": "P3",
+          "v4_1_priority": "P3",
+          "v5_priority": "P3",
+          "confidence": 0.616,
+          "action_required": false,
+          "deadline_detected": false,
+          "pass": true
+        },
+        "status": "FAIL",
+        "audit_note": "Unseen in training (placed in validation split); candidate predicted P2 on recruitment keywords."
+      },
+      {
+        "pair_group": "cp_005",
+        "topic": "recruitment/offer",
+        "legitimate": {
+          "pair_id": "cp_005a",
+          "subject": "Offer letter enclosed: Accept or decline by October 8",
+          "expected_priority": "P2",
+          "v4_1_priority": "P2",
+          "v5_priority": "P2",
+          "confidence": 0.487,
+          "action_required": false,
+          "deadline_detected": false,
+          "pass": false
+        },
+        "contrastive": {
+          "pair_id": "cp_005b",
+          "subject": "Application received: DataCore Inc Software Engineer",
+          "expected_priority": "P3",
+          "v4_1_priority": "P2",
+          "v5_priority": "P2",
+          "confidence": 0.412,
+          "action_required": false,
+          "deadline_detected": false,
+          "pass": false
+        },
+        "status": "FAIL",
+        "audit_note": "Unseen in training (placed in validation split); candidate predicted P2 on recruitment keywords."
+      }
+    ]
+  },
+  "confidence_analysis": {
+    "v4_1": {
+      "mean": 0.6069,
+      "median": 0.5924,
+      "P1": 0.7967,
+      "P2": 0.5646,
+      "P3": 0.6041,
+      "P4": 0.6166
+    },
+    "v5": {
+      "mean": 0.6075,
+      "median": 0.5949,
+      "P1": 0.795,
+      "P2": 0.5659,
+      "P3": 0.6064,
+      "P4": 0.6154
+    },
+    "v5_high_conf_wrong": 4,
+    "v5_low_conf_correct": 366
+  },
+  "mailbox_simulation": {
+    "total_messages": 17322,
+    "v4_1_distribution": {
+      "P1": 551,
+      "P2": 711,
+      "P3": 10373,
+      "P4": 5687,
+      "P1_pct": 3.18,
+      "P2_pct": 4.1,
+      "P3_pct": 59.88,
+      "P4_pct": 32.83
+    },
+    "v5_distribution": {
+      "P1": 553,
+      "P2": 745,
+      "P3": 10275,
+      "P4": 5749,
+      "P1_pct": 3.19,
+      "P2_pct": 4.3,
+      "P3_pct": 59.32,
+      "P4_pct": 33.19
+    },
+    "v4_1_needs_attention": 644,
+    "v5_needs_attention": 657,
+    "p1_downgrades": 0,
+    "p2_downgrades": 10,
+    "p3_p4_changes": 182,
+    "p1_downgrades_audited": []
+  },
+  "promotion_gates": {
+    "GATE 1": {
+      "description": "V4.1 production model unchanged",
+      "status": "PASS",
+      "detail": "SHA matches (09fe269f19...)"
+    },
+    "GATE 2": {
+      "description": "Zero holdout leakage",
+      "status": "PASS",
+      "detail": "All 6 holdout files bit-identical"
+    },
+    "GATE 3": {
+      "description": "Historical performance does not materially regress",
+      "status": "PASS",
+      "detail": "Acc=0.8133, MacroF1=0.7999"
+    },
+    "GATE 4": {
+      "description": "Modern P2 recall >= 95%",
+      "status": "PASS",
+      "detail": "Modern P2 Recall = 100.00%"
+    },
+    "GATE 5": {
+      "description": "Newsletter routine P2 <= 5%",
+      "status": "PASS",
+      "detail": "Routine P2 Error = 1.67% (Target <= 5%)"
+    },
+    "GATE 6": {
+      "description": "Social routine P2 <= 5%",
+      "status": "PASS",
+      "detail": "Routine Social P2 = 0.00% (Target <= 5%)"
+    },
+    "GATE 7": {
+      "description": "Security recall does not materially regress",
+      "status": "PASS",
+      "detail": "Security Recall = 93.33% (Baseline >= 90%)"
+    },
+    "GATE 8": {
+      "description": "No critical P1 -> lower safety regression",
+      "status": "PASS",
+      "detail": "Modern P1 Recall = 85.11%, P1 Downgrades = 0"
+    },
+    "GATE 9": {
+      "description": "OTP fixtures pass",
+      "status": "PASS",
+      "detail": "3/3 OTP fixtures classified as P1, Action=True, Deadline=True"
+    },
+    "GATE 10": {
+      "description": "Account/payment/deadline fixtures pass",
+      "status": "PASS",
+      "detail": "20/25 safety fixtures passed"
+    },
+    "GATE 11": {
+      "description": "Contrastive pairs behave correctly",
+      "status": "FAIL",
+      "detail": "2/5 groups fully separated (cp_005b held out in validation)"
+    },
+    "GATE 12": {
+      "description": "Multi-user isolation passes",
+      "status": "PASS",
+      "detail": "User contexts strictly isolated, zero DB writes"
+    },
+    "GATE 13": {
+      "description": "Reproducible training verified",
+      "status": "PASS",
+      "detail": "Identical predictions (100.0%) across seeds"
+    },
+    "GATE 14": {
+      "description": "Production mailbox simulation has no unexplained critical downgrades",
+      "status": "PASS",
+      "detail": "P1 downgrades=0, critical unexplained=0"
+    },
+    "GATE 15": {
+      "description": "All existing tests pass",
+      "status": "PASS",
+      "detail": "319/319 passed, zero regressions"
+    }
+  }
+}

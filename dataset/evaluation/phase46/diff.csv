@@ -1,0 +1,9 @@
+dataset,index,subject,true_label,v4_1_pred,v4_1_conf,v5_pred,v5_conf,v4_1_correct,v5_correct,shift_type
+v5_val,278,Lite Bytz RSVP,P2,P4,0.3675891860545429,P2,0.36435520975297564,False,True,V4.1 wrong -> V5 correct (IMPROVEMENT)
+v5_val,302,Registration verified - Account active,P3,P3,0.31858921809114893,P2,0.3047703319088993,True,False,V4.1 correct -> V5 wrong (REGRESSION)
+v5_val,407,Receipt for your recent payment to Spotify,P3,P2,0.32998349678780653,P4,0.3407650223256432,False,False,Both wrong (DIFFERENT ERROR)
+historical,111,Thank you for your referral,P4,P4,0.37780075739347796,P2,0.3760475329810632,True,False,V4.1 correct -> V5 wrong (REGRESSION)
+modern,36,Your account was verified yesterday,P3,P2,0.313074067905555,P4,0.31232030281379514,False,False,Both wrong (DIFFERENT ERROR)
+modern,80,Critical error spike: Production database connection pool exhausted,P1,P3,0.3225295987923045,P2,0.32877072172945754,False,False,Both wrong (DIFFERENT ERROR)
+modern,107,CS229: Lecture 8 slides and recording available,P3,P2,0.36054980021303895,P3,0.35967799531203026,False,True,V4.1 wrong -> V5 correct (IMPROVEMENT)
+v4_test,18,🎉 Your Webinar Registration is Confirmed for 30 Days Full Stack Master Class!,P3,P3,0.34027307575218496,P4,0.33440917769533945,True,False,V4.1 correct -> V5 wrong (REGRESSION)

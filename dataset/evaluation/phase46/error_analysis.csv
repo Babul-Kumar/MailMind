@@ -1,0 +1,6 @@
+dataset,subject,true_label,v4_1_pred,v5_pred,v5_confidence,category,transition,explanation
+v5_val,Lite Bytz RSVP,P2,P4,P2,0.36435520975297564,nan,P4 -> P2 (True: P2),V5 improved on nan: corrected V4.1 mistake (P4 -> P2) with confidence 0.364.
+v5_val,Registration verified - Account active,P3,P3,P2,0.3047703319088993,nan,P3 -> P2 (True: P3),V5 regressed on nan: true P3 predicted as P2 with confidence 0.305.
+historical,Thank you for your referral,P4,P4,P2,0.3760475329810632,historical,P4 -> P2 (True: P4),V5 regressed on historical: true P4 predicted as P2 with confidence 0.376.
+modern,CS229: Lecture 8 slides and recording available,P3,P2,P3,0.35967799531203026,academic,P2 -> P3 (True: P3),V5 improved on academic: corrected V4.1 mistake (P2 -> P3) with confidence 0.360.
+v4_test,🎉 Your Webinar Registration is Confirmed for 30 Days Full Stack Master Class!,P3,P3,P4,0.33440917769533945,v4_test,P3 -> P4 (True: P3),V5 regressed on v4_test: true P3 predicted as P4 with confidence 0.334.

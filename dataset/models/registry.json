@@ -66,6 +66,19 @@
       "artifact_path": "priority-v4.1/model.joblib",
       "artifact_sha256": "09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0",
       "changelog": "Candidate model trained on dataset-v4.1 with contrastive boundary repair data. Restores legitimate P2 recall on modern operational communications (academic, payment, recruitment, deadlines, infrastructure) while preserving newsletter/social bulk de-escalation."
+    },
+    "priority-v5": {
+      "model_version": "priority-v5",
+      "name": "MailMind Priority Classifier priority-v5 (Adjudicated Feedback & Contrastive Pairs)",
+      "status": "candidate",
+      "dataset_version": "dataset-v5.0",
+      "feature_version": "tfidf-v5.0 (sublinear ngrams 1-2, min_df=2, max_df=0.95)",
+      "label_schema_version": "v1.0 (P1/P2/P3/P4)",
+      "created_at": "2026-10-02T18:25:10.218404+00:00",
+      "promoted_at": null,
+      "artifact_path": "priority-v5-candidate/model.joblib",
+      "artifact_sha256": "1edec8cce21b886f030e86bc6e840e3486013c85da862f292cee56bb9c305c58",
+      "changelog": "Candidate model trained on dataset-v5 with human-adjudicated production feedback and contrastive boundary pairs. Evaluated offline across historical, modern, newsletter, and social holdouts, plus 17,322-message mailbox simulation."
     }
   }
 }

@@ -3,7 +3,7 @@
 **Course Project:** CSE472 — Natural Language Processing / Applied Artificial Intelligence  
 **Author / Developer:** Babul Kumar  
 **System Status:** Production Hardened • Fully Validated • Read-Only Gmail OAuth 2.0  
-**Current Production Model:** `priority-v4.1` (Boundary Repair) (*Production*, Historical Test Accuracy: **80.67%**, Macro F1: **0.7943** • Modern Holdout Accuracy: **80.00%**, P1 Recall: **93.62%** • Dataset-v5 Candidate: **READY**)
+**Current Production Model:** `priority-v4.1` (Boundary Repair) (*Production*, Historical Test Accuracy: **81.67%**, Macro F1: **0.8023** • Modern Holdout P2 Recall: **100.00%** • Phase 46 Candidate: `priority-v5` evaluated, **REMEDIATION REQUIRED** before shadow)
 
 ---
 
@@ -703,6 +703,30 @@ The shadow promotion protocol for `priority-v4.1` compared live production class
 - **Automated Tests:** 319 passed, 0 failed (14 new Phase 45 tests added).
 - **Audit Report:** [`docs/PHASE_45_DATASET_V5_TRAINING_READINESS.md`](docs/PHASE_45_DATASET_V5_TRAINING_READINESS.md).
 - **Final Decision:** **`READY FOR OFFLINE TRAINING`**.
+
+---
+
+### Phase 46 — Priority-v5 Candidate Training & Comprehensive Evaluation
+
+- **Phase Objective:** Train offline candidate model `priority-v5-candidate` on `dataset-v5/train.csv` (1,869 rows) and execute comprehensive 15-gate comparative evaluation against active production model `priority-v4.1`.
+- **Active Model Status:** `priority-v4.1` remains **ACTIVE** in production (`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`).
+- **Candidate Model Status:** `priority-v5` registered strictly as **CANDIDATE** (`1edec8cce21b886f030e86bc6e840e3486013c85da862f292cee56bb9c305c58`).
+- **Holdout Integrity:** All 6 frozen holdout files (`test.csv`, `modern_holdout.csv`, `newsletter_holdout.csv`, `social_holdout.csv`, `dataset-v4/test.csv`, `dataset-v4.1/test.csv`) remain 100% bit-identical.
+- **Model Architecture:** TF-IDF (1-2 ngrams, min_df=2, max_df=0.95, sublinear) + Logistic Regression (C=1.0, balanced weights, seed=42). Identical to production to isolate dataset effect.
+- **Training Metrics:** 1,869 rows fitted in 4.569s; 68,313 vocabulary features extracted; 100.0% deterministic reproducibility verified across independent training runs.
+- **Validation Evaluation ($N=429$):** Accuracy 0.7995, Macro F1 0.7902, P2 Recall improved to **0.9146** (+0.61%).
+- **Historical Holdout ($N=300$):** Accuracy 0.8133, Macro F1 0.7999, P1 Recall 0.8750, P2 Recall 0.9021 (no material regression; Gate 3 PASS).
+- **Modern Holdout ($N=120$):** Modern P2 Recall reaches **100.00%** (28/28, target $\ge 95\%$), Accuracy 0.7750 (+0.83%), Macro F1 0.7139 (+0.65%), P1 Recall 0.8511 (Gate 4 PASS).
+- **Newsletter Holdout ($N=60$):** Routine P2 error rate kept to **1.67%** (1/60, target $\le 5.0\%$, Gate 5 PASS).
+- **Social Holdout ($N=50$):** Routine social P2 error rate **0.00%** (0/50, target $\le 5.0\%$), Security event recall **93.33%** (14/15, Gate 6 & 7 PASS).
+- **Safety Fixtures ($N=25$):** 20/25 passed ($80.0\%$). All 3 OTP fixtures passed with P1 + Action Required + Deadline detected ($100.0\%$, Gate 9 PASS).
+- **Contrastive Boundary Pairs ($N=10$, 5 groups):** 4/5 groups cleanly separated. Group `cp_005b` (*"Application received"*) failed to de-escalate to P3 because it was placed in the validation split during Phase 44 construction and was never trained (Gate 11 FAIL).
+- **Production Mailbox Simulation ($N=17,322$):** Zero DB writes, 100% audit of P1 transitions revealed exactly **0 P1 downgrades**. Distribution: P1: 3.19%, P2: 4.30%, P3: 59.32%, P4: 33.19%.
+- **Multi-User Isolation:** Deterministic across user contexts with zero DB mutations or cross-user cache leakage.
+- **Test Suite:** 335 backend tests passed (16 new Phase 46 candidate tests added), 9 frontend tests passed, frontend production build succeeded.
+- **Evaluation Artifacts:** Saved in `dataset/evaluation/phase46/` (`v4_1_predictions.csv`, `v5_predictions.csv`, `diff.csv`, `error_analysis.csv`, `metrics.json`, `v4_1_mailbox_predictions.csv`, `v5_mailbox_predictions.csv`).
+- **Comprehensive Evaluation Report:** [`docs/PHASE_46_PRIORITY_V5_CANDIDATE_EVALUATION.md`](docs/PHASE_46_PRIORITY_V5_CANDIDATE_EVALUATION.md).
+- **Final Decision:** **`CANDIDATE REQUIRES REMEDIATION`** (remains offline candidate; `priority-v4.1` remains ACTIVE in production).
 
 ---
 
