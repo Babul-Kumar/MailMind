@@ -1,0 +1,22 @@
+{
+  "single_inference_ms": {
+    "v3_median": 2.34,
+    "v3_p95": 3.32,
+    "v4_1_median": 2.32,
+    "v4_1_p95": 3.58
+  },
+  "batch_100_ms": {
+    "v3": 11.35,
+    "v4_1": 10.76
+  },
+  "batch_1000_ms": {
+    "v3": 84.63,
+    "v4_1": 86.11
+  },
+  "complete_mailbox_17319": {
+    "v3_duration_s": 1.33,
+    "v3_throughput_msg_sec": 13033.6,
+    "v4_1_duration_s": 1.45,
+    "v4_1_throughput_msg_sec": 11957.8
+  }
+}

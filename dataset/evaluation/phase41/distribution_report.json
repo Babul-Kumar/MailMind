@@ -1,0 +1,51 @@
+{
+  "user_id": "1710949",
+  "total_messages": 17322,
+  "v3_distribution": {
+    "total": 17322,
+    "P1": 386,
+    "P2": 14690,
+    "P3": 125,
+    "P4": 2121,
+    "P1_pct": 2.23,
+    "P2_pct": 84.81,
+    "P3_pct": 0.72,
+    "P4_pct": 12.24,
+    "action_required": 522,
+    "needs_attention": 653,
+    "deadlines": {
+      "ACTIVE": 6,
+      "OVERDUE": 7,
+      "EXPIRED": 65,
+      "HISTORICAL": 341,
+      "NONE": 16903
+    }
+  },
+  "v4_1_distribution": {
+    "total": 17322,
+    "P1": 551,
+    "P2": 711,
+    "P3": 10373,
+    "P4": 5687,
+    "P1_pct": 3.18,
+    "P2_pct": 4.1,
+    "P3_pct": 59.88,
+    "P4_pct": 32.83,
+    "action_required": 522,
+    "needs_attention": 644,
+    "deadlines": {
+      "ACTIVE": 6,
+      "OVERDUE": 7,
+      "EXPIRED": 65,
+      "HISTORICAL": 341,
+      "NONE": 16903
+    }
+  },
+  "deltas": {
+    "P1_delta": 165,
+    "P2_delta": -13979,
+    "P3_delta": 10248,
+    "P4_delta": 3566,
+    "needs_attention_delta": -9
+  }
+}

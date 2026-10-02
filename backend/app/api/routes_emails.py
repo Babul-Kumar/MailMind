@@ -22,6 +22,7 @@ from backend.app.gmail.client import (
 from backend.app.gmail.scan_engine import scan_manager, ScanJobState
 from backend.app.ml.predictor import load_model, predict_batch, predict_email
 from backend.app.ml.registry import model_registry
+from backend.app.core.prediction_log import log_prediction
 
 logger = logging.getLogger("mailmind.observability")
 router = APIRouter(tags=["Emails"])
@@ -156,6 +157,7 @@ def get_classified_emails(
     page: int = Query(default=1, ge=1, description="Display page number (1-indexed)"),
     page_size: int = Query(default=50, ge=1, le=500, description="Display page size (default 50)"),
     priority: Optional[str] = Query(default=None, description="Optional priority filter: ALL, P1, P2, P3, P4, NEEDS_ATTENTION"),
+    action_required: Optional[bool] = Query(default=None, description="Optional action required filter: true or false"),
     query: Optional[str] = Query(default=None, max_length=200, description="Optional search filter query"),
     scan_scope: str = Query(default="mailbox", description="Scan scope: 'mailbox' or 'label'")
 ):
@@ -262,6 +264,24 @@ def get_classified_emails(
             if mid:
                 user_email_cache.set(user_id, mid, pred)
                 newly_classified[mid] = pred
+                # Phase 43: fire-and-forget prediction log (no raw body, no credentials)
+                try:
+                    log_prediction(
+                        user_id=user_id,
+                        message_id=mid,
+                        thread_id=pred.get("thread_id"),
+                        model_version=pred.get("model_version", active_version),
+                        predicted_priority=pred.get("final_priority") or pred.get("predicted_priority", "P4"),
+                        confidence=pred.get("confidence", 0.0),
+                        action_required=bool(pred.get("action_required")),
+                        deadline_detected=bool(pred.get("deadline_detected")),
+                        deadline_status=pred.get("deadline_status"),
+                        topic=pred.get("topic"),
+                        needs_attention=bool(pred.get("needs_attention")),
+                        refinement_applied=bool(pred.get("refinement_applied")),
+                    )
+                except Exception:
+                    pass  # observability must never break production
 
     # 4. Assemble in original Gmail list order
     all_emails = []
@@ -279,8 +299,10 @@ def get_classified_emails(
     has_explicit_max = "max_emails" in request.query_params
     has_explicit_page = "page" in request.query_params
     has_explicit_priority = "priority" in request.query_params and priority != "ALL"
+    has_explicit_action = "action_required" in request.query_params
+    has_explicit_query = bool(query and query.strip())
 
-    use_display_pagination = has_explicit_page or has_explicit_priority or (not has_explicit_max and total_cached > len(all_emails))
+    use_display_pagination = has_explicit_page or has_explicit_priority or has_explicit_action or has_explicit_query or (not has_explicit_max and total_cached > len(all_emails))
 
     if use_display_pagination:
         emails_display, total_matching = user_email_cache.query_emails(
@@ -288,7 +310,8 @@ def get_classified_emails(
             priority=priority,
             search=query,
             page=page,
-            page_size=page_size
+            page_size=page_size,
+            action_required=action_required
         )
         total_analyzed = total_matching
         stats = stats_db

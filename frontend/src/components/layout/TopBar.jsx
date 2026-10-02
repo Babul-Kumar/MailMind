@@ -12,6 +12,7 @@ export function TopBar({
   isJustUpdated,
   loadingStep,
   profile,
+  stats,
   auth,
   onRefresh,
   scanStatus,
@@ -314,6 +315,32 @@ export function TopBar({
                 : scanStatus.status === 'ANALYZING'
                 ? `Analyzing: ${scanStatus.analyzed?.toLocaleString() || 0} / ${scanStatus.total?.toLocaleString() || 0} (${scanStatus.progress_percent || 0}%)`
                 : 'Finalizing Mailbox...'}
+            </span>
+          </div>
+        )}
+
+        {/* Sync Status Pill */}
+        {isAuthenticated && !isScanning && (stats?.total_analyzed > 0 || profile?.messages_total > 0) && (
+          <div
+            className="desktop-sync-status"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.28rem 0.65rem',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: 'rgba(34, 197, 94, 0.08)',
+              border: '1px solid rgba(34, 197, 94, 0.22)',
+              fontSize: '0.74rem',
+              color: '#22c55e',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}
+            title="Complete mailbox analyzed and cached in SQLite"
+          >
+            <span>✓</span>
+            <span>
+              {(stats?.total_analyzed || profile?.messages_total || 0).toLocaleString()} messages · Synced{isJustUpdated ? ' just now' : ''}
             </span>
           </div>
         )}

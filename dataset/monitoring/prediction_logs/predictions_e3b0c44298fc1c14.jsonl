@@ -1,0 +1,1 @@
+{"user_id": "", "message_id": "", "thread_id": "", "model_version": "priority-v4.1", "predicted_priority": "P4", "confidence": 0.5, "action_required": false, "deadline_detected": false, "deadline_status": "NONE", "topic": "other", "needs_attention": false, "refinement_applied": false, "prediction_timestamp": "2026-10-02T15:00:44Z"}

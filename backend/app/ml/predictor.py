@@ -84,6 +84,7 @@ def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
         explanation = "Model classified this email as Low / Promotional / Noise (model confidence: 50.0%). Email has no textual content."
         return {
             "email_id": email_data.get("email_id") or email_data.get("id", ""),
+            "thread_id": email_data.get("thread_id", ""),
             "date": date_str,
 
             "sender": sender,
@@ -97,15 +98,23 @@ def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
             "final_priority": "P4",
             "action_required": False,
             "action_reason": None,
+            "action_evidence": {
+                "imperative": False,
+                "operational_consequence": False,
+                "deadline_present": False,
+                "action_type": "none"
+            },
             "topic": "other",
             "deadline_detected": False,
             "deadline_datetime": None,
             "deadline_precision": "NONE",
             "deadline_display": None,
+            "deadline_status": "NONE",
             "refinement_applied": False,
             "refinement_reason": None,
             "refinement_signals": [],
             "review_suggested": False,
+            "needs_attention": False,
             "confidence": 0.5000,
             "confidence_level": "Moderate",
             "probabilities": {"P1": 0.05, "P2": 0.15, "P3": 0.30, "P4": 0.50},
@@ -151,17 +160,20 @@ def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
     review_suggested = refinement["review_suggested"]
     action_required = refinement["action_required"]
     action_reason = refinement.get("action_reason")
+    action_evidence = refinement.get("action_evidence", {})
     topic = refinement["topic"]
     deadline_detected = refinement.get("deadline_detected", False)
     deadline_datetime = refinement.get("deadline_datetime")
     deadline_precision = refinement.get("deadline_precision", "NONE")
     deadline_display = refinement.get("deadline_display")
+    deadline_status = refinement.get("deadline_status", "NONE")
 
     if refinement_applied:
         explanation += f" Priority refined to {final_priority} ({PRIORITY_MAPPING.get(final_priority, final_priority)}): {refinement_reason}."
 
     return {
         "email_id": email_data.get("email_id") or email_data.get("id", ""),
+        "thread_id": email_data.get("thread_id", ""),
         "date": date_str,
 
         "sender": sender,
@@ -175,16 +187,18 @@ def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
         "final_priority": final_priority,
         "action_required": action_required,
         "action_reason": action_reason,
+        "action_evidence": action_evidence,
         "topic": topic,
         "deadline_detected": deadline_detected,
         "deadline_datetime": deadline_datetime,
         "deadline_precision": deadline_precision,
         "deadline_display": deadline_display,
+        "deadline_status": deadline_status,
         "refinement_applied": refinement_applied,
         "refinement_reason": refinement_reason,
         "refinement_signals": refinement_signals,
         "review_suggested": review_suggested,
-        "needs_attention": (final_priority == "P1") or (final_priority == "P2" and action_required) or (action_required and deadline_detected),
+        "needs_attention": (final_priority == "P1") or (final_priority == "P2" and action_required) or (action_required and deadline_status in ("ACTIVE", "OVERDUE")),
         "confidence": round(confidence, 4),
         "confidence_level": confidence_level,
         "probabilities": prob_dict,
@@ -238,6 +252,7 @@ def predict_batch(emails: List[Dict[str, Any]], pipeline=None) -> List[Dict[str,
             explanation = "Model classified this email as Low / Promotional / Noise (model confidence: 50.0%). Email has no textual content."
             results.append({
                 "email_id": email_data.get("email_id") or email_data.get("id", ""),
+                "thread_id": email_data.get("thread_id", ""),
                 "date": date_str,
 
                 "sender": sender,
@@ -251,11 +266,18 @@ def predict_batch(emails: List[Dict[str, Any]], pipeline=None) -> List[Dict[str,
                 "final_priority": "P4",
                 "action_required": False,
                 "action_reason": None,
+                "action_evidence": {
+                    "imperative": False,
+                    "operational_consequence": False,
+                    "deadline_present": False,
+                    "action_type": "none"
+                },
                 "topic": "other",
                 "deadline_detected": False,
                 "deadline_datetime": None,
                 "deadline_precision": "NONE",
                 "deadline_display": None,
+                "deadline_status": "NONE",
                 "refinement_applied": False,
                 "refinement_reason": None,
                 "refinement_signals": [],
@@ -305,12 +327,15 @@ def predict_batch(emails: List[Dict[str, Any]], pipeline=None) -> List[Dict[str,
         deadline_datetime = refinement.get("deadline_datetime")
         deadline_precision = refinement.get("deadline_precision", "NONE")
         deadline_display = refinement.get("deadline_display")
+        deadline_status = refinement.get("deadline_status", "NONE")
+        action_evidence = refinement.get("action_evidence", {})
 
         if refinement_applied:
             explanation += f" Priority refined to {final_priority} ({PRIORITY_MAPPING.get(final_priority, final_priority)}): {refinement_reason}."
 
         results.append({
             "email_id": email_data.get("email_id") or email_data.get("id", ""),
+            "thread_id": email_data.get("thread_id", ""),
             "date": date_str,
 
             "sender": sender,
@@ -324,16 +349,18 @@ def predict_batch(emails: List[Dict[str, Any]], pipeline=None) -> List[Dict[str,
             "final_priority": final_priority,
             "action_required": action_required,
             "action_reason": action_reason,
+            "action_evidence": action_evidence,
             "topic": topic,
             "deadline_detected": deadline_detected,
             "deadline_datetime": deadline_datetime,
             "deadline_precision": deadline_precision,
             "deadline_display": deadline_display,
+            "deadline_status": deadline_status,
             "refinement_applied": refinement_applied,
             "refinement_reason": refinement_reason,
             "refinement_signals": refinement_signals,
             "review_suggested": review_suggested,
-            "needs_attention": (final_priority == "P1") or (final_priority == "P2" and action_required) or (action_required and deadline_detected),
+            "needs_attention": (final_priority == "P1") or (final_priority == "P2" and action_required) or (action_required and deadline_status in ("ACTIVE", "OVERDUE")),
             "confidence": round(confidence, 4),
             "confidence_level": confidence_level,
             "probabilities": prob_dict,

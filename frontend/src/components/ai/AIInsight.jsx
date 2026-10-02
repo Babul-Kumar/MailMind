@@ -19,8 +19,15 @@ export function AIInsight({ email }) {
   // Grounded insight — deadline-state-aware & metadata-driven
   let insightTitle = '';
   let insightBody = '';
-  if (deadlineState?.state === 'overdue') {
-    if (email.action_reason === 'Submission deadline' || textLower.includes('competition') || textLower.includes('submission')) {
+  const isHistorical = email.deadline_status === 'HISTORICAL' || deadlineState?.state === 'historical';
+  if (deadlineState?.state === 'overdue' || isHistorical) {
+    if (email.action_reason === 'Immediate verification required' || email.deadline_status === 'EXPIRED' || textLower.includes('verification') || textLower.includes('otp')) {
+      insightTitle = 'Expired verification code';
+      insightBody = 'This one-time passcode or verification code has expired and is no longer valid.';
+    } else if (isHistorical) {
+      insightTitle = `Past ${(email.action_reason || 'deadline').toLowerCase()}`;
+      insightBody = `The deadline passed on ${deadlineState.longLabel}.`;
+    } else if (email.action_reason === 'Submission deadline' || textLower.includes('competition') || textLower.includes('submission')) {
       insightTitle = 'Overdue submission deadline';
       if (textLower.includes('competition')) {
         insightBody = `The competition deadline passed on ${deadlineState.longLabel}.`;
@@ -120,8 +127,22 @@ export function AIInsight({ email }) {
         }}
       >
         {deadlineState && (
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: deadlineState.state === 'overdue' ? 'var(--p1-color)' : 'var(--p2-color)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <span>{deadlineState.icon}</span> {deadlineState.label}
+          <span style={{
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            color: isHistorical
+              ? 'var(--text-muted)'
+              : deadlineState.state === 'overdue'
+                ? 'var(--p1-color)'
+                : 'var(--p2-color)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+          }}>
+            <span>{isHistorical ? '📅' : deadlineState.icon}</span>{' '}
+            {isHistorical && deadlineState.label.startsWith('Overdue · ')
+              ? deadlineState.label.replace('Overdue · ', 'Past · ')
+              : deadlineState.label}
           </span>
         )}
         {!deadlineState && actionRequired === true && (

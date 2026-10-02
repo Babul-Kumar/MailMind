@@ -1,0 +1,35 @@
+{
+  "dataset_version": "dataset-v4",
+  "name": "Enron + Reviewed Modern Gmail Priority Benchmark v4 (Newsletters & Social Disambiguation)",
+  "created_at": "2026-10-02T12:59:24.875558+00:00",
+  "total_records": 2307,
+  "splits": {
+    "train": 1749,
+    "validation": 388,
+    "test": 60,
+    "newsletter_holdout": 60,
+    "social_holdout": 50
+  },
+  "class_distribution_train": {
+    "P2": 674,
+    "P3": 504,
+    "P4": 501,
+    "P1": 70
+  },
+  "review_methodology": "Two-pass human review with dual-pass adjudication protocol on boundary cases.",
+  "adjudication_metrics": {
+    "total_candidates": 565,
+    "initial_agreement_pct": 95.93,
+    "adjudication_count": 23,
+    "final_agreement_pct": 100.0
+  },
+  "duplicate_policy": "Normalized subject+body SHA256 content deduplication.",
+  "split_policy": "Grouped duplicate-aware disjoint splitting. Zero leakage across train, val, test, and all holdouts.",
+  "hashes": {
+    "train_csv_sha256": "52838f6492a3df071aee6e17ac47bde2d8a736584b60c8ce6878b82925d5aa0f",
+    "val_csv_sha256": "1d4b66479100a2ed568f1865d20b71f42fcf3b05af3145481119fe6c336fe0ec",
+    "test_csv_sha256": "3aadf7888c2d7338002ff6878d1035b35c09fd5f1d55b0aef93c9e4ec00886fa",
+    "newsletter_holdout_sha256": "043f0059674dda32365a02f6c43e95c7ad6293fff019315f1ff089109b16b398",
+    "social_holdout_sha256": "fe00139b3c90434763257616c4acc6eab280f62668d6ab1d1caed158c708747f"
+  }
+}

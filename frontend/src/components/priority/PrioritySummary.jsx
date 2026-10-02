@@ -1,110 +1,130 @@
 import React from 'react';
-import { Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { isNeedsAttention, hasGenuineDeadline } from '../../utils/priority';
+import { Mail, Zap, ArrowRight } from 'lucide-react';
+import { isNeedsAttention } from '../../utils/priority';
 
-export function PrioritySummary({ emails = [], onSelectFilter }) {
-  if (!emails || emails.length === 0) return null;
+export function PrioritySummary({ emails = [], stats = null, onSelectFilter }) {
+  const totalAnalyzed = stats?.total_analyzed ?? emails.length;
+  if (!totalAnalyzed) return null;
 
-  const attentionEmails = emails.filter(isNeedsAttention);
-  const count = attentionEmails.length;
-  const hasAttention = count > 0;
-
-  // Breakdown of attention reasons for clean secondary summary
-  const secCount = attentionEmails.filter((e) => e.action_reason === 'Account security action').length;
-  const serviceCount = attentionEmails.filter((e) => e.action_reason === 'Service action').length;
-  const deadlineCount = attentionEmails.filter((e) => Boolean(e.deadline_detected && e.action_reason !== 'Service action')).length;
-  const otherActionCount = attentionEmails.filter(
-    (e) => e.action_required && e.action_reason !== 'Account security action' && e.action_reason !== 'Service action'
-  ).length;
-
-  const detailParts = [];
-  if (serviceCount > 0) detailParts.push(`${serviceCount} service action${serviceCount > 1 ? 's' : ''}`);
-  if (secCount > 0) detailParts.push(`${secCount} security alert${secCount > 1 ? 's' : ''}`);
-  if (deadlineCount > 0) detailParts.push(`${deadlineCount} deadline${deadlineCount > 1 ? 's' : ''}`);
-  if (otherActionCount > 0) detailParts.push(`${otherActionCount} response required`);
-
-  const secondaryText = detailParts.join(' · ') || (count === 1 ? '1 actionable email' : `${count} actionable emails`);
-
-  if (!hasAttention) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          padding: '0.75rem 1.15rem',
-          backgroundColor: 'rgba(34, 197, 94, 0.08)',
-          border: '1px solid rgba(34, 197, 94, 0.22)',
-          borderRadius: 'var(--radius-lg)',
-          marginBottom: '1rem',
-        }}
-      >
-        <CheckCircle2 size={18} color="var(--p3-color)" />
-        <div>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--p3-color)' }}>
-            ✓ You're all caught up
-          </div>
-          <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: '0.1rem 0 0' }}>
-            No emails currently require your attention.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const count = stats?.needs_attention_count ?? emails.filter(isNeedsAttention).length;
+  const counts = stats?.counts || { P1: 0, P2: 0, P3: 0, P4: 0 };
 
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '0.85rem',
-        padding: '0.85rem 1.25rem',
-        backgroundColor: 'rgba(99, 102, 241, 0.08)',
-        border: '1px solid rgba(99, 102, 241, 0.22)',
-        borderRadius: 'var(--radius-lg)',
-        marginBottom: '1rem',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+        gap: '0.75rem',
+        marginBottom: '1.25rem',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-        <div style={{ marginTop: '0.15rem', color: 'var(--accent)' }}>
-          <Sparkles size={18} />
+      {/* Card 1: Total Mailbox */}
+      <div
+        onClick={() => onSelectFilter?.('ALL')}
+        style={{
+          padding: '0.85rem 1rem',
+          backgroundColor: 'var(--bg-surface)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          cursor: 'pointer',
+          transition: 'all var(--transition-fast)',
+        }}
+        title="Complete mailbox analyzed across all folders"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Total Analyzed
+          </span>
+          <Mail size={15} color="var(--text-muted)" />
         </div>
-        <div>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--accent)', marginBottom: '0.15rem' }}>
-            ✦ Inbox at a glance
-          </div>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, lineHeight: 1.3 }}>
-            {count} email{count === 1 ? '' : 's'} need attention
-          </h4>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0.2rem 0 0', lineHeight: 1.3 }}>
-            {secondaryText}
-          </p>
+        <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+          {totalAnalyzed.toLocaleString()}
+        </div>
+        <div style={{ fontSize: '0.74rem', color: '#22c55e', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <span>✓</span> Complete mailbox synchronized
         </div>
       </div>
 
-      <button
-        onClick={() => onSelectFilter('NEEDS_ATTENTION')}
+      {/* Card 2: Needs Attention */}
+      <div
+        onClick={() => onSelectFilter?.('NEEDS_ATTENTION')}
         style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.35rem',
-          padding: '0.38rem 0.85rem',
-          backgroundColor: 'var(--accent)',
-          color: '#fff',
-          fontSize: '0.8rem',
-          fontWeight: 600,
-          borderRadius: 'var(--radius-sm)',
-          border: 'none',
+          padding: '0.85rem 1rem',
+          backgroundColor: count > 0 ? 'rgba(99, 102, 241, 0.06)' : 'var(--bg-surface)',
+          border: `1px solid ${count > 0 ? 'rgba(99, 102, 241, 0.25)' : 'var(--border-subtle)'}`,
+          borderRadius: 'var(--radius-md)',
           cursor: 'pointer',
-          whiteSpace: 'nowrap',
-          transition: 'opacity 150ms ease',
+          transition: 'all var(--transition-fast)',
         }}
+        title="Click to view emails requiring immediate action or with deadlines"
       >
-        <span>View attention</span>
-        <ArrowRight size={13} />
-      </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Needs Attention
+          </span>
+          <Zap size={15} color="var(--accent)" />
+        </div>
+        <div style={{ fontSize: '1.35rem', fontWeight: 700, color: count > 0 ? 'var(--accent)' : 'var(--text-main)', letterSpacing: '-0.02em' }}>
+          {count.toLocaleString()}
+        </div>
+        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+          Action required or active deadline
+        </div>
+      </div>
+
+      {/* Card 3: Critical (P1) */}
+      <div
+        onClick={() => onSelectFilter?.('P1')}
+        style={{
+          padding: '0.85rem 1rem',
+          backgroundColor: (counts.P1 || 0) > 0 ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg-surface)',
+          border: `1px solid ${(counts.P1 || 0) > 0 ? 'rgba(239, 68, 68, 0.22)' : 'var(--border-subtle)'}`,
+          borderRadius: 'var(--radius-md)',
+          cursor: 'pointer',
+          transition: 'all var(--transition-fast)',
+        }}
+        title="Click to filter Critical Priority (P1) emails"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--p1-color)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Critical (P1)
+          </span>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--p1-color)' }} />
+        </div>
+        <div style={{ fontSize: '1.35rem', fontWeight: 700, color: (counts.P1 || 0) > 0 ? 'var(--p1-color)' : 'var(--text-main)', letterSpacing: '-0.02em' }}>
+          {(counts.P1 || 0).toLocaleString()}
+        </div>
+        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+          Immediate operational urgency
+        </div>
+      </div>
+
+      {/* Card 4: Important (P2) */}
+      <div
+        onClick={() => onSelectFilter?.('P2')}
+        style={{
+          padding: '0.85rem 1rem',
+          backgroundColor: 'var(--bg-surface)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          cursor: 'pointer',
+          transition: 'all var(--transition-fast)',
+        }}
+        title="Click to filter Important (P2) emails"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--p2-color)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Important (P2)
+          </span>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--p2-color)' }} />
+        </div>
+        <div style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+          {(counts.P2 || 0).toLocaleString()}
+        </div>
+        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+          Model priority · Filter by action
+        </div>
+      </div>
     </div>
   );
 }

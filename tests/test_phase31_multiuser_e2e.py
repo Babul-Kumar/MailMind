@@ -248,12 +248,18 @@ class TestPhase31MultiUserE2E:
                 assert all("Alice" in em["subject"] for em in data["emails"])
                 return "A_SEARCH_OK"
 
+            session_b_switch = session_manager.create_session(
+                user_id=self.user_b_id,
+                email=self.user_b_email,
+                credentials={"token": "mock_token_bob_switch", "refresh_token": "mock_rf_bob_switch"}
+            )
+
             def op_b_switch():
-                # Bob logs out and switches account
-                res_logout = client.post("/api/auth/logout", cookies={"mailmind_session": self.session_b.session_id})
+                # Bob logs out and switches account on a session
+                res_logout = client.post("/api/auth/logout", cookies={"mailmind_session": session_b_switch.session_id})
                 assert res_logout.status_code == 200
-                # Bob's old session is now destroyed
-                res_check = client.get("/api/emails", cookies={"mailmind_session": self.session_b.session_id})
+                # That session is now destroyed
+                res_check = client.get("/api/emails", cookies={"mailmind_session": session_b_switch.session_id})
                 assert res_check.status_code == 401
                 return "B_SWITCH_OK"
 

@@ -10,14 +10,62 @@ function EmailRowComponent({ email, isSelected, onClick }) {
   const actionRequired = Boolean(email.action_required);
   const deadlineState = getDeadlineState(email);
 
-  // Color/style for the deadline pill based on state
-  const deadlinePillStyle = deadlineState
-    ? deadlineState.state === 'overdue'
-      ? { color: 'var(--p1-color)', bg: 'rgba(239, 68, 68, 0.12)', border: 'rgba(239, 68, 68, 0.3)' }
-      : deadlineState.state === 'today'
-      ? { color: 'var(--p2-color)', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.4)' }
-      : { color: 'var(--p2-color)', bg: 'rgba(245, 158, 11, 0.10)', border: 'rgba(245, 158, 11, 0.28)' }
-    : null;
+  const isOtpOrVerification = Boolean(
+    email.action_reason === 'Immediate verification required' ||
+    email.action_reason === 'Account security action' ||
+    (email.subject && /otp|verification\s*code|one-time\s*password|login\s*code/i.test(email.subject))
+  );
+
+  let deadlineLabel = deadlineState?.label;
+  let deadlinePillStyle = null;
+
+  if (deadlineState) {
+    if (deadlineState.state === 'historical' || email.deadline_status === 'HISTORICAL') {
+      deadlineLabel = deadlineState.label.startsWith('Overdue · ')
+        ? deadlineState.label.replace('Overdue · ', 'Past · ')
+        : deadlineState.label;
+      deadlinePillStyle = {
+        color: 'var(--text-muted)',
+        bg: 'var(--bg-surface-hover)',
+        border: 'var(--border-subtle)',
+        icon: '📅',
+      };
+    } else if (deadlineState.state === 'overdue') {
+      if (isOtpOrVerification || email.deadline_status === 'EXPIRED') {
+        deadlineLabel = 'Expired verification code';
+        deadlinePillStyle = {
+          color: 'var(--text-muted)',
+          bg: 'var(--bg-surface-hover)',
+          border: 'var(--border-subtle)',
+          icon: '⌛',
+        };
+      } else {
+        deadlineLabel = deadlineState.label;
+        deadlinePillStyle = {
+          color: 'var(--p1-color)',
+          bg: 'rgba(239, 68, 68, 0.08)',
+          border: 'rgba(239, 68, 68, 0.22)',
+          icon: '⚠',
+        };
+      }
+    } else if (deadlineState.state === 'today') {
+      deadlineLabel = deadlineState.label;
+      deadlinePillStyle = {
+        color: 'var(--p2-color)',
+        bg: 'rgba(245, 158, 11, 0.12)',
+        border: 'rgba(245, 158, 11, 0.35)',
+        icon: '⏰',
+      };
+    } else {
+      deadlineLabel = deadlineState.label;
+      deadlinePillStyle = {
+        color: 'var(--p2-color)',
+        bg: 'rgba(245, 158, 11, 0.08)',
+        border: 'rgba(245, 158, 11, 0.22)',
+        icon: '⏰',
+      };
+    }
+  }
 
   return (
     <div
@@ -63,7 +111,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
       {/* Subject + Snippet Preview + Action Status */}
       <div
         className="email-row-col-main"
-        style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', overflow: 'hidden' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.22rem', overflow: 'hidden' }}
       >
         <div
           className="email-row-subject-line"
@@ -110,7 +158,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
         {/* Action + Deadline Status line */}
         <div
           className="email-row-action-line"
-          style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.72rem' }}
+          style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem', fontSize: '0.72rem' }}
         >
           {deadlineState && deadlinePillStyle && (
             <span
@@ -122,25 +170,25 @@ function EmailRowComponent({ email, isSelected, onClick }) {
                 gap: '0.25rem',
                 backgroundColor: deadlinePillStyle.bg,
                 border: `1px solid ${deadlinePillStyle.border}`,
-                padding: '0.08rem 0.45rem',
+                padding: '0.06rem 0.45rem',
                 borderRadius: 'var(--radius-xs)',
               }}
             >
-              <span>{deadlineState.icon}</span> {deadlineState.label}
+              <span>{deadlinePillStyle.icon}</span> {deadlineLabel}
             </span>
           )}
 
           {actionRequired ? (
             <span
               style={{
-                color: email.action_reason === 'Account security action' ? 'var(--p1-color)' : 'var(--accent)',
+                color: email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'var(--p1-color)' : 'var(--accent)',
                 fontWeight: 600,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.25rem',
-                backgroundColor: email.action_reason === 'Account security action' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
-                border: `1px solid ${email.action_reason === 'Account security action' ? 'rgba(239, 68, 68, 0.28)' : 'rgba(99, 102, 241, 0.28)'}`,
-                padding: '0.08rem 0.45rem',
+                backgroundColor: email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+                border: `1px solid ${email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(99, 102, 241, 0.25)'}`,
+                padding: '0.06rem 0.45rem',
                 borderRadius: 'var(--radius-xs)',
               }}
             >
@@ -178,7 +226,9 @@ export const EmailRow = React.memo(EmailRowComponent, (prevProps, nextProps) => 
     prevProps.email.predicted_priority === nextProps.email.predicted_priority &&
     prevProps.email.final_priority === nextProps.email.final_priority &&
     prevProps.email.action_required === nextProps.email.action_required &&
+    prevProps.email.action_reason === nextProps.email.action_reason &&
     prevProps.email.deadline_detected === nextProps.email.deadline_detected &&
-    prevProps.email.deadline_display === nextProps.email.deadline_display
+    prevProps.email.deadline_display === nextProps.email.deadline_display &&
+    prevProps.email.deadline_status === nextProps.email.deadline_status
   );
 });

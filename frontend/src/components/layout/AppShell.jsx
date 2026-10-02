@@ -28,6 +28,7 @@ export function AppShell({
         isJustUpdated={emailsHook.isJustUpdated}
         loadingStep={emailsHook.loadingStep}
         profile={emailsHook.profile}
+        stats={emailsHook.stats}
         auth={auth}
         onRefresh={emailsHook.refresh}
         scanStatus={emailsHook.scanStatus}
@@ -49,7 +50,7 @@ export function AppShell({
           onToggleFocusMode={searchHook.setFocusMode}
           stats={emailsHook.stats}
           totalCount={emailsHook.stats?.total_analyzed || emailsHook.pagination?.total_emails || emailsHook.emails.length}
-          attentionCount={searchHook.attentionCount}
+          attentionCount={emailsHook.stats?.needs_attention_count ?? searchHook.attentionCount}
           onOpenSettings={() => setIsSettingsOpen(true)}
           isOpenMobile={isSidebarOpenMobile}
           onCloseMobile={() => setIsSidebarOpenMobile(false)}

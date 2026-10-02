@@ -101,3 +101,31 @@ test('7. datetime past', () => {
   assert.equal(state?.longLabel, 'Sep 30, 2026 at 11:59 PM');
   assert.equal(state?.timeStr, '11:59 PM');
 });
+
+test('8. historical deadline (date-only)', () => {
+  const email = {
+    deadline_detected: true,
+    deadline_datetime: '2024-05-15',
+    deadline_precision: 'DATE',
+    deadline_status: 'HISTORICAL',
+  };
+  const now = new Date(2026, 9, 1, 12, 0, 0);
+  const state = getDeadlineState(email, now);
+  assert.equal(state?.state, 'historical');
+  assert.equal(state?.icon, '📅');
+  assert.equal(state?.label, 'Past · May 15');
+});
+
+test('9. historical deadline (datetime)', () => {
+  const email = {
+    deadline_detected: true,
+    deadline_datetime: '2023-11-20T18:00:00',
+    deadline_precision: 'DATETIME',
+    deadline_status: 'HISTORICAL',
+  };
+  const now = new Date(2026, 9, 1, 12, 0, 0);
+  const state = getDeadlineState(email, now);
+  assert.equal(state?.state, 'historical');
+  assert.equal(state?.icon, '📅');
+  assert.equal(state?.label, 'Past · Nov 20 · 6:00 PM');
+});

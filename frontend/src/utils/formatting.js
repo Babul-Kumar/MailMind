@@ -97,6 +97,20 @@ export function getDeadlineState(email, now = new Date()) {
     const fullDateStr = `${MONTH_NAMES[m - 1]} ${d}, ${y}`;
 
     if (deadlineEnd < todayStart) {
+      if (email.deadline_status === 'HISTORICAL') {
+        return {
+          state: 'historical',
+          icon: '📅',
+          label: `Past · ${dateStr}`,
+          longLabel: fullDateStr,
+          dateStr,
+          fullDateStr,
+          timeStr: null,
+          isDateOnly: true,
+          daysUntil: Math.floor((deadlineStart.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)),
+        };
+      }
+
       // Past — Overdue
       return {
         state: 'overdue',
@@ -167,6 +181,20 @@ export function getDeadlineState(email, now = new Date()) {
   const timeStr = formatTimeDeterministic(deadline);
 
   if (deadline < now) {
+    if (email.deadline_status === 'HISTORICAL') {
+      return {
+        state: 'historical',
+        icon: '📅',
+        label: `Past · ${dateStr} · ${timeStr}`,
+        longLabel: `${fullDateStr} at ${timeStr}`,
+        dateStr,
+        fullDateStr,
+        timeStr,
+        isDateOnly: false,
+        daysUntil: Math.floor((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+      };
+    }
+
     // Past — Overdue
     return {
       state: 'overdue',

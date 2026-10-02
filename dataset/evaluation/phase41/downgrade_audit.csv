@@ -1,0 +1,38 @@
+message_id,thread_id,subject,v3_priority,v3_confidence,v4_1_priority,v4_1_confidence,action_required,deadline_status,topic,classification_category,evidence_reason,is_safe_downgrade
+1a0ec0feadbb0099,1a0ec0feadbb0099,You shared some Google Account data with Adobe,P1,0.311,P3,0.317,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a0deceed2954333,1a0deceed2954333,You shared some Google Account data with Canva,P1,0.312,P3,0.29,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a0c78c72623080f,1a0c78c72623080f,You shared some Google Account data with Semantic Scholar,P1,0.324,P3,0.299,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a0be6de63cd3b88,1a0be6de63cd3b88,You shared some Google Account data with Amazon Web Services,P1,0.297,P3,0.301,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a07816e954af6d8,1a07816e954af6d8,You shared some Google Account data with odoo.com,P1,0.313,P3,0.301,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a056797ccf0b2e3,1a056797ccf0b2e3,You shared some Google Account data with Superset,P1,0.334,P3,0.296,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a0444d5755172c5,1a0444d5755172c5,You shared some Google Account data with uptimerobot.com,P1,0.301,P3,0.306,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a042f8e33a97155,1a042f8e33a97155,Starting in 10 minutes,P1,0.431,P3,0.469,False,NONE,other,D,Webinar countdown or marketing onboarding tips without operational account risk,True
+1a042c29ef264484,1a042c29ef264484,You shared some Google Account data with Naukri.com,P1,0.309,P3,0.337,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a037eb061ac0588,1a037eb061ac0588,You shared some Google Account data with atlassian.com,P1,0.318,P3,0.314,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a032148c3a2903c,1a032148c3a2903c,You shared some Google Account data with Canva,P1,0.316,P3,0.322,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a03093473dd7d0a,1a03093473dd7d0a,Security alert,P1,0.277,P3,0.343,False,NONE,security,E,Routine informational account notice,True
+1a02fbd295bdd989,1a02fbd295bdd989,You shared some Google Account data with Coursera,P1,0.318,P3,0.318,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a02310a12c25007,1a02310a12c25007,You shared some Google Account data with urqslrtsjvutevpckzup.supabase.co,P1,0.325,P3,0.342,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a0203258d411075,1a0203258d411075,You shared some Google Account data with Howly,P1,0.312,P3,0.325,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a01ff0ba77fac39,1a01ff0ba77fac39,You shared some Google Account data with xAI,P1,0.306,P3,0.327,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a014862ff5976d3,1a014862ff5976d3,You shared some Google Account data with streamlit.io,P1,0.327,P3,0.319,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1a0147033a5343ed,1a0147033a5343ed,You shared some Google Account data with Render,P1,0.32,P3,0.322,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+19ff213bb189f695,19ff213bb189f695,You shared some Google Account data with Claude,P1,0.315,P3,0.336,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+19ff1fd21a2a47ed,19ff1fd21a2a47ed,You shared some Google Account data with project-46205565659,P1,0.316,P3,0.303,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+19ebc4e331cfe9f1,19eba7ba29f466c0,Email ID Verification,P1,0.338,P2,0.334,True,NONE,operational,C,Account verification/activation CTA (properly categorized as P2 + Action),True
+19eba7d85cb7994b,19eba7ba29f466c0,Email ID Verification,P1,0.338,P2,0.334,True,NONE,operational,C,Account verification/activation CTA (properly categorized as P2 + Action),True
+19e1305c038472e0,19e1305c038472e0,"[Action required] Help Google verify your account by Sep 01, 2026",P1,0.361,P3,0.292,True,NONE,operational,C,Account verification/activation CTA (properly categorized as P2 + Action),True
+19deef92fd492bcb,19deef92fd492bcb,"[Action required] Help Google verify your account by Sep 01, 2026",P1,0.361,P3,0.292,True,NONE,operational,C,Account verification/activation CTA (properly categorized as P2 + Action),True
+19dd37a000c26599,19dd37a000c26599,Your Oracle Account Password Has Been Reset,P1,0.315,P4,0.276,False,NONE,security,B,Past confirmation of successfully completed password change,True
+19977aad4cb2ff83,19977aad4cb2ff83,[GitHub] A Google identity was just linked to your GitHub account.,P1,0.299,P3,0.336,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+19884147d83da01e,19884147d83da01e,"Babul, your password was successfully reset",P1,0.286,P3,0.304,False,NONE,security,B,Past confirmation of successfully completed password change,True
+198442d8ad265d98,198442d8ad265d98,"Babul, your password was successfully reset",P1,0.286,P3,0.304,False,NONE,security,B,Past confirmation of successfully completed password change,True
+1983aed3b48e686e,1983aed3b48e686e,Password Reset,P1,0.331,P4,0.344,True,EXPIRED,security,E,Routine informational account notice,True
+196f91122a534f0a,196f91122a534f0a,"Babul, don't miss our top developer updates from Google I/O",P1,0.264,P3,0.535,False,NONE,other,D,Webinar countdown or marketing onboarding tips without operational account risk,True
+1960b605ef29de44,1960b605ef29de44,[Docker] You + Docker = Ready for Action,P1,0.319,P3,0.311,False,NONE,operational,D,Webinar countdown or marketing onboarding tips without operational account risk,True
+19479d3a4d3e18b6,19479d3a4d3e18b6,Verify your Autodesk account,P1,0.311,P2,0.301,True,NONE,operational,C,Account verification/activation CTA (properly categorized as P2 + Action),True
+1918aa4d9e53bc2b,1918aa4d9e53bc2b,"Babul, your password was successfully reset",P1,0.286,P3,0.304,False,NONE,security,B,Past confirmation of successfully completed password change,True
+18f55f4f807da900,18f55f4f807da900,Password reset for CUET-UG - 2024,P1,0.35,P4,0.293,True,NONE,security,E,Routine informational account notice,True
+18f1acd0419a3d0f,18f1acd0419a3d0f,Password reset for CUET-UG - 2024,P1,0.331,P4,0.292,True,NONE,security,E,Routine informational account notice,True
+183a8651207952a9,183a8651207952a9,You can now use your phone to sign in,P1,0.32,P3,0.303,False,NONE,operational,A,Informational OAuth / third-party application consent notice without required action,True
+1825494779051f52,1825494779051f52,"Babul, take the next step by customizing your Google Account",P1,0.285,P3,0.322,False,NONE,operational,D,Webinar countdown or marketing onboarding tips without operational account risk,True

@@ -9,7 +9,15 @@ import { ConnectAccountHero } from './components/auth/ConnectAccountHero';
 export function App() {
   const auth = useAuth();
   const emailsHook = useEmails(auth.isAuthenticated);
-  const searchHook = useSearch(emailsHook.emails);
+  const searchHook = useSearch(emailsHook.emails, {
+    activeFilter: emailsHook.activeFilter,
+    setActiveFilter: emailsHook.setActiveFilter,
+    actionFilter: emailsHook.actionFilter,
+    setActionFilter: emailsHook.setActionFilter,
+    searchQuery: emailsHook.searchQuery,
+    setSearchQuery: emailsHook.setSearchQuery,
+    serverFiltered: true,
+  });
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('mailmind_theme') || 'dark';
@@ -39,15 +47,17 @@ export function App() {
 
   // Safe Account Switching: Clears all mailbox state, selected emails, search and temporary filters
   const handleSwitchAccount = async () => {
-    searchHook.setSearchQuery('');
-    searchHook.setActiveFilter('ALL');
+    emailsHook.setSearchQuery('');
+    emailsHook.setActiveFilter('ALL');
+    emailsHook.setActionFilter('ALL');
     searchHook.setFocusMode(false);
     await auth.switchAccount();
   };
 
   const handleLogout = async () => {
-    searchHook.setSearchQuery('');
-    searchHook.setActiveFilter('ALL');
+    emailsHook.setSearchQuery('');
+    emailsHook.setActiveFilter('ALL');
+    emailsHook.setActionFilter('ALL');
     searchHook.setFocusMode(false);
     await auth.logout();
   };
@@ -88,6 +98,8 @@ export function App() {
           searchQuery={searchHook.searchQuery}
           activeFilter={searchHook.activeFilter}
           onSelectFilter={searchHook.setActiveFilter}
+          actionFilter={searchHook.actionFilter}
+          onSelectActionFilter={searchHook.setActionFilter}
           focusMode={searchHook.focusMode}
           onToggleFocusMode={searchHook.setFocusMode}
           sortBy={searchHook.sortBy}

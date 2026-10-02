@@ -14,6 +14,8 @@ export function Inbox({
   searchQuery,
   activeFilter,
   onSelectFilter,
+  actionFilter = 'ALL',
+  onSelectActionFilter,
   focusMode,
   onToggleFocusMode,
   sortBy,
@@ -72,31 +74,46 @@ export function Inbox({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [emails, highlightedIndex]);
 
-  // Title for active view
+  const totalCount = pagination?.total_emails ?? emails.length;
+  const pageNum = pagination?.page || 1;
+  const pageSize = pagination?.page_size || 50;
+  const startIdx = totalCount > 0 ? (pageNum - 1) * pageSize + 1 : 0;
+  const endIdx = totalCount > 0 ? Math.min(pageNum * pageSize, totalCount) : 0;
+
+  // Title and description for active view
   let viewTitle = 'All Mail';
+  let viewDescription = '';
   if (focusMode) {
     viewTitle = '⚡ Focus Mode';
+    viewDescription = 'Showing emails that require action or have an active deadline.';
   } else if (activeFilter === 'NEEDS_ATTENTION') {
     viewTitle = '⚡ Needs Attention';
+    viewDescription = 'Emails requiring action or with active deadlines, independent of priority.';
   } else if (activeFilter === 'IMPORTANT') {
     viewTitle = '⭐ Important';
+    viewDescription = 'Emails the model classified as important; not all require action.';
   } else if (activeFilter === 'P1') {
     viewTitle = 'P1 · Critical';
+    viewDescription = 'Immediate action, hard deadline, or critical operational consequence.';
   } else if (activeFilter === 'P2') {
     viewTitle = 'P2 · Important';
+    viewDescription = 'Important emails classified by the model; not all require action.';
   } else if (activeFilter === 'P3') {
     viewTitle = 'P3 · Routine';
+    viewDescription = 'Informational or routine operational correspondence.';
   } else if (activeFilter === 'P4') {
     viewTitle = 'P4 · Low';
+    viewDescription = 'Promotional, bulk notifications, or low priority.';
   } else if (activeFilter === 'ALL') {
-    viewTitle = 'Inbox';
+    viewTitle = 'All Mail';
+    viewDescription = '';
   }
 
   return (
     <div style={{ width: '100%' }}>
-      {/* Actionable AI Summary Header */}
+      {/* Mailbox Intelligence Overview (Only in All Mail) */}
       {!focusMode && !searchQuery && activeFilter === 'ALL' && (
-        <PrioritySummary emails={allEmails.length ? allEmails : emails} onSelectFilter={onSelectFilter} />
+        <PrioritySummary emails={allEmails.length ? allEmails : emails} stats={stats} onSelectFilter={onSelectFilter} />
       )}
 
       {/* Background Mailbox Scan Notification Banner */}
@@ -176,45 +193,93 @@ export function Inbox({
           flexWrap: 'wrap',
           gap: '0.8rem',
           padding: '0.5rem 0',
-          marginBottom: '0.5rem',
+          marginBottom: '0.75rem',
         }}
       >
-        {/* Left: View title & email count & optional subtitle (Phase 3, 12, 14, 32) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+        {/* Left: View title & email count & contextual filter chips */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.01em' }}>
               {viewTitle}
             </h3>
             <span
-              title={
-                pagination?.total_emails
-                  ? `${pagination.total_emails.toLocaleString()} total emails analyzed in mailbox`
-                  : `${emails.length} emails displayed`
-              }
               style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-muted)',
+                fontSize: '0.76rem',
+                color: 'var(--text-secondary)',
                 backgroundColor: 'var(--bg-surface-hover)',
-                padding: '0.15rem 0.5rem',
+                border: '1px solid var(--border-subtle)',
+                padding: '0.15rem 0.55rem',
                 borderRadius: 'var(--radius-full)',
-                cursor: 'default',
+                fontWeight: 600,
               }}
             >
-              {pagination?.total_emails && pagination.total_emails > emails.length
-                ? `${emails.length} of ${pagination.total_emails.toLocaleString()} analyzed`
-                : emails.length}
+              {totalCount.toLocaleString()} email{totalCount === 1 ? '' : 's'}
             </span>
+            {totalCount > 0 && (
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                Showing {startIdx}–{endIdx} of {totalCount.toLocaleString()}
+              </span>
+            )}
           </div>
 
-          {activeFilter === 'P2' && (
-            <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: 0 }}>
-              Emails the model classified as important; not all require action.
+          {viewDescription && (
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
+              {viewDescription}
             </p>
           )}
-          {activeFilter === 'NEEDS_ATTENTION' && (
-            <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: 0 }}>
-              Emails that require action or have a meaningful deadline, independent of priority.
-            </p>
+
+          {/* Secondary Action Filter for P2 */}
+          {activeFilter === 'P2' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.45rem' }}>
+              <button
+                onClick={() => onSelectActionFilter?.('ALL')}
+                style={{
+                  padding: '0.22rem 0.65rem',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.76rem',
+                  fontWeight: actionFilter === 'ALL' ? 600 : 500,
+                  backgroundColor: actionFilter === 'ALL' ? 'var(--bg-surface-selected)' : 'transparent',
+                  color: actionFilter === 'ALL' ? 'var(--text-main)' : 'var(--text-muted)',
+                  border: `1px solid ${actionFilter === 'ALL' ? 'var(--border-subtle)' : 'var(--border-subtle)'}`,
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)',
+                }}
+              >
+                All Important ({(stats?.counts?.P2 || totalCount).toLocaleString()})
+              </button>
+              <button
+                onClick={() => onSelectActionFilter?.('ACTION_REQUIRED')}
+                style={{
+                  padding: '0.22rem 0.65rem',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.76rem',
+                  fontWeight: actionFilter === 'ACTION_REQUIRED' ? 600 : 500,
+                  backgroundColor: actionFilter === 'ACTION_REQUIRED' ? 'var(--accent-light)' : 'transparent',
+                  color: actionFilter === 'ACTION_REQUIRED' ? 'var(--accent)' : 'var(--text-muted)',
+                  border: `1px solid ${actionFilter === 'ACTION_REQUIRED' ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)',
+                }}
+              >
+                ● Action Required
+              </button>
+              <button
+                onClick={() => onSelectActionFilter?.('NO_ACTION')}
+                style={{
+                  padding: '0.22rem 0.65rem',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: '0.76rem',
+                  fontWeight: actionFilter === 'NO_ACTION' ? 600 : 500,
+                  backgroundColor: actionFilter === 'NO_ACTION' ? 'var(--bg-surface-selected)' : 'transparent',
+                  color: actionFilter === 'NO_ACTION' ? 'var(--text-main)' : 'var(--text-muted)',
+                  border: `1px solid ${actionFilter === 'NO_ACTION' ? 'var(--border-subtle)' : 'var(--border-subtle)'}`,
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)',
+                }}
+              >
+                ○ No Action
+              </button>
+            </div>
           )}
         </div>
 
@@ -298,7 +363,7 @@ export function Inbox({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.92rem', fontWeight: 700, color: 'var(--accent)' }}>
               <Zap size={16} />
-              <span>{emails.length} email{emails.length === 1 ? '' : 's'} need attention</span>
+              <span>{totalCount.toLocaleString()} email{totalCount === 1 ? '' : 's'} need attention</span>
             </div>
             {signals.length > 0 && (
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>

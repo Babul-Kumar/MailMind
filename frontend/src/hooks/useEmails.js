@@ -28,18 +28,53 @@ export function useEmails(isAuthenticated = false) {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isJustUpdated, setIsJustUpdated] = useState(false);
 
+  const [activeFilter, setActiveFilterState] = useState('ALL');
+  const [actionFilter, setActionFilterState] = useState('ALL');
+  const [searchQuery, setSearchQueryState] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  // Debounce search input to avoid hitting backend on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 280);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const setActiveFilter = useCallback((newFilter) => {
+    setActiveFilterState(newFilter);
+    setActionFilterState('ALL');
+    setPage(1);
+  }, []);
+
+  const setActionFilter = useCallback((newAction) => {
+    setActionFilterState(newAction);
+    setPage(1);
+  }, []);
+
+  const setSearchQuery = useCallback((newQuery) => {
+    setSearchQueryState(newQuery);
+    setPage(1);
+  }, []);
+
   // Scan state from background scan engine
   const [scanStatus, setScanStatus] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const pollTimerRef = useRef(null);
 
   // Load emails and stats from backend
-  const loadData = useCallback(async (customPage, customPageSize, customQuery) => {
+  const loadData = useCallback(async (customPage, customPageSize, customQuery, customFilter, customAction) => {
     if (!isAuthenticated) return;
 
     const pageToUse = customPage !== undefined ? customPage : page;
     const sizeToUse = customPageSize !== undefined ? customPageSize : pageSize;
-    const queryToUse = customQuery !== undefined ? customQuery : gmailQuery;
+    const filterToUse = customFilter !== undefined ? customFilter : activeFilter;
+    const actionToUse = customAction !== undefined ? customAction : actionFilter;
+    const searchToUse = customQuery !== undefined ? customQuery : debouncedSearchQuery;
+
+    const priorityParam = filterToUse !== 'ALL' ? filterToUse : '';
+    const actionParam = actionToUse === 'ACTION_REQUIRED' ? true : actionToUse === 'NO_ACTION' ? false : null;
+    const queryParam = searchToUse.trim() || gmailQuery;
 
     setIsLoading(true);
     setError(null);
@@ -49,7 +84,9 @@ export function useEmails(isAuthenticated = false) {
       const data = await fetchEmails({
         page: pageToUse,
         pageSize: sizeToUse,
-        query: queryToUse,
+        priority: priorityParam,
+        query: queryParam,
+        actionRequired: actionParam,
       });
 
       setEmails(data.emails || []);
@@ -93,7 +130,7 @@ export function useEmails(isAuthenticated = false) {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, page, pageSize, gmailQuery]);
+  }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery]);
 
   // Check and update scan status
   const checkScanStatus = useCallback(async () => {
@@ -235,6 +272,12 @@ export function useEmails(isAuthenticated = false) {
     setGmailQuery,
     lastUpdated,
     refresh: loadData,
+    activeFilter,
+    setActiveFilter,
+    actionFilter,
+    setActionFilter,
+    searchQuery,
+    setSearchQuery,
     scanStatus,
     isScanning,
     startScan: triggerScan,

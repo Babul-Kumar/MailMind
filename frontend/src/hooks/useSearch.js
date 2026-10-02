@@ -1,51 +1,51 @@
 import { useState, useEffect, useMemo } from 'react';
 import { PRIORITY_CONFIG, isNeedsAttention } from '../utils/priority';
 
-export function useSearch(emails) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('ALL'); // 'ALL', 'NEEDS_ATTENTION', 'IMPORTANT', 'P1', 'P2', 'P3', 'P4'
+export function useSearch(emails, options = {}) {
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
+  const [internalActiveFilter, setInternalActiveFilter] = useState('ALL');
   const [focusMode, setFocusMode] = useState(false);
   const [sortBy, setSortBy] = useState('date_desc');
 
-  // Debounce search query changes by 200ms to keep filtering snappy
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  const activeFilter = options.activeFilter !== undefined ? options.activeFilter : internalActiveFilter;
+  const setActiveFilter = options.setActiveFilter || setInternalActiveFilter;
+  const searchQuery = options.searchQuery !== undefined ? options.searchQuery : internalSearchQuery;
+  const setSearchQuery = options.setSearchQuery || setInternalSearchQuery;
+  const actionFilter = options.actionFilter || 'ALL';
+  const setActionFilter = options.setActionFilter || (() => {});
 
   const filteredEmails = useMemo(() => {
     if (!emails) return [];
     let list = [...emails];
 
-    // 1. Focus Mode: Reuses the unified Needs Attention criteria
-    if (focusMode) {
-      list = list.filter(isNeedsAttention);
-    } else if (activeFilter === 'NEEDS_ATTENTION') {
-      // 2. Needs Attention View: P1 Critical OR (P2 + meaningful action) OR (action + genuine deadline)
-      list = list.filter(isNeedsAttention);
-    } else if (activeFilter === 'IMPORTANT') {
-      // 3. Important View: Strictly P2 Priority (no overlap bugs)
-      list = list.filter((e) => (e.final_priority || e.predicted_priority) === 'P2');
-    } else if (activeFilter !== 'ALL') {
-      // 4. Specific Priority Tab (P1, P2, P3, P4)
-      list = list.filter((e) => (e.final_priority || e.predicted_priority) === activeFilter);
+    // If serverFiltered is false (or omitted without external options), perform local filtering for testing compatibility
+    if (!options.serverFiltered) {
+      if (focusMode) {
+        list = list.filter(isNeedsAttention);
+      } else if (activeFilter === 'NEEDS_ATTENTION') {
+        list = list.filter(isNeedsAttention);
+      } else if (activeFilter === 'IMPORTANT') {
+        list = list.filter((e) => (e.final_priority || e.predicted_priority) === 'P2');
+      } else if (activeFilter !== 'ALL') {
+        list = list.filter((e) => (e.final_priority || e.predicted_priority) === activeFilter);
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        list = list.filter((e) => {
+          const subj = (e.subject || '').toLowerCase();
+          const sndr = (e.sender || '').toLowerCase();
+          const body = (e.body || '').toLowerCase();
+          return subj.includes(q) || sndr.includes(q) || body.includes(q);
+        });
+      }
+    } else {
+      if (focusMode) {
+        list = list.filter(isNeedsAttention);
+      }
     }
 
-    // 5. Keyword Search (uses debounced query)
-    if (debouncedSearchQuery.trim()) {
-      const q = debouncedSearchQuery.toLowerCase().trim();
-      list = list.filter((e) => {
-        const subj = (e.subject || '').toLowerCase();
-        const sndr = (e.sender || '').toLowerCase();
-        const body = (e.body || '').toLowerCase();
-        return subj.includes(q) || sndr.includes(q) || body.includes(q);
-      });
-    }
-
-    // 6. Sorting
+    // Sorting
     list.sort((a, b) => {
       if (sortBy === 'priority_desc') {
         const rankA = PRIORITY_CONFIG[a.predicted_priority]?.rank || 0;
@@ -55,7 +55,7 @@ export function useSearch(emails) {
       if (sortBy === 'deadline_asc') {
         const hasA = a.deadline_detected ? 1 : 0;
         const hasB = b.deadline_detected ? 1 : 0;
-        if (hasA !== hasB) return hasB - hasA; // Deadlines first
+        if (hasA !== hasB) return hasB - hasA;
         if (a.deadline_datetime && b.deadline_datetime) {
           return new Date(a.deadline_datetime).getTime() - new Date(b.deadline_datetime).getTime();
         }
@@ -74,7 +74,7 @@ export function useSearch(emails) {
     });
 
     return list;
-  }, [emails, debouncedSearchQuery, activeFilter, focusMode, sortBy]);
+  }, [emails, activeFilter, searchQuery, focusMode, sortBy, options.serverFiltered]);
 
   const attentionCount = useMemo(() => {
     if (!emails) return 0;
@@ -86,6 +86,8 @@ export function useSearch(emails) {
     setSearchQuery,
     activeFilter,
     setActiveFilter,
+    actionFilter,
+    setActionFilter,
     focusMode,
     setFocusMode,
     sortBy,

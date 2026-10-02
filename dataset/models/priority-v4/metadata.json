@@ -1,0 +1,13 @@
+{
+  "model_version": "priority-v4",
+  "name": "MailMind Priority Classifier priority-v4 (Newsletters & Social Disambiguation)",
+  "status": "candidate",
+  "dataset_version": "dataset-v4",
+  "feature_version": "tfidf-v4 (10,000 sublinear ngrams)",
+  "label_schema_version": "v1.0 (P1/P2/P3/P4)",
+  "created_at": "2026-10-02T12:59:30.246801+00:00",
+  "promoted_at": null,
+  "artifact_path": "priority-v4/model.joblib",
+  "artifact_sha256": "cf814f01534910aac67d2db2b72b8a410c876d37d29bf56da8422205807307fc",
+  "changelog": "Candidate model trained on dataset-v4 with human-reviewed newsletters, social interactions, event countdowns, and promotional activations. Resolves routine newsletter over-classification in P2 while preserving P1 authentication and security recall."
+}

@@ -1,0 +1,96 @@
+{
+  "model_version": "priority-v4",
+  "status": "candidate",
+  "historical_holdout": {
+    "accuracy": 0.8133,
+    "macro_f1": 0.7987,
+    "weighted_f1": 0.8068,
+    "p1_recall": 0.875,
+    "p2_precision": 0.7914,
+    "p2_recall": 0.9021,
+    "p3_precision": 0.8837,
+    "p4_precision": 0.8235
+  },
+  "modern_holdout": {
+    "accuracy": 0.6083,
+    "macro_f1": 0.554,
+    "weighted_f1": 0.6172,
+    "p1_recall": 0.8511,
+    "p2_precision": 0.4762,
+    "p2_recall": 0.3571,
+    "p3_precision": 0.3469,
+    "p4_precision": 0.75
+  },
+  "newsletter_holdout": {
+    "total": 60,
+    "routine_p2_error_rate_pct": 1.7,
+    "overall_accuracy": 0.9667
+  },
+  "social_holdout": {
+    "total": 50,
+    "security_recall": 0.9333,
+    "overall_accuracy": 0.86
+  },
+  "category_performance_modern": {
+    "academic": {
+      "v3_acc": 0.5,
+      "v4_acc": 0.6,
+      "count": 10
+    },
+    "account_verification": {
+      "v3_acc": 0.6,
+      "v4_acc": 0.7,
+      "count": 10
+    },
+    "deadlines": {
+      "v3_acc": 1.0,
+      "v4_acc": 0.2,
+      "count": 10
+    },
+    "mfa_auth": {
+      "v3_acc": 1.0,
+      "v4_acc": 1.0,
+      "count": 10
+    },
+    "newsletter_promo": {
+      "v3_acc": 0.8,
+      "v4_acc": 0.5,
+      "count": 10
+    },
+    "otp_auth": {
+      "v3_acc": 1.0,
+      "v4_acc": 1.0,
+      "count": 10
+    },
+    "password_reset": {
+      "v3_acc": 1.0,
+      "v4_acc": 1.0,
+      "count": 10
+    },
+    "payments": {
+      "v3_acc": 0.4,
+      "v4_acc": 0.1,
+      "count": 10
+    },
+    "recruitment": {
+      "v3_acc": 0.6,
+      "v4_acc": 0.5,
+      "count": 10
+    },
+    "routine_informational": {
+      "v3_acc": 0.2,
+      "v4_acc": 0.5,
+      "count": 10
+    },
+    "saas": {
+      "v3_acc": 0.5,
+      "v4_acc": 0.4,
+      "count": 10
+    },
+    "security_alerts": {
+      "v3_acc": 0.6,
+      "v4_acc": 0.8,
+      "count": 10
+    }
+  }
+}

@@ -15,13 +15,22 @@ from backend.app.core.feedback import feedback_manager
 
 class TestModelLifecycle(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls._saved_registry = model_registry.get_registry()
+
+    @classmethod
+    def tearDownClass(cls):
+        model_registry._save_registry(cls._saved_registry)
+        invalidate_cached_pipeline()
+
     def setUp(self):
         invalidate_cached_pipeline()
 
     # 1. Model Registry active version resolution & metadata
     def test_01_registry_loads_active_version(self):
         active_ver = model_registry.get_active_version()
-        self.assertIn(active_ver, ["priority-v1", "priority-v2", "priority-v3"])
+        self.assertIn(active_ver, ["priority-v1", "priority-v2", "priority-v3", "priority-v4", "priority-v4.1"])
 
         meta = model_registry.get_active_metadata()
         self.assertIsNotNone(meta)
@@ -57,9 +66,8 @@ class TestModelLifecycle(unittest.TestCase):
         self.assertTrue(rolled_back)
         self.assertEqual(model_registry.get_active_version(), "priority-v1")
 
-        # Restore priority-v3 as active production model (Phase 33 active)
-        model_registry.set_active("priority-v2")
-        model_registry.promote_candidate("priority-v3")
+        # Restore initial active model
+        model_registry.set_active(self._saved_registry["active_model"])
 
 
     # 4. Strict inference immutability: No fitting during prediction
@@ -194,7 +202,7 @@ class TestModelLifecycle(unittest.TestCase):
 
         # Verify active model remains strictly immutable
         active_ver = model_registry.get_active_version()
-        self.assertIn(active_ver, ["priority-v1", "priority-v2", "priority-v3"])
+        self.assertIn(active_ver, ["priority-v1", "priority-v2", "priority-v3", "priority-v4", "priority-v4.1"])
 
 
 if __name__ == "__main__":

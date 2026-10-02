@@ -524,6 +524,8 @@ class MailboxScanJob:
                                 pred["content_hash"] = orig["content_hash"]
                             if "internal_date" in orig:
                                 pred["internal_date"] = orig["internal_date"]
+                            if "thread_id" in orig and orig["thread_id"]:
+                                pred["thread_id"] = orig["thread_id"]
                         user_email_cache.store_batch(self.user_id, predictions)
 
 

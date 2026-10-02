@@ -37,12 +37,15 @@ export async function fetchModelInfo() {
   return res.json();
 }
 
-export async function fetchEmails({ page = 1, pageSize = 50, priority = '', query = '', maxEmails } = {}) {
+export async function fetchEmails({ page = 1, pageSize = 50, priority = '', query = '', actionRequired = null, maxEmails } = {}) {
   const params = new URLSearchParams();
   if (page) params.append('page', String(page));
   if (pageSize) params.append('page_size', String(pageSize));
   if (priority) params.append('priority', priority);
   if (query) params.append('query', query);
+  if (actionRequired !== null && actionRequired !== undefined) {
+    params.append('action_required', String(actionRequired));
+  }
   if (maxEmails !== undefined) params.append('max_emails', String(maxEmails));
 
   const res = await fetch(`/api/emails?${params.toString()}`);

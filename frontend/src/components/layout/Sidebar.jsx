@@ -14,21 +14,21 @@ export function Sidebar({
   onCloseMobile,
 }) {
   const counts = stats?.counts || { P1: 0, P2: 0, P3: 0, P4: 0 };
-  const importantCount = counts.P2 || 0;
+  const effectiveAttentionCount = stats?.needs_attention_count ?? attentionCount;
 
-  const primaryItems = [
+  const mailboxItems = [
     {
       key: 'ALL',
-      label: 'Inbox',
+      label: 'All Mail',
       icon: <Mail size={16} />,
-      count: totalCount,
-      tooltip: `${totalCount} most recent emails scanned`,
+      count: totalCount || 0,
+      tooltip: `${(totalCount || 0).toLocaleString()} synchronized messages in mailbox`,
     },
     {
       key: 'NEEDS_ATTENTION',
       label: 'Needs Attention',
       icon: <Zap size={16} />,
-      count: attentionCount,
+      count: effectiveAttentionCount || 0,
       color: 'var(--accent)',
       tooltip: 'Emails that require action or have a meaningful deadline.',
     },
@@ -36,9 +36,9 @@ export function Sidebar({
 
   const priorityItems = [
     { key: 'P1', label: 'P1 · Critical', count: counts.P1 || 0, dotColor: 'var(--p1-color)', tooltip: 'Immediate action, hard deadline, or critical operational consequence.' },
-    { key: 'P2', label: 'P2 · Important', count: counts.P2 || 0, dotColor: 'var(--p2-color)', tooltip: 'Emails the model classified as important.' },
-    { key: 'P3', label: 'P3 · Routine', count: counts.P3 || 0, dotColor: 'var(--p3-color)', tooltip: 'Informational or non-urgent.' },
-    { key: 'P4', label: 'P4 · Low', count: counts.P4 || 0, dotColor: 'var(--p4-color)', tooltip: 'Promotional, noise, or no meaningful action.' },
+    { key: 'P2', label: 'P2 · Important', count: counts.P2 || 0, dotColor: 'var(--p2-color)', tooltip: 'Important emails classified by the model; not all require action.' },
+    { key: 'P3', label: 'P3 · Routine', count: counts.P3 || 0, dotColor: 'var(--p3-color)', tooltip: 'Informational or routine operational correspondence.' },
+    { key: 'P4', label: 'P4 · Low', count: counts.P4 || 0, dotColor: 'var(--p4-color)', tooltip: 'Promotional, bulk notifications, or low priority.' },
   ];
 
   const handleSelect = (key) => {
@@ -51,7 +51,7 @@ export function Sidebar({
     <aside
       className={`sidebar-container ${isOpenMobile ? 'mobile-open' : ''}`}
       style={{
-        width: '220px',
+        width: '230px',
         backgroundColor: 'var(--bg-surface)',
         borderRight: '1px solid var(--border-subtle)',
         display: 'flex',
@@ -61,14 +61,16 @@ export function Sidebar({
         overflowY: 'auto',
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {/* Primary Views */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+        {/* Mailbox Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', padding: '0 0.65rem 0.35rem' }}>
-            Views
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', padding: '0 0.65rem 0.35rem' }}>
+            Mailbox
           </div>
-          {primaryItems.map((item) => {
+          {mailboxItems.map((item) => {
             const isActive = !focusMode && activeFilter === item.key;
+            const hasAttentionCount = item.key === 'NEEDS_ATTENTION' && item.count > 0;
+            const formattedCount = typeof item.count === 'number' ? item.count.toLocaleString() : (item.count || '0');
             return (
               <button
                 key={item.key}
@@ -97,20 +99,20 @@ export function Sidebar({
                 </div>
                 <span
                   style={{
-                    fontSize: '12px',
+                    fontSize: '11px',
                     minWidth: '22px',
-                    height: '22px',
+                    height: '20px',
                     padding: '0 0.45rem',
                     borderRadius: '999px',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: item.key === 'NEEDS_ATTENTION' && item.count > 0 ? 'var(--accent-light)' : 'var(--badge-bg)',
-                    color: item.key === 'NEEDS_ATTENTION' && item.count > 0 ? 'var(--accent)' : 'var(--text-muted)',
+                    backgroundColor: hasAttentionCount ? 'var(--accent-light)' : 'var(--badge-bg)',
+                    color: hasAttentionCount ? 'var(--accent)' : 'var(--text-muted)',
                     fontWeight: item.count > 0 ? 600 : 500,
                   }}
                 >
-                  {item.count}
+                  {formattedCount}
                 </span>
               </button>
             );
@@ -119,12 +121,13 @@ export function Sidebar({
 
         {/* Priority Filter Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', padding: '0 0.65rem 0.35rem' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', padding: '0 0.65rem 0.35rem' }}>
             Priority
           </div>
           {priorityItems.map((item) => {
             const isActive = !focusMode && activeFilter === item.key;
             const isP1WithCount = item.key === 'P1' && item.count > 0;
+            const formattedCount = typeof item.count === 'number' ? item.count.toLocaleString() : (item.count || '0');
             return (
               <button
                 key={item.key}
@@ -151,9 +154,9 @@ export function Sidebar({
                 </div>
                 <span
                   style={{
-                    fontSize: '12px',
+                    fontSize: '11px',
                     minWidth: '22px',
-                    height: '22px',
+                    height: '20px',
                     padding: '0 0.45rem',
                     borderRadius: '999px',
                     display: 'inline-flex',
@@ -164,7 +167,7 @@ export function Sidebar({
                     fontWeight: item.count > 0 ? 600 : 500,
                   }}
                 >
-                  {item.count}
+                  {formattedCount}
                 </span>
               </button>
             );

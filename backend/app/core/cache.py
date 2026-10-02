@@ -85,6 +85,15 @@ class UserEmailCache:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_priority ON user_email_cache(user_id, predicted_priority);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_attention ON user_email_cache(user_id, needs_attention);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_version ON user_email_cache(user_id, model_version);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_thread ON user_email_cache(user_id, thread_id);")
+            try:
+                conn.execute("ALTER TABLE user_email_cache ADD COLUMN deadline_status TEXT DEFAULT 'NONE';")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE user_email_cache ADD COLUMN action_evidence TEXT;")
+            except Exception:
+                pass
             conn.commit()
 
     def get(self, user_id: str, message_id: str) -> Optional[Dict[str, Any]]:
@@ -98,7 +107,7 @@ class UserEmailCache:
 
         conn = self._get_connection()
         cur = conn.execute(
-            "SELECT data_json, is_stale FROM user_email_cache WHERE user_id = ? AND message_id = ?",
+            "SELECT data_json, thread_id, is_stale FROM user_email_cache WHERE user_id = ? AND message_id = ?",
             (user_id, message_id)
         )
         row = cur.fetchone()
@@ -108,6 +117,8 @@ class UserEmailCache:
             return None
         try:
             data = json.loads(row["data_json"])
+            if not data.get("thread_id") and row["thread_id"]:
+                data["thread_id"] = row["thread_id"]
             with self._lock:
                 if user_id not in self._mem_cache:
                     self._mem_cache[user_id] = {}
@@ -164,6 +175,11 @@ class UserEmailCache:
                 item_copy["_cached_at"] = now
                 item_copy["content_hash"] = c_hash
                 item_copy["model_version"] = model_ver
+                item_copy["thread_id"] = thread_id
+                if "deadline_status" in item:
+                    item_copy["deadline_status"] = item["deadline_status"]
+                if "action_evidence" in item:
+                    item_copy["action_evidence"] = item["action_evidence"]
                 user_mem[mid] = item_copy
                 data_json = json.dumps(item_copy)
 
@@ -382,7 +398,8 @@ class UserEmailCache:
         search: Optional[str] = None,
         page: int = 1,
         page_size: int = 50,
-        sort_order: str = "desc"
+        sort_order: str = "desc",
+        action_required: Optional[bool] = None
     ) -> Tuple[List[Dict[str, Any]], int]:
         """
         Queries cached emails for display pagination with fast indexing and search.
@@ -404,6 +421,11 @@ class UserEmailCache:
                 where_clauses.append("predicted_priority = ?")
                 params.append(priority)
 
+        if action_required is True:
+            where_clauses.append("action_required = 1")
+        elif action_required is False:
+            where_clauses.append("action_required = 0")
+
         if search and search.strip():
             term = f"%{search.strip()}%"
             where_clauses.append("(subject LIKE ? OR sender LIKE ? OR snippet LIKE ? OR body LIKE ?)")
@@ -419,7 +441,7 @@ class UserEmailCache:
         order_dir = "ASC" if sort_order.lower() == "asc" else "DESC"
         offset = max(0, (page - 1) * page_size)
         query_sql = f"""
-            SELECT data_json
+            SELECT data_json, thread_id
             FROM user_email_cache
             WHERE {where_sql}
             ORDER BY internal_date {order_dir}, analyzed_at {order_dir}
@@ -429,7 +451,10 @@ class UserEmailCache:
         emails = []
         for r in cur.fetchall():
             try:
-                emails.append(json.loads(r["data_json"]))
+                em = json.loads(r["data_json"])
+                if not em.get("thread_id") and r["thread_id"]:
+                    em["thread_id"] = r["thread_id"]
+                emails.append(em)
             except Exception:
                 pass
 

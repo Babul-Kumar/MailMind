@@ -26,7 +26,7 @@ export function SearchBar({ value, onChange, matchCount = null }) {
       />
       <input
         type="text"
-        placeholder="Search emails (sender, subject, body)..."
+        placeholder="Search all analyzed mail (sender, subject, keyword)..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setIsFocused(true)}

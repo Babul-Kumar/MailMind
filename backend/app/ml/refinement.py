@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from typing import Dict, Any, List, Optional, Tuple
 from backend.app.ml.priority import PRIORITY_MAPPING
@@ -107,12 +107,87 @@ TOPIC_PATTERNS = {
     "newsletter": re.compile(r"\b(newsletter|weekly digest|monthly digest|roundup|top stories|insights|edition)\b", re.IGNORECASE),
 }
 
+# --- Domain 6: Optional Engagement Negation Patterns (Soft CTAs) ---
+OPTIONAL_ENGAGEMENT_PATTERNS = re.compile(
+    r"\b("
+    r"review your (?:monthly |weekly |annual |yearly )?(?:activity |monthly )?(?:summary|achievements|stats|highlights|contributions)|"
+    r"explore (?:recommended )?(?:jobs|courses|topics|opportunities|catalog|features)|"
+    r"discover (?:new )?(?:courses|jobs|features|content|stories|tracks)(?: you may like)?|"
+    r"check out (?:our |these |the )?(?:latest )?(?:features?|updates?|highlights?|deals?|courses?)|"
+    r"read (?:this week's |today's |our )?(?:developer |weekly |monthly )?(?:digest|summary|roundup|edition|newsletter)|"
+    r"browse (?:courses|jobs|catalogs?|products?|items?)|"
+    r"see what's trending|trending now|stories for you|recommended for you|"
+    r"take a moment to (?:check your settings|view your profile|explore)|"
+    r"stay connected to|keep in touch with|follow us on|"
+    r"we successfully reviewed your information to confirm"
+    r")\b",
+    re.IGNORECASE
+)
+
+# Strong operational requirement patterns (Categorized for evidence):
+ACTION_ACTIVATION_PATTERNS = re.compile(
+    r"\b("
+    r"confirm (?:your )?(?:[\w\-]+ )?(?:account|email|signup|registration|subscription)|"
+    r"verify (?:your )?(?:[\w\-]+ )?(?:account|email|student status|identity)|"
+    r"activate (?:your )?(?:[\w\-]+ )?(?:account|subscription|profile|developer account|zoom account)|"
+    r"click (?:this|the) link to confirm (?:your )?email|"
+    r"validate (?:your )?email|complete (?:your )?(?:registration|account setup)|"
+    r"action required: confirm your account"
+    r")\b",
+    re.IGNORECASE
+)
+
+ACTION_SECURITY_PATTERNS = re.compile(
+    r"\b("
+    r"reset (?:your )?password|secure your account|unauthorized (?:access|sign-in|login|activity)|"
+    r"account (?:compromised|locked|suspended)|report unauthorized|if you did not (?:authorize|request|do this)|"
+    r"someone may have accessed|someone knows your password|immediate verification required"
+    r")\b",
+    re.IGNORECASE
+)
+
+ACTION_VERIFICATION_PATTERNS = re.compile(
+    r"\b("
+    r"one.?time (?:password|passcode)|\botp\b|verification code|sign.?in code|access code|"
+    r"enter (?:this|the|your)?\s*(?:verification\s+)?code|use (?:this|the|your)?\s*(?:mfa|otp|verification)?\s*(?:code|passcode) to|"
+    r"valid (?:only )?for \d+(?::\d+)?\s*(?:minutes?|hours?|mins?)|expires? in \d+\s*(?:minutes?|mins?)"
+    r")\b",
+    re.IGNORECASE
+)
+
+ACTION_SUBMISSION_PATTERNS = re.compile(
+    r"\b("
+    r"submit (?:your )?(?:application|assignment|project|proposal|form|report|work|task|code)(?:\s+\d+)? (?:before|by|on)|"
+    r"(?:submission|assignment|application) deadline|last date to submit|submissions? close[sd]?(?: on| by| before)?|"
+    r"due (?:date|on|by|before)"
+    r")\b",
+    re.IGNORECASE
+)
+
+ACTION_PAYMENT_PATTERNS = re.compile(
+    r"\b("
+    r"pay (?:now|overdue|bill|invoice)|payment (?:due|overdue|is due tomorrow)|"
+    r"invoice due|bill due|immediate payment required|account past due"
+    r")\b",
+    re.IGNORECASE
+)
+
+ACTION_SERVICE_PATTERNS = re.compile(
+    r"\b("
+    r"(?:project|service|portfolio|account|subscription|workspace) (?:will be|scheduled (?:to be|for)|is going to be) (?:deleted?|deletion|suspended|suspension|terminated|termination|deactivated|deactivation)|"
+    r"unless you take action|take action (?:to prevent|before deletion)|"
+    r"(?:take action|action required) to prevent (?:workspace |account |project |service )?deactivation|"
+    r"complete (?:your )?(?:kyc verification|kyc)|verify your identity to continue"
+    r")\b",
+    re.IGNORECASE
+)
+
 ACTION_REQUIRED_PATTERNS = re.compile(
     r"\b(submit (?:before|by|on)|(?:submission|assignment|project|competition) deadline|due (?:date|on|by|before)|last date to submit|"
     r"action required|take action now|verify your (?:account|identity|email)|check (?:your )?account activity|"
     r"secure your account|immediately (?:reset|secure|verify|review|update)|reset (?:your )?password|"
     r"account compromised|unauthorized access|security breach|"
-    r"pay (?:now|overdue|before|bill)|complete (?:your )?(?:verification|profile to continue|security)|"
+    r"pay (?:now|overdue|before|bill)|complete (?:your )?(?:verification|profile to continue|security|kyc)|"
     r"respond (?:by|before)|confirm your (?:email|identity|account|booking|attendance)|"
     r"valid (?:only )?for \d+(?::\d+)?\s*(?:minutes?|hours?|mins?)|enter (?:this|the|your)?\s*(?:verification\s+)?code|"
     r"use (?:this|the|your)?\s*(?:mfa|otp|verification)?\s*(?:code|passcode) to|(?:verification|security|sign-?in|login|access|mfa|reset) (?:code|passcode) (?:is|expires?|will expire)|"
@@ -128,7 +203,7 @@ ACTION_NOT_REQUIRED_PATTERNS = re.compile(
     r"marks? (?:announced|published)|payment (?:received|successful)|receipt for your|"
     r"thank you for your|no action (?:is )?required|for your information|FYI|"
     r"successfully (?:updated|registered|submitted)|privacy policy update|"
-    r"terms of (?:use|service) update|browse courses|explore now|read more|unsubscribe|"
+    r"terms of (?:use|service) update|"
     r"weekly digest|newsletter|roundup|edition|"
     r"account (?:verification|email) (?:was |has been )?(?:successfully )?(?:completed|verified|confirmed)|"
     r"security settings (?:were|have been) (?:successfully )?updated|"
@@ -149,24 +224,120 @@ def detect_topic(subject: str, body: str, sender: str) -> str:
     return "other"
 
 
-def detect_action_required(subject: str, body: str, final_priority: str) -> bool:
-    """Determines whether immediate action or user response is required."""
+def evaluate_action_layer(
+    subject: str,
+    body: str,
+    final_priority: str = "P4",
+    deadline_detected: bool = False
+) -> Tuple[bool, Optional[str], Dict[str, Any]]:
+    """
+    Evaluates contextual evidence to determine whether immediate action or user response is required.
+    Distinguishes Required Action (imperative + direct obligation + operational consequence)
+    from Optional Engagement (soft CTAs, newsletters, passive browsing).
+
+    Returns:
+        (action_required, action_reason, action_evidence)
+    """
     text = f"{subject} {body}".strip()
     if not text:
-        return False
+        return False, None, {
+            "imperative": False,
+            "operational_consequence": False,
+            "deadline_present": False,
+            "action_type": "none"
+        }
 
-    # Explicit promotional discounts or shopping are not recipient tasks
+    # 1. Promotional marketing negation (unless critical security/compromise is present)
     if PROMO_NEGATION.search(subject) and not re.search(r"\b(security alert|unauthorized|password reset)\b", subject, re.I):
-        return False
+        return False, None, {
+            "imperative": False,
+            "operational_consequence": False,
+            "deadline_present": deadline_detected,
+            "action_type": "none"
+        }
 
-    # Explicit non-action notices take precedence if not in subject
-    if ACTION_NOT_REQUIRED_PATTERNS.search(text) and not ACTION_REQUIRED_PATTERNS.search(subject):
-        return False
+    # 2. Informational completion / non-action notices (e.g. payment received, solutions released)
+    if ACTION_NOT_REQUIRED_PATTERNS.search(text) and not (
+        ACTION_ACTIVATION_PATTERNS.search(text) or
+        ACTION_SECURITY_PATTERNS.search(text) or
+        ACTION_VERIFICATION_PATTERNS.search(text) or
+        ACTION_SUBMISSION_PATTERNS.search(text) or
+        ACTION_SERVICE_PATTERNS.search(text) or
+        ACTION_PAYMENT_PATTERNS.search(text)
+    ):
+        return False, None, {
+            "imperative": False,
+            "operational_consequence": False,
+            "deadline_present": deadline_detected,
+            "action_type": "none"
+        }
 
-    if ACTION_REQUIRED_PATTERNS.search(text):
-        return True
+    # 3. Check for soft optional engagement
+    is_optional = bool(OPTIONAL_ENGAGEMENT_PATTERNS.search(text))
 
-    return False
+    # 4. Check for strong operational requirements
+    action_type = "none"
+    action_reason = None
+
+    if ACTION_VERIFICATION_PATTERNS.search(text):
+        action_type = "verification"
+        action_reason = "Immediate verification required"
+    elif ACTION_SECURITY_PATTERNS.search(text):
+        action_type = "security"
+        action_reason = "Account security action"
+    elif ACTION_ACTIVATION_PATTERNS.search(text):
+        if not re.search(r"\b(?:stay connected to|marketing updates|marketing emails|receive our latest updates via email)\b", text, re.I):
+            action_type = "activation"
+            action_reason = "Account activation required"
+    elif ACTION_SERVICE_PATTERNS.search(text):
+        action_type = "service"
+        action_reason = "Service action required"
+    elif ACTION_PAYMENT_PATTERNS.search(text):
+        action_type = "payment"
+        action_reason = "Payment action"
+    elif ACTION_SUBMISSION_PATTERNS.search(text):
+        action_type = "submission"
+        action_reason = "Submission deadline"
+
+    # If optional engagement matched and NO strong operational requirement matched:
+    if is_optional and action_type == "none":
+        return False, None, {
+            "imperative": True,
+            "operational_consequence": False,
+            "deadline_present": deadline_detected,
+            "action_type": "none"
+        }
+
+    if action_type != "none":
+        return True, action_reason, {
+            "imperative": True,
+            "operational_consequence": True,
+            "deadline_present": deadline_detected,
+            "action_type": action_type
+        }
+
+    # Fallback to general ACTION_REQUIRED_PATTERNS if imperative and not optional
+    if ACTION_REQUIRED_PATTERNS.search(text) and not is_optional:
+        gen_reason = determine_action_reason(subject, body, "operational")
+        return True, gen_reason, {
+            "imperative": True,
+            "operational_consequence": True,
+            "deadline_present": deadline_detected,
+            "action_type": "operational"
+        }
+
+    return False, None, {
+        "imperative": False,
+        "operational_consequence": False,
+        "deadline_present": deadline_detected,
+        "action_type": "none"
+    }
+
+
+def detect_action_required(subject: str, body: str, final_priority: str = "P4") -> bool:
+    """Determines whether immediate action or user response is required."""
+    act_req, _, _ = evaluate_action_layer(subject, body, final_priority)
+    return act_req
 
 
 # ==============================================================================
@@ -306,7 +477,46 @@ def parse_reference_date(date_str: Optional[str]) -> datetime:
     return datetime(2026, 10, 1, 10, 0, 0)
 
 
-def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) -> Dict[str, Any]:
+def determine_deadline_status(
+    deadline_datetime_str: Optional[str],
+    is_otp: bool = False,
+    ref_date: Optional[str] = None,
+    now_dt: Optional[datetime] = None
+) -> str:
+    """
+    Classifies the operational state of a detected deadline into:
+    ACTIVE, OVERDUE, EXPIRED, HISTORICAL, or NONE.
+    """
+    if not deadline_datetime_str:
+        return "NONE"
+    if now_dt is None:
+        now_dt = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    try:
+        clean_dl = deadline_datetime_str[:19]
+        if "T" in clean_dl:
+            dl_dt = datetime.fromisoformat(clean_dl)
+        else:
+            dl_dt = datetime.strptime(clean_dl, "%Y-%m-%d")
+
+        if dl_dt >= now_dt:
+            return "ACTIVE"
+        if is_otp:
+            return "EXPIRED"
+        diff_days = (now_dt - dl_dt).total_seconds() / 86400.0
+        if diff_days <= 30.0:
+            return "OVERDUE"
+        return "HISTORICAL"
+    except Exception:
+        return "HISTORICAL"
+
+
+def extract_deadline(
+    subject: str,
+    body: str,
+    email_date: Optional[str] = None,
+    now_dt: Optional[datetime] = None
+) -> Dict[str, Any]:
     """
     Extracts explicit, reliable deadline metadata from email subject and body.
     NEVER uses email_date as the deadline (email_date is solely a reference for relative offsets).
@@ -316,12 +526,14 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
         deadline_datetime: Optional[str] (ISO format YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS)
         deadline_precision: "DATETIME" | "DATE" | "NONE"
         deadline_display: Optional[str] (Formatted for UI, e.g. "Oct 5, 2026 · 11:59 PM")
+        deadline_status: "ACTIVE" | "OVERDUE" | "EXPIRED" | "HISTORICAL" | "NONE"
     """
     none_result = {
         "deadline_detected": False,
         "deadline_datetime": None,
         "deadline_precision": "NONE",
-        "deadline_display": None
+        "deadline_display": None,
+        "deadline_status": "NONE"
     }
     
     text = f"{subject} {body}".strip()
@@ -343,6 +555,20 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
                 return True
         return False
 
+    def _make_res(dt_str: str, precision: str, display: str) -> Dict[str, Any]:
+        is_otp = bool(
+            RELATIVE_MINUTES_REGEX.search(text) or
+            re.search(r"\b(?:one.?time (?:password|passcode)|\botp\b|login (?:otp|code|verification)|mfa code|verification code|sign.?in code|access code|password reset code)\b", text, re.I)
+        )
+        status = determine_deadline_status(dt_str, is_otp=is_otp, ref_date=email_date, now_dt=now_dt)
+        return {
+            "deadline_detected": True,
+            "deadline_datetime": dt_str,
+            "deadline_precision": precision,
+            "deadline_display": display,
+            "deadline_status": status
+        }
+
     # 1. ISO pattern (e.g. 2026-09-30 23:59PM UTC)
     for iso_match in ISO_REGEX.finditer(text):
         if is_near_context(iso_match.span()):
@@ -353,19 +579,9 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
             month_name = datetime(year, month, day).strftime("%b")
             if time_str:
                 iso_t, disp_t = normalize_time(time_str)
-                return {
-                    "deadline_detected": True,
-                    "deadline_datetime": f"{year:04d}-{month:02d}-{day:02d}T{iso_t}",
-                    "deadline_precision": "DATETIME",
-                    "deadline_display": f"{month_name} {day}, {year} · {disp_t}"
-                }
+                return _make_res(f"{year:04d}-{month:02d}-{day:02d}T{iso_t}", "DATETIME", f"{month_name} {day}, {year} · {disp_t}")
             else:
-                return {
-                    "deadline_detected": True,
-                    "deadline_datetime": f"{year:04d}-{month:02d}-{day:02d}",
-                    "deadline_precision": "DATE",
-                    "deadline_display": f"{month_name} {day}, {year}"
-                }
+                return _make_res(f"{year:04d}-{month:02d}-{day:02d}", "DATE", f"{month_name} {day}, {year}")
 
     # 2. Time before Month Day (e.g. "close at 5 PM on October 10")
     for t_match in TIME_BEFORE_MONTH_DAY.finditer(text):
@@ -377,12 +593,7 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
                 year = int(y_str) if y_str else ref_year
                 month_abbr = datetime(year, m_num, 1).strftime("%b")
                 iso_t, disp_t = normalize_time(time_str)
-                return {
-                    "deadline_detected": True,
-                    "deadline_datetime": f"{year:04d}-{m_num:02d}-{day:02d}T{iso_t}",
-                    "deadline_precision": "DATETIME",
-                    "deadline_display": f"{month_abbr} {day}, {year} · {disp_t}"
-                }
+                return _make_res(f"{year:04d}-{m_num:02d}-{day:02d}T{iso_t}", "DATETIME", f"{month_abbr} {day}, {year} · {disp_t}")
 
     for t_match in TIME_BEFORE_DAY_MONTH.finditer(text):
         if is_near_context(t_match.span()):
@@ -393,12 +604,7 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
                 year = int(y_str) if y_str else ref_year
                 month_abbr = datetime(year, m_num, 1).strftime("%b")
                 iso_t, disp_t = normalize_time(time_str)
-                return {
-                    "deadline_detected": True,
-                    "deadline_datetime": f"{year:04d}-{m_num:02d}-{day:02d}T{iso_t}",
-                    "deadline_precision": "DATETIME",
-                    "deadline_display": f"{month_abbr} {day}, {year} · {disp_t}"
-                }
+                return _make_res(f"{year:04d}-{m_num:02d}-{day:02d}T{iso_t}", "DATETIME", f"{month_abbr} {day}, {year} · {disp_t}")
 
     # 3. Relative offsets ("in 5 days", "closes tomorrow")
     rel_match = RELATIVE_DAYS_REGEX.search(text)
@@ -408,24 +614,13 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
             num_days = int(days_str)
             target_dt = ref_dt + timedelta(days=num_days)
             m_abbr = target_dt.strftime("%b")
-            return {
-                "deadline_detected": True,
-                "deadline_datetime": target_dt.strftime("%Y-%m-%d"),
-                "deadline_precision": "DATE",
-                "deadline_display": f"Due in {num_days} days · {m_abbr} {target_dt.day}"
-            }
+            return _make_res(target_dt.strftime("%Y-%m-%d"), "DATE", f"Due in {num_days} days · {m_abbr} {target_dt.day}")
         elif tom_str:
             target_dt = ref_dt + timedelta(days=1)
             m_abbr = target_dt.strftime("%b")
-            return {
-                "deadline_detected": True,
-                "deadline_datetime": target_dt.strftime("%Y-%m-%d"),
-                "deadline_precision": "DATE",
-                "deadline_display": f"Due tomorrow · {m_abbr} {target_dt.day}"
-            }
+            return _make_res(target_dt.strftime("%Y-%m-%d"), "DATE", f"Due tomorrow · {m_abbr} {target_dt.day}")
 
     # Relative minutes (e.g. "valid only for 05:00 mins", "expires in 5 minutes", "valid for 10 minutes")
-    # Checked BEFORE hours to prioritise the more precise OTP expiry window.
     rel_mins_match = RELATIVE_MINUTES_REGEX.search(text)
     if rel_mins_match:
         raw_val = rel_mins_match.group(1)  # e.g. "5", "05:00"
@@ -439,12 +634,7 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
         target_dt = ref_dt + timedelta(minutes=num_mins, seconds=num_secs)
         m_abbr = target_dt.strftime("%b")
         disp_time = target_dt.strftime("%I:%M %p").lstrip("0")
-        return {
-            "deadline_detected": True,
-            "deadline_datetime": target_dt.strftime("%Y-%m-%dT%H:%M:%S"),
-            "deadline_precision": "DATETIME",
-            "deadline_display": f"{m_abbr} {target_dt.day}, {target_dt.year} · {disp_time} (OTP expiry)"
-        }
+        return _make_res(target_dt.strftime("%Y-%m-%dT%H:%M:%S"), "DATETIME", f"{m_abbr} {target_dt.day}, {target_dt.year} · {disp_time} (OTP expiry)")
 
     # Relative hours (e.g. "remains active for 12 hours", "expires in 12 hours", "valid for 24 hours")
     rel_hours_match = RELATIVE_HOURS_REGEX.search(text)
@@ -453,12 +643,7 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
         target_dt = ref_dt + timedelta(hours=num_hours)
         m_abbr = target_dt.strftime("%b")
         disp_time = target_dt.strftime("%I:%M %p").lstrip("0")
-        return {
-            "deadline_detected": True,
-            "deadline_datetime": target_dt.strftime("%Y-%m-%dT%H:%M:%S"),
-            "deadline_precision": "DATETIME",
-            "deadline_display": f"{m_abbr} {target_dt.day}, {target_dt.year} · {disp_time}"
-        }
+        return _make_res(target_dt.strftime("%Y-%m-%dT%H:%M:%S"), "DATETIME", f"{m_abbr} {target_dt.day}, {target_dt.year} · {disp_time}")
 
     # 4. Month Day near context
     for m_match in MONTH_DAY_REGEX.finditer(text):
@@ -471,19 +656,9 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
                 month_abbr = datetime(year, m_num, 1).strftime("%b")
                 if time_str:
                     iso_t, disp_t = normalize_time(time_str)
-                    return {
-                        "deadline_detected": True,
-                        "deadline_datetime": f"{year:04d}-{m_num:02d}-{day:02d}T{iso_t}",
-                        "deadline_precision": "DATETIME",
-                        "deadline_display": f"{month_abbr} {day}, {year} · {disp_t}"
-                    }
+                    return _make_res(f"{year:04d}-{m_num:02d}-{day:02d}T{iso_t}", "DATETIME", f"{month_abbr} {day}, {year} · {disp_t}")
                 else:
-                    return {
-                        "deadline_detected": True,
-                        "deadline_datetime": f"{year:04d}-{m_num:02d}-{day:02d}",
-                        "deadline_precision": "DATE",
-                        "deadline_display": f"{month_abbr} {day}, {year}"
-                    }
+                    return _make_res(f"{year:04d}-{m_num:02d}-{day:02d}", "DATE", f"{month_abbr} {day}, {year}")
 
     # 5. Day Month near context
     for dm_match in DAY_MONTH_REGEX.finditer(text):
@@ -496,19 +671,9 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
                 month_abbr = datetime(year, m_num, 1).strftime("%b")
                 if time_str:
                     iso_t, disp_t = normalize_time(time_str)
-                    return {
-                        "deadline_detected": True,
-                        "deadline_datetime": f"{year:04d}-{m_num:02d}-{day:02d}T{iso_t}",
-                        "deadline_precision": "DATETIME",
-                        "deadline_display": f"{month_abbr} {day}, {year} · {disp_t}"
-                    }
+                    return _make_res(f"{year:04d}-{m_num:02d}-{day:02d}T{iso_t}", "DATETIME", f"{month_abbr} {day}, {year} · {disp_t}")
                 else:
-                    return {
-                        "deadline_detected": True,
-                        "deadline_datetime": f"{year:04d}-{m_num:02d}-{day:02d}",
-                        "deadline_precision": "DATE",
-                        "deadline_display": f"{month_abbr} {day}, {year}"
-                    }
+                    return _make_res(f"{year:04d}-{m_num:02d}-{day:02d}", "DATE", f"{month_abbr} {day}, {year}")
 
     # 6. Weekday near context ("before Friday")
     for wk_match in WEEKDAY_REGEX.finditer(text):
@@ -522,12 +687,7 @@ def extract_deadline(subject: str, body: str, email_date: Optional[str] = None) 
                     diff = 7
                 target_dt = ref_dt + timedelta(days=diff)
                 m_abbr = target_dt.strftime("%b")
-                return {
-                    "deadline_detected": True,
-                    "deadline_datetime": target_dt.strftime("%Y-%m-%d"),
-                    "deadline_precision": "DATE",
-                    "deadline_display": f"{wk_match.group(1)} · {m_abbr} {target_dt.day}"
-                }
+                return _make_res(target_dt.strftime("%Y-%m-%d"), "DATE", f"{wk_match.group(1)} · {m_abbr} {target_dt.day}")
 
     return none_result
 
@@ -664,6 +824,30 @@ def refine_priority(
                 refined_priority = "P2"
                 reason = "Actionable academic notice: assignment or assessment with submission deadline"
 
+    # 5b. Actionable Account Activation / Email Confirmation (Elevate P3/P4 -> P2)
+    if not refined_priority and model_priority in ("P3", "P4") and not is_promo:
+        m_act = ACTION_ACTIVATION_PATTERNS.search(text)
+        if m_act and not re.search(r"\b(?:stay connected to|marketing updates|marketing emails|receive our latest updates via email)\b", text, re.I):
+            signals.append(m_act.group(0))
+            refined_priority = "P2"
+            reason = "Account activation: email confirmation or account setup required"
+
+    # 5c. Actionable Operational Service Notice: Project Deletion / Service Suspension (Elevate P3/P4 -> P2)
+    if not refined_priority and model_priority in ("P3", "P4") and not is_promo:
+        m_svc = ACTION_SERVICE_PATTERNS.search(text)
+        if m_svc:
+            signals.append(m_svc.group(0))
+            refined_priority = "P2"
+            reason = "Operational service notice: project deletion or service deactivation pending"
+
+    # 5d. Actionable Password Reset Request (Elevate P3/P4 -> P2)
+    if not refined_priority and model_priority in ("P3", "P4") and not is_promo:
+        m_pwd = re.search(r"\b(reset your password|instructions to reset your password|password reset link)\b", text, re.I)
+        if m_pwd:
+            signals.append(m_pwd.group(0))
+            refined_priority = "P2"
+            reason = "Security action: user-requested password reset"
+
     # 6. Informational Academic Update: Solutions / Grades Released (P3)
     if not refined_priority and not is_promo:
         m_acad3 = ACAD_P3_INFORMATIONAL.search(text)
@@ -705,9 +889,20 @@ def refine_priority(
         final_reason = None
         final_signals = []
 
-    action_required = detect_action_required(subject, body, final_priority)
-    action_reason = determine_action_reason(subject, body, topic) if action_required else None
     deadline_info = extract_deadline(subject, body, email_date)
+    action_required, action_reason, action_evidence = evaluate_action_layer(
+        subject, body, final_priority, deadline_detected=deadline_info["deadline_detected"]
+    )
+    if not deadline_info["deadline_detected"]:
+        deadline_status = "NONE"
+    else:
+        dl_str = deadline_info["deadline_datetime"]
+        is_otp = (action_reason == "Immediate verification required") or bool(
+            re.search(r"\b(otp|verification code|sign-?in code|login code|one-time password|mfa code)\b", text, re.I)
+        )
+        deadline_status = determine_deadline_status(dl_str, is_otp=is_otp, ref_date=email_date)
+
+    deadline_info["deadline_status"] = deadline_status
     review_suggested = refinement_applied or (confidence < 0.40)
 
     return {
@@ -715,11 +910,13 @@ def refine_priority(
         "final_priority": final_priority,
         "action_required": action_required,
         "action_reason": action_reason,
+        "action_evidence": action_evidence,
         "topic": topic,
         "deadline_detected": deadline_info["deadline_detected"],
         "deadline_datetime": deadline_info["deadline_datetime"],
         "deadline_precision": deadline_info["deadline_precision"],
         "deadline_display": deadline_info["deadline_display"],
+        "deadline_status": deadline_status,
         "refinement_applied": refinement_applied,
         "refinement_reason": final_reason,
         "refinement_signals": final_signals,

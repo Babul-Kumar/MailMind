@@ -1,0 +1,30 @@
+{
+  "dataset_version": "dataset-v4.1",
+  "created_at": "2026-10-02T13:45:50.900792+00:00",
+  "base_dataset": "dataset-v4",
+  "description": "Dataset v4.1 with curated contrastive boundary repair pairs distinguishing legitimate modern operational P2 communications (academic deadlines, invoices, recruitment challenges, infrastructure warnings) from routine bulk digests and promotional bulletins.",
+  "counts": {
+    "train": 1860,
+    "validation": 427,
+    "test": 60,
+    "boundary_review_total": 150
+  },
+  "train_class_distribution": {
+    "P2": 730,
+    "P3": 541,
+    "P4": 519,
+    "P1": 70
+  },
+  "validation_class_distribution": {
+    "P2": 163,
+    "P3": 134,
+    "P4": 119,
+    "P1": 11
+  },
+  "sha256": {
+    "train": "3d7b87afecb2d49f88b72f3d4325107981a2c9a622b03f8d180b0b100bf3318e",
+    "validation": "5d4a3a9bc14193fa769ac2a3f2ec21c85392815ad5b712b6a98c2022301bc4ef",
+    "test": "3aadf7888c2d7338002ff6878d1035b35c09fd5f1d55b0aef93c9e4ec00886fa",
+    "boundary_review": "34d6291e485a35678a7f820d96d725366df186d98161471185cab0f6324e4560"
+  }
+}

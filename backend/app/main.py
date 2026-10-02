@@ -12,6 +12,7 @@ from backend.app.api.routes_auth import router as auth_router
 from backend.app.api.routes_gmail import router as gmail_router
 from backend.app.api.routes_model import router as model_router
 from backend.app.api.routes_emails import router as emails_router
+from backend.app.api.routes_monitoring import router as monitoring_router
 
 
 @asynccontextmanager
@@ -42,6 +43,7 @@ app.include_router(auth_router)
 app.include_router(gmail_router)
 app.include_router(model_router)
 app.include_router(emails_router)
+app.include_router(monitoring_router)
 
 # Serve built React frontend from frontend/dist
 assets_dir = os.path.join(FRONTEND_DIST_DIR, "assets")

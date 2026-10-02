@@ -171,26 +171,43 @@ export function EmailDetail({ email, onClose }) {
 
           {/* 4. Deadline + Action Signals (Stacked cleanly per Phase 10) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.15rem' }}>
-            {deadlineState && (
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: deadlineState.state === 'overdue' ? 'var(--p1-color)' : 'var(--p2-color)',
-                  backgroundColor: deadlineState.state === 'overdue' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                  border: `1px solid ${deadlineState.state === 'overdue' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                  padding: '0.25rem 0.6rem',
-                  borderRadius: 'var(--radius-xs)',
-                  width: 'fit-content',
-                }}
-              >
-                <span>{deadlineState.icon}</span>
-                <span>{deadlineState.label}</span>
-              </div>
-            )}
+            {deadlineState && (() => {
+              const isHistorical = email.deadline_status === 'HISTORICAL' || deadlineState.state === 'historical';
+              const isExpiredOtp = (deadlineState.state === 'overdue' || email.deadline_status === 'EXPIRED') && (
+                email.action_reason === 'Immediate verification required' ||
+                email.action_reason === 'Account security action' ||
+                email.deadline_status === 'EXPIRED' ||
+                (email.subject && /otp|verification\s*code|one-time\s*password|login\s*code/i.test(email.subject))
+              );
+
+              const isMuted = isHistorical || isExpiredOtp;
+              const icon = isHistorical ? '📅' : (isExpiredOtp ? '⌛' : deadlineState.icon);
+              let label = isExpiredOtp ? 'Expired verification code' : deadlineState.label;
+              if (isHistorical && label.startsWith('Overdue · ')) {
+                label = label.replace('Overdue · ', 'Past · ');
+              }
+
+              return (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    color: isMuted ? 'var(--text-muted)' : deadlineState.state === 'overdue' ? 'var(--p1-color)' : 'var(--p2-color)',
+                    backgroundColor: isMuted ? 'var(--bg-surface-hover)' : deadlineState.state === 'overdue' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.1)',
+                    border: `1px solid ${isMuted ? 'var(--border-subtle)' : deadlineState.state === 'overdue' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.3)'}`,
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: 'var(--radius-xs)',
+                    width: 'fit-content',
+                  }}
+                >
+                  <span>{icon}</span>
+                  <span>{label}</span>
+                </div>
+              );
+            })()}
 
             {actionRequired && (
               <div
