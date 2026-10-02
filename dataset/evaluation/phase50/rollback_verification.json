@@ -1,0 +1,8 @@
+{
+  "rollback_test": "PASSED",
+  "rollback_target": "priority-v4.1",
+  "restoration_target": "priority-v5.1",
+  "zero_data_loss": true,
+  "zero_cache_loss": true,
+  "final_active_model": "priority-v5.1"
+}

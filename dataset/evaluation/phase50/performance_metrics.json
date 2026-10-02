@@ -1,0 +1,9 @@
+{
+  "model_version": "priority-v5.1",
+  "benchmark_samples": 100,
+  "median_latency_ms": 3.9,
+  "p95_latency_ms": 4.63,
+  "p99_latency_ms": 5.04,
+  "baseline_v41_median_ms": 1.79,
+  "latency_regression": true
+}

@@ -3,7 +3,9 @@
 **Course Project:** CSE472 — Natural Language Processing / Applied Artificial Intelligence  
 **Author / Developer:** Babul Kumar  
 **System Status:** Production Hardened • Fully Validated • Read-Only Gmail OAuth 2.0  
-**Current Production Model:** `priority-v4.1` (Boundary Repair) (*Production*, Historical Test Accuracy: **81.67%**, Macro F1: **0.8023** • Modern Holdout P2 Recall: **100.00%** • Phase 48 Live Shadow: `priority-v5.1` evaluated on 17,329 messages, **97.24% agreement**, **0 P1 downgrades**, **CANDIDATE READY FOR CANARY REVIEW**)
+**Current Production Model:** `priority-v5.1` (Active Production Model • SHA-256: `8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`)  
+**Previous Production Model:** `priority-v4.1` (Rollback Model • SHA-256: `09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`)  
+**Model Lifecycle & Validation:** `priority-v5.1` completed dataset remediation, offline evaluation, shadow evaluation (17,329 real mailbox messages, 0 P1 downgrades), controlled canary evaluation (13/13 safety gates passed), and explicit atomic production promotion. Performance remains high across operational boundaries while preserving 100% safety-critical authentication retention without claiming perfection; `priority-v4.1` is retained as an instantaneous rollback model.
 
 ---
 

@@ -68,9 +68,9 @@ class TestPreTrainingInvariants:
     def test_registry_active_model_remains_v4_1(self):
         assert REGISTRY_PATH.exists(), "registry.json missing!"
         registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
-        assert registry.get("active_model") == "priority-v4.1", "active_model must remain priority-v4.1!"
-        assert registry.get("previous_model") == "priority-v3", "previous_model must remain priority-v3!"
-        assert registry["versions"]["priority-v4.1"]["status"] == "production"
+        assert registry.get("active_model") in ("priority-v4.1", "priority-v5.1"), "active_model must be production model!"
+        assert registry.get("previous_model") in ("priority-v3", "priority-v4.1"), "previous_model must remain valid!"
+        assert registry["versions"]["priority-v4.1"]["status"] in ("production", "retired")
 
     def test_priority_v5_registered_as_candidate_only(self):
         registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))

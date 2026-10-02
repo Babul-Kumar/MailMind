@@ -30,7 +30,7 @@ class TestModelLifecycle(unittest.TestCase):
     # 1. Model Registry active version resolution & metadata
     def test_01_registry_loads_active_version(self):
         active_ver = model_registry.get_active_version()
-        self.assertIn(active_ver, ["priority-v1", "priority-v2", "priority-v3", "priority-v4", "priority-v4.1"])
+        self.assertIn(active_ver, ["priority-v1", "priority-v2", "priority-v3", "priority-v4", "priority-v4.1", "priority-v5.1"])
 
         meta = model_registry.get_active_metadata()
         self.assertIsNotNone(meta)
@@ -202,7 +202,7 @@ class TestModelLifecycle(unittest.TestCase):
 
         # Verify active model remains strictly immutable
         active_ver = model_registry.get_active_version()
-        self.assertIn(active_ver, ["priority-v1", "priority-v2", "priority-v3", "priority-v4", "priority-v4.1"])
+        self.assertIn(active_ver, ["priority-v1", "priority-v2", "priority-v3", "priority-v4", "priority-v4.1", "priority-v5.1"])
 
 
 if __name__ == "__main__":

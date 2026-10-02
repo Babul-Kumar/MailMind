@@ -70,13 +70,25 @@ class TestPhase49Canary:
 
     @classmethod
     def setup_class(cls):
-        # Reset canary router to a clean stage 0
+        # Save registry state for clean teardown restoration
+        cls._saved_registry = model_registry.get_registry()
+        if cls._saved_registry.get("active_model") != "priority-v4.1":
+            temp_reg = dict(cls._saved_registry)
+            temp_reg["active_model"] = "priority-v4.1"
+            temp_reg["candidate_model"] = "priority-v5.1"
+            model_registry._save_registry(temp_reg)
+        from backend.app.ml.predictor import invalidate_cached_pipeline
+        invalidate_cached_pipeline()
         canary_router.rollback()
 
     @classmethod
     def teardown_class(cls):
-        # Ensure canary router remains safely rolled back to active v4.1
+        # Ensure canary router remains safely rolled back
         canary_router.rollback()
+        # Restore saved registry
+        model_registry._save_registry(cls._saved_registry)
+        from backend.app.ml.predictor import invalidate_cached_pipeline
+        invalidate_cached_pipeline()
 
     def test_01_registry_integrity(self):
         """Invariant 1: active_model is priority-v4.1, candidate_model is priority-v5.1."""

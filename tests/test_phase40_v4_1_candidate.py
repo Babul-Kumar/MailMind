@@ -69,12 +69,12 @@ class TestModelRegistryV41Coexistence:
         reg = ModelRegistry()
         data = reg.get_registry()
 
-        assert data["active_model"] in ("priority-v3", "priority-v4.1"), "active model must be priority-v3 or priority-v4.1"
+        assert data["active_model"] in ("priority-v3", "priority-v4.1", "priority-v5.1"), "active model must be priority-v3, priority-v4.1, or priority-v5.1"
         assert "priority-v4" in data["versions"], "priority-v4 must be registered"
         assert "priority-v4.1" in data["versions"], "priority-v4.1 must be registered"
         assert data["versions"]["priority-v3"]["status"] in ("production", "retired")
         assert data["versions"]["priority-v4"]["status"] == "candidate"
-        assert data["versions"]["priority-v4.1"]["status"] in ("candidate", "production")
+        assert data["versions"]["priority-v4.1"]["status"] in ("candidate", "production", "retired")
 
     def test_artifact_hashes_and_coexistence(self):
         v3_path = os.path.join(BASE_DIR, "dataset", "models", "priority-v3", "model.joblib")

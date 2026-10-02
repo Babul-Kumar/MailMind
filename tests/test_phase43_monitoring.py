@@ -75,10 +75,10 @@ class TestPhase43Monitoring(unittest.TestCase):
     # Test 1 — Registry: priority-v4.1 active, priority-v3 rollback-ready
     # -----------------------------------------------------------------------
     def test_01_registry_v41_active_v3_rollback_ready(self):
-        """Active model must be priority-v4.1; priority-v3 must exist as rollback."""
+        """Active model must be valid production model; priority-v3 must exist as rollback."""
         active = model_registry.get_active_version()
-        self.assertEqual(active, "priority-v4.1",
-                         "Active production model must be priority-v4.1")
+        self.assertIn(active, ("priority-v4.1", "priority-v5.1"),
+                      "Active production model must be priority-v4.1 or priority-v5.1")
 
         reg = model_registry.get_registry()
         v3_meta = reg.get("versions", {}).get("priority-v3", {})
@@ -171,8 +171,8 @@ class TestPhase43Monitoring(unittest.TestCase):
 
         monitoring = data["monitoring"]
         prod_model = monitoring["production_model"]
-        self.assertEqual(prod_model["model_version"], "priority-v4.1")
-        self.assertEqual(prod_model["dataset_version"], "dataset-v4.1")
+        self.assertIn(prod_model["model_version"], ("priority-v4.1", "priority-v5.1"))
+        self.assertIn(prod_model["dataset_version"], ("dataset-v4.1", "dataset-v5.1"))
         self.assertIn("artifact_sha256", prod_model)
 
         # Distribution keys present

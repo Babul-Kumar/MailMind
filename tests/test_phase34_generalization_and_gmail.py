@@ -32,8 +32,8 @@ class TestModelRegistryAudit:
         reg = model_registry.get_registry()
         assert "priority-v2" in reg["versions"]
         assert "priority-v3" in reg["versions"]
-        assert reg["active_model"] in ("priority-v3", "priority-v4.1")
-        assert reg["previous_model"] in ("priority-v3", "priority-v2", "priority-v1")
+        assert reg["active_model"] in ("priority-v3", "priority-v4.1", "priority-v5.1")
+        assert reg["previous_model"] in ("priority-v4.1", "priority-v3", "priority-v2", "priority-v1")
 
     def test_v2_artifact_unchanged(self):
         v2_path = os.path.join(BASE_DIR, "dataset", "models", "priority-v2", "model.joblib")
@@ -162,7 +162,7 @@ class TestExactTCSOTPRegression:
         assert "OTP expiry" in str(res["deadline_display"])
         assert res["needs_attention"] is True
         assert res["confidence"] >= 0.75
-        assert res["model_version"] in ("priority-v3", "priority-v4.1")
+        assert res["model_version"] in ("priority-v3", "priority-v4.1", "priority-v5.1")
 
 
 # =============================================================================

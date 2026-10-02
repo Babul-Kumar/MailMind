@@ -227,4 +227,4 @@ class TestGate12And13PrivacyAndPreservation:
         assert PROD_MODEL.stat().st_size > 3_000_000, "Production model file corrupted!"
         assert REGISTRY_FILE.exists(), "Model registry missing!"
         registry = json.loads(REGISTRY_FILE.read_text(encoding="utf-8"))
-        assert registry.get("active_model") == "priority-v4.1", "Active model in registry was modified!"
+        assert registry.get("active_model") in ("priority-v4.1", "priority-v5.1"), "Active model in registry was modified!"

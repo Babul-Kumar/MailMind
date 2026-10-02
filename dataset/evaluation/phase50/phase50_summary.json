@@ -1,0 +1,18 @@
+{
+  "phase": "Phase 50 \u2014 Explicit Production Promotion of priority-v5.1",
+  "timestamp": "2026-10-02T20:58:17Z",
+  "git_commit": "f4d866f2553dcd5e57a866bbd3503b438c363e36",
+  "active_model": "priority-v5.1",
+  "previous_model": "priority-v4.1",
+  "historical_model": "priority-v3",
+  "active_artifact_sha": "8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06",
+  "previous_artifact_sha": "09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0",
+  "dataset_version": "dataset-v5.1",
+  "smoke_tests_passed": 20,
+  "smoke_tests_total": 20,
+  "p1_downgrades": 0,
+  "safety_retention_rate": 100.0,
+  "median_latency_ms": 3.9,
+  "rollback_verified": true,
+  "final_status": "PROMOTION_COMPLETE"
+}

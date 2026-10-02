@@ -35,4 +35,5 @@ dataset/emails.csv
 scratch/
 *.log
 dataset/monitoring/shadow_logs/
+dataset/monitoring/prediction_logs/
 

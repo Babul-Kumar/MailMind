@@ -1,0 +1,30 @@
+{
+  "p1_downgrades": 0,
+  "safety_retention_rate": 100.0,
+  "fixtures": [
+    {
+      "name": "OTP Banking",
+      "priority": "P1",
+      "confidence": 0.7783,
+      "safe": true
+    },
+    {
+      "name": "MFA Auth",
+      "priority": "P1",
+      "confidence": 0.5243,
+      "safe": true
+    },
+    {
+      "name": "Security Alert",
+      "priority": "P1",
+      "confidence": 0.7286,
+      "safe": true
+    },
+    {
+      "name": "Password Reset",
+      "priority": "P1",
+      "confidence": 0.6705,
+      "safe": true
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "promotion_id": "prom_v51_1790974697",
+  "timestamp": "2026-10-02T20:58:17Z",
+  "operator": "MailMind Deployment Pipeline",
+  "old_active_model": "priority-v4.1",
+  "new_active_model": "priority-v5.1",
+  "old_active_sha": "09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0",
+  "new_active_sha": "8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06",
+  "dataset_version": "dataset-v5.1",
+  "phase_49_status": "CANARY PASSED \u2014 READY FOR EXPLICIT PROMOTION",
+  "git_commit": "f4d866f2553dcd5e57a866bbd3503b438c363e36",
+  "test_status": "All 25 Phase 49 tests passed; 409 backend tests passed",
+  "rollback_target": "priority-v4.1"
+}

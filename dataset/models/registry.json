@@ -1,6 +1,6 @@
 {
-  "active_model": "priority-v4.1",
-  "previous_model": "priority-v3",
+  "active_model": "priority-v5.1",
+  "previous_model": "priority-v4.1",
   "versions": {
     "priority-v1": {
       "model_version": "priority-v1",
@@ -57,7 +57,7 @@
     "priority-v4.1": {
       "model_version": "priority-v4.1",
       "name": "MailMind Priority Classifier priority-v4.1 (Boundary Repair Candidate)",
-      "status": "production",
+      "status": "retired",
       "dataset_version": "dataset-v4.1",
       "feature_version": "tfidf-v4.1 (10,000 sublinear ngrams)",
       "label_schema_version": "v1.0 (P1/P2/P3/P4)",
@@ -83,16 +83,16 @@
     "priority-v5.1": {
       "model_version": "priority-v5.1",
       "name": "MailMind Priority Classifier priority-v5.1 (Remediated Boundary & Curated Negatives)",
-      "status": "candidate",
+      "status": "production",
       "dataset_version": "dataset-v5.1",
       "feature_version": "tfidf-v5.1 (sublinear ngrams 1-2, min_df=2, max_df=0.95)",
       "label_schema_version": "v1.0 (P1/P2/P3/P4)",
       "created_at": "2026-10-02T19:26:05.408878+00:00",
-      "promoted_at": null,
+      "promoted_at": "2026-10-02T21:13:18Z",
       "artifact_path": "priority-v5.1-candidate/model.joblib",
       "artifact_sha256": "8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06",
       "changelog": "Candidate model trained on dataset-v5.1 with repartitioned cp_005b and 10 newly curated recruitment/payment negatives. Resolves recruitment confirmation boundary while preserving modern P2 recall and bulk de-escalation."
     }
   },
-  "candidate_model": "priority-v5.1"
+  "candidate_model": null
 }

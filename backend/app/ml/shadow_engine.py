@@ -62,7 +62,7 @@ def get_shadow_version() -> str:
     """Returns candidate model version from registry (defaults to priority-v5.1)."""
     try:
         reg = model_registry.get_registry()
-        return reg.get("candidate_model", "priority-v5.1")
+        return reg.get("candidate_model") or "priority-v5.1"
     except Exception as exc:
         logger.warning("Failed to read candidate model version from registry: %s", exc)
         return "priority-v5.1"

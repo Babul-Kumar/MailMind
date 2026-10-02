@@ -94,8 +94,43 @@ class ModelRegistry:
             return json.load(f)
 
     def _save_registry(self, data: Dict[str, Any]):
-        with open(REGISTRY_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        """
+        Atomically saves registry.json using write-temp -> validate -> fsync -> atomic replace.
+        Ensures active_model points to an existing artifact and structure is valid.
+        """
+        if not isinstance(data, dict) or "active_model" not in data or "versions" not in data:
+            raise ValueError("Invalid registry structure: missing 'active_model' or 'versions'")
+        active = data["active_model"]
+        if active not in data["versions"]:
+            raise ValueError(f"active_model '{active}' is not defined in versions")
+
+        rel_path = data["versions"][active].get("artifact_path", f"{active}/model.joblib")
+        abs_path = os.path.join(MODELS_DIR, rel_path)
+        if not os.path.exists(abs_path):
+            raise FileNotFoundError(f"Artifact for active_model '{active}' does not exist at {abs_path}")
+
+        temp_path = f"{REGISTRY_PATH}.tmp.{os.getpid()}"
+        try:
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+
+            # Validate temporary file
+            with open(temp_path, "r", encoding="utf-8") as f:
+                read_back = json.load(f)
+                if read_back.get("active_model") != active:
+                    raise ValueError(f"Registry validation failed: active_model mismatch in temp file")
+
+            # Atomic replace
+            os.replace(temp_path, REGISTRY_PATH)
+        except Exception:
+            if os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except Exception:
+                    pass
+            raise
 
     def get_active_version(self) -> str:
         reg = self.get_registry()
@@ -189,6 +224,8 @@ class ModelRegistry:
         reg["versions"][version]["status"] = "production"
         reg["versions"][version]["promoted_at"] = now_iso
         reg["active_model"] = version
+        if reg.get("candidate_model") == version:
+            reg["candidate_model"] = None
 
         self._save_registry(reg)
 
@@ -228,6 +265,8 @@ class ModelRegistry:
         reg["versions"][previous]["status"] = "production"
         reg["previous_model"] = current_active
         reg["active_model"] = previous
+        if current_active == "priority-v5.1":
+            reg["candidate_model"] = current_active
         self._save_registry(reg)
 
         from backend.app.ml.predictor import invalidate_cached_pipeline

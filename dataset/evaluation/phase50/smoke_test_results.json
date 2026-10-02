@@ -1,0 +1,226 @@
+{
+  "total": 20,
+  "passed": 20,
+  "results": [
+    {
+      "test_id": 1,
+      "name": "TCS OTP Login",
+      "category": "critical",
+      "expected_priority": "P1",
+      "actual_priority": "P1",
+      "confidence": 0.8424,
+      "action_required": true,
+      "needs_attention": true,
+      "passed": true
+    },
+    {
+      "test_id": 2,
+      "name": "MFA Challenge",
+      "category": "critical",
+      "expected_priority": "P1",
+      "actual_priority": "P1",
+      "confidence": 0.4202,
+      "action_required": false,
+      "needs_attention": true,
+      "passed": true
+    },
+    {
+      "test_id": 3,
+      "name": "Security Alert",
+      "category": "critical",
+      "expected_priority": "P1",
+      "actual_priority": "P1",
+      "confidence": 0.653,
+      "action_required": true,
+      "needs_attention": true,
+      "passed": true
+    },
+    {
+      "test_id": 4,
+      "name": "Password Reset",
+      "category": "critical",
+      "expected_priority": "P1",
+      "actual_priority": "P1",
+      "confidence": 0.5738,
+      "action_required": true,
+      "needs_attention": true,
+      "passed": true
+    },
+    {
+      "test_id": 5,
+      "name": "Account Compromise",
+      "category": "critical",
+      "expected_priority": "P1",
+      "actual_priority": "P1",
+      "confidence": 0.3897,
+      "action_required": false,
+      "needs_attention": true,
+      "passed": true
+    },
+    {
+      "test_id": 6,
+      "name": "Account Activation",
+      "category": "operational",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.4182,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 7,
+      "name": "Overdue Invoice",
+      "category": "operational",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.5732,
+      "action_required": true,
+      "needs_attention": true,
+      "passed": true
+    },
+    {
+      "test_id": 8,
+      "name": "Infrastructure Alert",
+      "category": "operational",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.4078,
+      "action_required": true,
+      "needs_attention": true,
+      "passed": true
+    },
+    {
+      "test_id": 9,
+      "name": "Assignment Deadline",
+      "category": "operational",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.652,
+      "action_required": true,
+      "needs_attention": true,
+      "passed": true
+    },
+    {
+      "test_id": 10,
+      "name": "Recruitment Assessment",
+      "category": "operational",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.4732,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 11,
+      "name": "Recruitment Acknowledgment",
+      "category": "boundary",
+      "expected_priority": "P3",
+      "actual_priority": "P3",
+      "confidence": 0.3995,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 12,
+      "name": "Payment Receipt",
+      "category": "boundary",
+      "expected_priority": "P3",
+      "actual_priority": "P3",
+      "confidence": 0.3775,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 13,
+      "name": "Tech Newsletter",
+      "category": "boundary",
+      "expected_priority": "P3",
+      "actual_priority": "P3",
+      "confidence": 0.525,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 14,
+      "name": "Social Routine",
+      "category": "boundary",
+      "expected_priority": "P4",
+      "actual_priority": "P3",
+      "confidence": 0.4817,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 15,
+      "name": "Completed Verification",
+      "category": "boundary",
+      "expected_priority": "P3",
+      "actual_priority": "P3",
+      "confidence": 0.3463,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 16,
+      "name": "General Mailbox Email",
+      "category": "production_flow",
+      "expected_priority": "P3",
+      "actual_priority": "P3",
+      "confidence": 0.3375,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 17,
+      "name": "Needs Attention Flagging",
+      "category": "production_flow",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.4215,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 18,
+      "name": "Action Required Detection",
+      "category": "production_flow",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.4916,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 19,
+      "name": "Deadline State Detection",
+      "category": "production_flow",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.5716,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    },
+    {
+      "test_id": 20,
+      "name": "Gmail Detail / Open Flow",
+      "category": "production_flow",
+      "expected_priority": "P2",
+      "actual_priority": "P2",
+      "confidence": 0.4419,
+      "action_required": false,
+      "needs_attention": false,
+      "passed": true
+    }
+  ]
+}

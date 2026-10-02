@@ -66,7 +66,7 @@ class TestModelRegistryV4Candidate:
         reg = ModelRegistry()
         data = reg.get_registry()
 
-        assert data["active_model"] in ("priority-v3", "priority-v4.1"), "active model must be priority-v3 or priority-v4.1"
+        assert data["active_model"] in ("priority-v3", "priority-v4.1", "priority-v5.1"), "active model must be priority-v3, priority-v4.1, or priority-v5.1"
         assert "priority-v4" in data["versions"], "priority-v4 must be versioned in registry"
         assert data["versions"]["priority-v4"]["status"] == "candidate", "priority-v4 must have status 'candidate'"
         assert data["versions"]["priority-v3"]["status"] in ("production", "retired")
@@ -99,7 +99,7 @@ class TestModelRegistryV4Candidate:
         data = reg.get_registry()
         # Verify rollback capability without permanently mutating active model
         prev_model = data.get("previous_model")
-        assert prev_model in ("priority-v1", "priority-v2", "priority-v3"), "Valid previous model must be stored for rollback"
+        assert prev_model in ("priority-v1", "priority-v2", "priority-v3", "priority-v4.1"), "Valid previous model must be stored for rollback"
 
 
 class TestHoldoutBenchmarksV4:
