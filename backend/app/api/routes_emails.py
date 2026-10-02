@@ -472,6 +472,13 @@ def submit_feedback(request: Request, submission: FeedbackSubmission):
     """
     Records human-reviewed feedback/corrections for future dataset versions.
     Does not automatically mutate the active production model during runtime.
+
+    Phase 53 guarantees:
+      - Authenticated session required (401 if missing).
+      - Server-side user identity strictly enforced (client user_id ignored).
+      - Server-side active model version strictly enforced (client model_version ignored).
+      - Authoritative original prediction resolved from cache where available.
+      - Provenance set to PRODUCTION_FEEDBACK.
     """
     session = get_session_from_request(request)
     if not session:
@@ -480,8 +487,40 @@ def submit_feedback(request: Request, submission: FeedbackSubmission):
             detail="Authentication required to submit feedback."
         )
     user_id = session.user_id
-    record = feedback_manager.record_feedback(submission, user_id=user_id)
+
+    # Server-side model version resolution (Phase 53-B & 53-D)
+    from backend.app.ml.registry import model_registry
+    active_model = model_registry.get_active_version()
+    submission.model_version = active_model
+
+    # Server-side prediction resolution from cache where present (Phase 53-D)
+    try:
+        from backend.app.core.cache import email_cache
+        cached = email_cache.get(user_id, submission.message_id)
+        if cached:
+            submission.predicted_priority = cached.get("predicted_priority") or cached.get("final_priority") or submission.predicted_priority
+            if cached.get("confidence") is not None:
+                submission.original_confidence = cached.get("confidence")
+            if cached.get("topic"):
+                submission.original_topic = cached.get("topic")
+            if cached.get("deadline_detected") is not None:
+                submission.original_deadline_detected = bool(cached.get("deadline_detected"))
+            if cached.get("deadline_status"):
+                submission.deadline_status = cached.get("deadline_status")
+            if cached.get("thread_id"):
+                submission.thread_id = cached.get("thread_id")
+            if cached.get("action_required") is not None:
+                submission.predicted_action_required = bool(cached.get("action_required"))
+    except Exception:
+        pass
+
+    record = feedback_manager.record_feedback(
+        submission,
+        user_id=user_id,
+        provenance="PRODUCTION_FEEDBACK"
+    )
     return {"status": "success", "message": "Feedback recorded for review", "record": record}
+
 
 
 @router.get("/api/feedback")

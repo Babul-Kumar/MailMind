@@ -41,6 +41,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from backend.app.core.config import BASE_DIR
 from backend.app.core.cache import DB_PATH
 from backend.app.ml.registry import model_registry
+from backend.app.core.feedback import feedback_manager
 
 logger = logging.getLogger("mailmind.phase51_monitor")
 
@@ -345,6 +346,8 @@ class Phase51Monitor:
             "by_topic": dict(by_topic),
             "by_model_version": dict(by_model),
             "action_deadline_corrections": by_action,
+            "v51_production_metrics": feedback_manager.get_v51_production_metrics(user_id),
+            "model_separation": feedback_manager.get_metrics_by_model(user_id),
             "severity": "NORMAL",
             "note": "Feedback is evidence for future human adjudication only. "
                     "Do NOT automatically retrain or add to training data.",
@@ -358,6 +361,8 @@ class Phase51Monitor:
             "correction_matrix": {p: {"P1": 0, "P2": 0, "P3": 0, "P4": 0} for p in ["P1", "P2", "P3", "P4"]},
             "by_topic": {}, "by_model_version": {},
             "action_deadline_corrections": {"action_required_corrections": 0, "deadline_corrections": 0},
+            "v51_production_metrics": {},
+            "model_separation": {},
             "severity": "NORMAL", "note": "No feedback data.",
         }
 

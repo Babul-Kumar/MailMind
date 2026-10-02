@@ -1,5 +1,5 @@
 """
-adjudication.py — Phase 52 Human Adjudication Workflow
+adjudication.py — Phase 53 Human Adjudication Workflow
 ========================================================
 Explicit human review of production feedback before anything enters
 a training candidate dataset.
@@ -9,7 +9,8 @@ DESIGN INVARIANTS:
   - Only ACCEPTED + valid provenance records may enter dataset-v5.2 candidate.
   - Rejected and ambiguous feedback MUST NOT enter training.
   - Adjudication records are append-only (audit trail).
-  - No model.fit(), no model promotion, no online learning.
+  - No automated model retraining, no model promotion, no online learning.
+  - Separates v5.1 production evidence from historical v1/v4.1 models.
 
 Adjudication statuses:
   PENDING_REVIEW  — newly submitted, awaiting human review
@@ -29,6 +30,7 @@ import time
 import uuid
 import logging
 from typing import Dict, Any, List, Optional
+from collections import Counter
 from dataclasses import dataclass, field, asdict
 
 from backend.app.core.config import BASE_DIR
@@ -46,6 +48,11 @@ VALID_STATUSES = frozenset([
 
 # Topics that require immediate safety queue prioritisation
 DEADLINE_TOPICS = frozenset(["deadline", "application", "payment", "academic", "recruitment"])
+
+DIAGNOSTIC_DOMAINS = [
+    "recruitment", "academic", "payment", "saas", "security",
+    "infrastructure", "newsletters", "social", "promotional", "other"
+]
 
 
 @dataclass
@@ -103,12 +110,7 @@ class AdjudicationManager:
       - Maintain adjudication.jsonl audit trail
       - Expose review queues (pending, safety, P2/P3, deadline)
       - Provide candidate pool (ACCEPTED only)
-
-    Forbidden:
-      - No automatic acceptance of any feedback
-      - No model training or modification
-      - No registry mutations
-      - No cross-user data exposure
+      - Model version filtering & separation
     """
 
     def __init__(self):
@@ -127,20 +129,6 @@ class AdjudicationManager:
     ) -> Dict[str, Any]:
         """
         Records a human adjudication decision for a feedback record.
-
-        Args:
-            feedback_id: The feedback_id from feedback.jsonl.
-            adjudicator_id: Identity of the human reviewer.
-            status: One of ACCEPTED, REJECTED, NEEDS_CONTEXT, DUPLICATE.
-            reason: Human-readable explanation of the decision.
-            corrected_priority: Reviewer-confirmed label (required for ACCEPTED).
-
-        Returns:
-            The persisted adjudication record dict.
-
-        Raises:
-            ValueError: If feedback_id not found, status invalid, or
-                        ACCEPTED without corrected_priority.
         """
         if status not in VALID_STATUSES or status == "PENDING_REVIEW":
             raise ValueError(
@@ -148,12 +136,10 @@ class AdjudicationManager:
                 f"Must be one of: ACCEPTED, REJECTED, NEEDS_CONTEXT, DUPLICATE."
             )
 
-        # Load original feedback
         fb = feedback_manager.get_by_feedback_id(feedback_id)
         if fb is None:
             raise ValueError(f"Feedback record '{feedback_id}' not found.")
 
-        # ACCEPTED requires explicit corrected_priority
         if status == "ACCEPTED":
             label = corrected_priority or fb.get("corrected_priority")
             if not label or label not in VALID_PRIORITIES:
@@ -162,19 +148,16 @@ class AdjudicationManager:
                 )
             corrected_priority = label
 
-        # Validate reviewer did not blindly copy user claim without analysis
         if status == "ACCEPTED" and not reason:
             raise ValueError("ACCEPTED adjudication requires a documented reason.")
 
-        # Compute safety / boundary / deadline flags
         orig = fb.get("predicted_priority") or fb.get("original_priority", "")
         corr = corrected_priority or fb.get("corrected_priority") or ""
         topic = (fb.get("original_topic") or fb.get("topic") or "").lower()
-        is_safety = topic in SAFETY_TOPICS or corr == "P1" and orig != "P1"
+        is_safety = topic in SAFETY_TOPICS or (corr == "P1" and orig != "P1")
         is_boundary = orig in ("P2", "P3") and corr in ("P2", "P3") and orig != corr
-        is_deadline = bool(fb.get("deadline_detected") or fb.get("deadline_correction"))
+        is_deadline = bool(fb.get("deadline_detected") or fb.get("deadline_correction") or fb.get("original_deadline_detected"))
 
-        # Training eligibility gate
         eligible = False
         ineligibility_reason = None
         if status == "ACCEPTED":
@@ -234,23 +217,26 @@ class AdjudicationManager:
                 return rec
         return None
 
-    def list_by_status(self, status: str) -> List[Dict[str, Any]]:
-        """Returns all adjudication records with the given status."""
-        return [r for r in self._load_all() if r.get("adjudication_status") == status]
+    def list_by_status(self, status: str, model_version: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Returns all adjudication records with the given status and optional model version."""
+        all_recs = self._load_all()
+        return [
+            r for r in all_recs
+            if r.get("adjudication_status") == status
+            and (model_version is None or r.get("model_version") == model_version)
+        ]
 
     # ------------------------------------------------------------------
     # 3. Review queues (read-only)
     # ------------------------------------------------------------------
-    def get_pending_queue(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_pending_queue(
+        self,
+        user_id: Optional[str] = None,
+        model_version: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
-        Returns feedback records in PENDING_REVIEW state, deduped by
-        (user_id, message_id). If user_id is provided, filtered to that user.
-
-        Prioritisation order:
-          1. Safety cases (OTP, MFA, security, password reset)
-          2. P2/P3 boundary cases
-          3. Deadline cases
-          4. All others
+        Returns feedback records in PENDING_REVIEW state, deduped by (user_id, message_id).
+        Optionally filtered by user_id and model_version.
         """
         already_adjudicated = {
             r.get("feedback_id")
@@ -258,10 +244,12 @@ class AdjudicationManager:
             if r.get("adjudication_status") != "PENDING_REVIEW"
         }
 
-        # Load unique cases from feedback
-        all_records = feedback_manager.list_feedback(user_id=user_id, limit=100_000)
+        all_records = feedback_manager.list_feedback(
+            user_id=user_id,
+            model_version=model_version,
+            limit=100_000,
+        )
 
-        # Dedup by (user_id, message_id) — most recent first
         seen: Dict[str, Dict[str, Any]] = {}
         for rec in all_records:
             fid = rec.get("feedback_id")
@@ -270,30 +258,31 @@ class AdjudicationManager:
             uid = rec.get("user_id", "")
             mid = rec.get("message_id") or rec.get("email_id", "")
             key = f"{uid}::{mid}"
-            seen[key] = rec  # last wins
+            seen[key] = rec
 
         queue = list(seen.values())
 
-        # Sort: safety > p2_p3 > deadline > other
         def priority_key(r):
             topic = (r.get("original_topic") or r.get("topic") or "").lower()
             corr = r.get("corrected_priority") or r.get("user_priority") or ""
             orig = r.get("predicted_priority") or r.get("original_priority") or ""
             is_s = topic in SAFETY_TOPICS or (corr == "P1" and orig != "P1")
             is_b = orig in ("P2", "P3") and corr in ("P2", "P3") and orig != corr
-            is_d = bool(r.get("deadline_detected") or r.get("deadline_correction"))
+            is_d = bool(r.get("deadline_detected") or r.get("deadline_correction") or r.get("original_deadline_detected"))
             return (0 if is_s else 1 if is_b else 2 if is_d else 3)
 
         queue.sort(key=priority_key)
         return queue
 
-    def get_safety_queue(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_safety_queue(
+        self,
+        user_id: Optional[str] = None,
+        model_version: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Returns pending feedback that involves safety-critical topics.
-        OTP, MFA, password reset, security alerts, account compromise,
-        authentication, infrastructure failures, hard deadlines.
         """
-        queue = self.get_pending_queue(user_id=user_id)
+        queue = self.get_pending_queue(user_id=user_id, model_version=model_version)
         safety = []
         for rec in queue:
             topic = (rec.get("original_topic") or rec.get("topic") or "").lower()
@@ -304,12 +293,15 @@ class AdjudicationManager:
                 safety.append(rec)
         return safety
 
-    def get_p2_p3_queue(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_p2_p3_queue(
+        self,
+        user_id: Optional[str] = None,
+        model_version: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Returns pending feedback involving P2 → P3 or P3 → P2 corrections.
-        These require special attention per Phase 52-F.
         """
-        queue = self.get_pending_queue(user_id=user_id)
+        queue = self.get_pending_queue(user_id=user_id, model_version=model_version)
         boundary = []
         for rec in queue:
             orig = (rec.get("predicted_priority") or rec.get("original_priority") or "").strip()
@@ -318,11 +310,15 @@ class AdjudicationManager:
                 boundary.append(rec)
         return boundary
 
-    def get_deadline_queue(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_deadline_queue(
+        self,
+        user_id: Optional[str] = None,
+        model_version: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Returns pending feedback involving deadline-related corrections.
         """
-        queue = self.get_pending_queue(user_id=user_id)
+        queue = self.get_pending_queue(user_id=user_id, model_version=model_version)
         deadlines = []
         for rec in queue:
             has_deadline = (
@@ -336,18 +332,153 @@ class AdjudicationManager:
         return deadlines
 
     # ------------------------------------------------------------------
+    # Phase 53 Diagnostic Analysis Methods
+    # ------------------------------------------------------------------
+    def get_p2_p3_analysis(
+        self,
+        user_id: Optional[str] = None,
+        model_version: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Phase 53-H: Focused diagnostic breakdown for P2↔P3 corrections.
+        """
+        queue = self.get_p2_p3_queue(user_id=user_id, model_version=model_version)
+        all_adj = self._load_all()
+        if user_id:
+            all_adj = [r for r in all_adj if r.get("user_id") == user_id]
+        if model_version:
+            all_adj = [r for r in all_adj if r.get("model_version") == model_version]
+
+        adj_p2_p3 = [
+            r for r in all_adj
+            if r.get("original_priority") in ("P2", "P3")
+            and r.get("corrected_priority") in ("P2", "P3")
+            and r.get("original_priority") != r.get("corrected_priority")
+        ]
+        accepted_p2_p3 = [r for r in adj_p2_p3 if r.get("adjudication_status") == "ACCEPTED"]
+
+        by_topic = Counter()
+        by_action = {"action_required_true": 0, "action_required_false": 0}
+        by_deadline = {"deadline_detected": 0, "no_deadline": 0}
+        by_deadline_status = Counter()
+        confidence_bins = {"low_under_60": 0, "mid_60_80": 0, "high_over_80": 0}
+
+        for r in queue:
+            t = (r.get("original_topic") or r.get("topic") or "other").lower()
+            by_topic[t] += 1
+            if r.get("predicted_action_required") or r.get("action_required"):
+                by_action["action_required_true"] += 1
+            else:
+                by_action["action_required_false"] += 1
+
+            if r.get("deadline_detected") or r.get("original_deadline_detected"):
+                by_deadline["deadline_detected"] += 1
+            else:
+                by_deadline["no_deadline"] += 1
+
+            ds = r.get("deadline_status") or "NONE"
+            by_deadline_status[ds] += 1
+
+            conf = r.get("original_confidence")
+            if conf is not None:
+                if conf < 0.6:
+                    confidence_bins["low_under_60"] += 1
+                elif conf <= 0.8:
+                    confidence_bins["mid_60_80"] += 1
+                else:
+                    confidence_bins["high_over_80"] += 1
+
+        p2_to_p3 = sum(1 for r in queue if r.get("predicted_priority") == "P2" and r.get("corrected_priority") == "P3")
+        p3_to_p2 = sum(1 for r in queue if r.get("predicted_priority") == "P3" and r.get("corrected_priority") == "P2")
+
+        return {
+            "model_version_filter": model_version or "all",
+            "pending_boundary_cases": len(queue),
+            "p2_to_p3_pending": p2_to_p3,
+            "p3_to_p2_pending": p3_to_p2,
+            "adjudicated_boundary_cases": len(adj_p2_p3),
+            "accepted_boundary_corrections": len(accepted_p2_p3),
+            "breakdown_by_topic": dict(by_topic),
+            "breakdown_by_action": by_action,
+            "breakdown_by_deadline": by_deadline,
+            "breakdown_by_deadline_status": dict(by_deadline_status),
+            "breakdown_by_confidence": confidence_bins,
+            "diagnostic_domains": DIAGNOSTIC_DOMAINS,
+            "diagnostic_note": (
+                "Domains and topics are diagnostic categories only. "
+                "They are NEVER used as priority rules."
+            ),
+        }
+
+    def get_safety_analysis(
+        self,
+        user_id: Optional[str] = None,
+        model_version: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Phase 53-I: Dedicated safety feedback view.
+        """
+        queue = self.get_safety_queue(user_id=user_id, model_version=model_version)
+        escalations = [
+            r for r in queue
+            if r.get("corrected_priority") == "P1" and r.get("predicted_priority") != "P1"
+        ]
+        downgrades = [
+            r for r in queue
+            if r.get("predicted_priority") == "P1" and r.get("corrected_priority") in ("P2", "P3", "P4")
+        ]
+
+        by_topic = Counter()
+        for r in queue:
+            t = (r.get("original_topic") or r.get("topic") or "unknown").lower()
+            by_topic[t] += 1
+
+        return {
+            "model_version_filter": model_version or "all",
+            "total_safety_feedback": len(queue),
+            "critical_p1_escalations": len(escalations),
+            "p1_downgrades": len(downgrades),
+            "safety_queue": queue,
+            "breakdown_by_safety_topic": dict(by_topic),
+            "safety_invariant": (
+                "0 critical P1 downgrades. Any user report indicating a critical "
+                "email was classified below P1 appears in this queue immediately. "
+                "Human adjudication remains mandatory. No automated model changes."
+            ),
+        }
+
+    def get_deadline_analysis(
+        self,
+        user_id: Optional[str] = None,
+        model_version: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Phase 53-J: Dedicated deadline feedback view.
+        """
+        queue = self.get_deadline_queue(user_id=user_id, model_version=model_version)
+
+        by_status = Counter()
+        for r in queue:
+            ds = r.get("deadline_status") or "NONE"
+            by_status[ds] += 1
+
+        return {
+            "model_version_filter": model_version or "all",
+            "total_deadline_feedback": len(queue),
+            "deadline_queue": queue,
+            "breakdown_by_status": dict(by_status),
+            "decoupling_rule": (
+                "Deadlines are decoupled from priority. A deadline may affect "
+                "Needs Attention without automatically altering priority."
+            ),
+        }
+
+    # ------------------------------------------------------------------
     # 4. Candidate pool
     # ------------------------------------------------------------------
     def get_candidate_pool(self) -> List[Dict[str, Any]]:
         """
-        Returns ONLY adjudication records that are:
-          1. ACCEPTED by a human reviewer
-          2. eligible_for_training = True
-          3. Have a confirmed corrected_priority in P1/P2/P3/P4
-          4. Have provenance = HUMAN_PRODUCTION_FEEDBACK_ADJUDICATED
-
-        This is the ONLY source for dataset-v5.2 candidate examples.
-        Rejected, NEEDS_CONTEXT, DUPLICATE, and PENDING records are excluded.
+        Returns ONLY adjudication records that are ACCEPTED and eligible for training.
         """
         return [
             r for r in self._load_all()
@@ -362,13 +493,19 @@ class AdjudicationManager:
     # ------------------------------------------------------------------
     # 5. Summary stats
     # ------------------------------------------------------------------
-    def get_stats(self, user_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_stats(
+        self,
+        user_id: Optional[str] = None,
+        model_version: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
-        Summary of all adjudication activity for a given user (or global).
+        Summary of all adjudication activity.
         """
         all_adj = self._load_all()
         if user_id:
             all_adj = [r for r in all_adj if r.get("user_id") == user_id]
+        if model_version:
+            all_adj = [r for r in all_adj if r.get("model_version") == model_version]
 
         fb_dedup = feedback_manager.get_dedup_stats(user_id or "__admin__") if user_id else {}
 
@@ -377,9 +514,8 @@ class AdjudicationManager:
         needs_ctx = [r for r in all_adj if r.get("adjudication_status") == "NEEDS_CONTEXT"]
         duplicates = [r for r in all_adj if r.get("adjudication_status") == "DUPLICATE"]
 
-        pending_queue = self.get_pending_queue(user_id=user_id)
+        pending_queue = self.get_pending_queue(user_id=user_id, model_version=model_version)
 
-        # Correction matrix (only accepted)
         matrix: Dict[str, Dict[str, int]] = {
             p: {"P1": 0, "P2": 0, "P3": 0, "P4": 0} for p in ["P1", "P2", "P3", "P4"]
         }
@@ -390,6 +526,7 @@ class AdjudicationManager:
                 matrix[orig][corr] += 1
 
         return {
+            "model_version_filter": model_version or "all",
             "raw_feedback_events": fb_dedup.get("raw_feedback_events", 0),
             "unique_feedback_cases": fb_dedup.get("unique_feedback_cases", 0),
             "duplicate_submissions": fb_dedup.get("duplicate_submissions", 0),
@@ -401,14 +538,11 @@ class AdjudicationManager:
             "total_adjudicated": len(all_adj),
             "candidate_pool_size": len(self.get_candidate_pool()),
             "correction_matrix": matrix,
-            "safety_pending": len(self.get_safety_queue(user_id=user_id)),
-            "p2_p3_pending": len(self.get_p2_p3_queue(user_id=user_id)),
-            "deadline_pending": len(self.get_deadline_queue(user_id=user_id)),
+            "safety_pending": len(self.get_safety_queue(user_id=user_id, model_version=model_version)),
+            "p2_p3_pending": len(self.get_p2_p3_queue(user_id=user_id, model_version=model_version)),
+            "deadline_pending": len(self.get_deadline_queue(user_id=user_id, model_version=model_version)),
         }
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
     def _load_all(self) -> List[Dict[str, Any]]:
         """Loads all adjudication records."""
         if not os.path.exists(ADJUDICATION_FILE):

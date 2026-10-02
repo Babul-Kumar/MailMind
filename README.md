@@ -855,4 +855,48 @@ The shadow promotion protocol for `priority-v4.1` compared live production class
 - **Automated Tests:** **50/50 Phase 51 tests passed**; **479/479 full backend regression tests passed**; **9/9 frontend tests passed**; production build succeeded.
 - **Comprehensive Final Report:** [`reports/phase51_production_monitoring_report.md`](reports/phase51_production_monitoring_report.md).
 
+---
+
+### Phase 52 — MailMind Production Feedback Collection, Human Adjudication & v5.2 Dataset Candidate
+
+- **Phase Objective:** Build a controlled human-adjudication pipeline and candidate dataset builder (`dataset/v5.2_candidate/`) between raw user corrections and future offline training for `priority-v5.2`.
+- **Key Deliverables:**
+  - `backend/app/core/adjudication.py`: Human-only adjudication workflow manager supporting statuses `PENDING_REVIEW`, `ACCEPTED`, `REJECTED`, `NEEDS_CONTEXT`, `DUPLICATE`.
+  - `backend/app/core/dataset_v52.py`: Candidate dataset builder assembling examples strictly from accepted adjudicated records with automated leakage audits against all frozen holdouts.
+  - `backend/app/api/routes_adjudication.py`: Session-authenticated, user-scoped adjudication endpoints.
+  - `frontend/src/components/settings/FeedbackReviewPanel.jsx`: Dedicated Feedback Review dashboard under Settings (`Settings → Feedback Review`).
+  - Privacy bug fixed on `GET /api/feedback` to enforce strict session user isolation.
+- **Invariants Upheld:**
+  - `priority-v5.1` remained ACTIVE PRODUCTION (`8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`).
+  - `priority-v4.1` remained ROLLBACK BASELINE (`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`).
+  - Zero data fabrication; candidate dataset created with 0 rows (honest `EVIDENCE COLLECTING` state).
+  - Zero model training or promotion.
+- **Automated Tests:** **28/28 Phase 52 tests passed**; **507/507 full backend regression tests passed**; **9/9 frontend tests passed**; production build succeeded.
+- **Comprehensive Final Report:** [`reports/phase52_feedback_adjudication_report.md`](reports/phase52_feedback_adjudication_report.md).
+
+---
+
+### Phase 53 — MailMind Real Production Feedback Activation & Evidence Collection
+
+- **Phase Objective:** Operationalize the production feedback collection pipeline for `priority-v5.1`, providing an intuitive, non-intrusive UI interaction, enforcing server-side provenance and identity derivation, separating genuine v5.1 evidence from legacy models, and establishing focused review queues for P2/P3 boundaries, safety signals, and deadlines.
+- **Core Production Invariants:**
+  - Production model `priority-v5.1` remains strictly **ACTIVE PRODUCTION** (`8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`).
+  - Baseline model `priority-v4.1` remains strictly **ROLLBACK BASELINE** (`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`).
+  - **Zero automated training, fine-tuning, or model promotion**.
+  - **Zero synthetic feedback generation or data fabrication**: strictly reports 0 genuine v5.1 production feedback cases currently observed.
+  - Frozen holdout sets (`test.csv`, etc.) remain 100% bit-identical and untouched.
+- **Architectural Enhancements:**
+  - **Server-Side Provenance Enforcement:** When feedback is submitted, the server authoritatively derives `user_id` from the session, `model_version` from the active model registry (`priority-v5.1`), and original prediction fields from the user's cache. Client-supplied overrides or attempts to forge identities/models are rejected/overwritten.
+  - **Production Feedback UX (`FeedbackWidget.jsx`):** Lightweight, non-intrusive 2-step interaction embedded directly in `EmailRow` (action line) and `EmailDetail` (header card):
+    1. "What was wrong?" (priority too high/low, action misread, deadline misunderstood, missing context, other).
+    2. "Correct priority": `[P1] [P2] [P3] [P4]` and `[Not sure]`. Also includes quick "Correct" (`ACCEPT`) confirmation and easy cancel without submission. Debounced against double-click/retry spam.
+  - **Model-Separated Observability:** Explicitly isolates genuine `priority-v5.1` evidence from historical feedback (`priority-v1`, `priority-v4.1`). Metrics report raw events, unique cases, corrections, accepts, not-sure counts, and duplicate rates.
+  - **Focused Review Queues & Diagnostics:**
+    - *P2/P3 Boundary Diagnostics:* Detailed breakdown by topic, action_required, deadline_status, and confidence across diagnostic domains.
+    - *Safety Feedback Queue:* Immediate flagging of critical emails (OTP, MFA, password reset, security alerts) with mandatory human adjudication.
+    - *Deadline Feedback Queue:* Decoupled tracking of deadline discrepancies without automatically distorting priority.
+  - **Quality Metrics:** Tracks submission rate, unique rate, duplicate rate, and not-sure rate normalized by classified emails with the explicit reminder: *"No feedback does not imply no model errors."*
+- **Automated Tests:** **24/24 Phase 53 tests passed**; **28/28 Phase 52 tests passed**; **50/50 Phase 51 tests passed**; full backend regression passed; **9/9 frontend tests passed**; production build succeeded.
+- **Comprehensive Final Report:** [`reports/phase53_production_feedback_report.md`](reports/phase53_production_feedback_report.md).
+
 

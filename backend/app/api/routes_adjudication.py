@@ -309,3 +309,115 @@ def adjudication_v52_candidate(request: Request):
     except Exception as exc:
         logger.error("v52_candidate error: %s", exc)
         raise HTTPException(status_code=500, detail=f"v5.2 candidate build failed: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Phase 53 Specific Endpoints
+# ---------------------------------------------------------------------------
+
+# 10. v5.1 Production Metrics
+@router.get("/api/adjudication/v51-metrics")
+def adjudication_v51_metrics(request: Request):
+    """
+    Phase 53-F: Metrics for priority-v5.1 production evidence only.
+    Strictly excludes historical v1 and v4.1 feedback.
+    """
+    session = _require_session(request)
+    try:
+        metrics = feedback_manager.get_v51_production_metrics(user_id=session.user_id)
+        return {"status": "success", "v51_metrics": metrics}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"v5.1 metrics failed: {exc}")
+
+
+# 11. Feedback Quality Metrics
+@router.get("/api/adjudication/quality-metrics")
+def adjudication_quality_metrics(request: Request):
+    """
+    Phase 53-G: Feedback quality and submission rates.
+    Normalized by total classified emails for the authenticated user.
+    """
+    session = _require_session(request)
+    try:
+        from backend.app.core.cache import email_cache
+        conn = email_cache._get_connection()
+        cur = conn.execute(
+            "SELECT COUNT(*) FROM user_email_cache WHERE user_id = ? AND is_stale = 0",
+            (session.user_id,)
+        )
+        row = cur.fetchone()
+        total_classified = row[0] if row else 0
+
+        quality = feedback_manager.get_quality_metrics(
+            user_id=session.user_id,
+            total_classified=total_classified,
+        )
+        return {"status": "success", "quality_metrics": quality}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Quality metrics failed: {exc}")
+
+
+# 12. P2/P3 Boundary Diagnostic Analysis
+@router.get("/api/adjudication/p2-p3-boundary")
+def adjudication_p2_p3_boundary(request: Request, model_version: Optional[str] = Query(None)):
+    """
+    Phase 53-H: Focused diagnostic breakdown for P2↔P3 corrections.
+    """
+    session = _require_session(request)
+    try:
+        analysis = adjudication_manager.get_p2_p3_analysis(
+            user_id=session.user_id,
+            model_version=model_version,
+        )
+        return {"status": "success", "boundary_analysis": analysis}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Boundary analysis failed: {exc}")
+
+
+# 13. Safety Feedback Queue & Invariant View
+@router.get("/api/adjudication/safety-feedback")
+def adjudication_safety_feedback(request: Request, model_version: Optional[str] = Query(None)):
+    """
+    Phase 53-I: Dedicated safety feedback view (OTP, MFA, security alerts, etc.).
+    """
+    session = _require_session(request)
+    try:
+        safety = adjudication_manager.get_safety_analysis(
+            user_id=session.user_id,
+            model_version=model_version,
+        )
+        return {"status": "success", "safety_analysis": safety}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Safety analysis failed: {exc}")
+
+
+# 14. Deadline Feedback Queue & Invariant View
+@router.get("/api/adjudication/deadline-feedback")
+def adjudication_deadline_feedback(request: Request, model_version: Optional[str] = Query(None)):
+    """
+    Phase 53-J: Dedicated deadline feedback view.
+    """
+    session = _require_session(request)
+    try:
+        deadline = adjudication_manager.get_deadline_analysis(
+            user_id=session.user_id,
+            model_version=model_version,
+        )
+        return {"status": "success", "deadline_analysis": deadline}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Deadline analysis failed: {exc}")
+
+
+# 15. Model-Separated Breakdown
+@router.get("/api/adjudication/model-separation")
+def adjudication_model_separation(request: Request):
+    """
+    Phase 53-F: Complete model separation (All, v5.1, v4.1, Older).
+    """
+    session = _require_session(request)
+    try:
+        separation = feedback_manager.get_metrics_by_model(user_id=session.user_id)
+        return {"status": "success", "model_separation": separation}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Model separation failed: {exc}")
+

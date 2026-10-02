@@ -2,7 +2,7 @@
   "dataset_version": "dataset-v5.2-candidate",
   "candidate_status": "CANDIDATE \u2014 NOT TRAINED \u2014 NOT PRODUCTION",
   "parent_dataset": "dataset-v5.1",
-  "created_at": "2026-10-02T22:16:44Z",
+  "created_at": "2026-10-02T23:12:56Z",
   "phase": "Phase 52 \u2014 Controlled Feedback Adjudication",
   "source_model_versions": [],
   "adjudicated_examples_accepted": 0,

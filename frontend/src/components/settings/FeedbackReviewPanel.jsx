@@ -2,27 +2,26 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   MessageSquare, CheckCircle2, XCircle, AlertTriangle, Clock,
   Shield, Activity, Calendar, Database, Loader, RefreshCw,
-  ChevronDown, ChevronRight, Info
+  ChevronDown, ChevronRight, Info, Layers, Tag
 } from 'lucide-react';
 
 /* -------------------------------------------------------------------------
- * FeedbackReviewPanel — Phase 52
+ * FeedbackReviewPanel — Phase 53 Production Feedback Review Dashboard
  * Settings → Feedback Review tab
  *
- * Shows:
- *   1. Overview (raw events, unique cases, adjudication breakdown)
- *   2. Priority correction matrix
- *   3. P2/P3 boundary review queue
- *   4. Safety review queue
- *   5. Deadline review queue
- *   6. Accepted training candidates (count + list)
- *   7. Dataset-v5.2 readiness
+ * Dedicated Observability Sections:
+ *   1. Production v5.1 Evidence (v5.1 specific counts & metrics)
+ *   2. Historical vs Production Model Separation (v5.1 vs v4.1 vs older)
+ *   3. P2/P3 Boundary Diagnostic Review
+ *   4. Safety Feedback Queue (OTP, MFA, security alerts)
+ *   5. Deadline Feedback Queue (decoupled tracking)
+ *   6. Human Adjudication Queue
+ *   7. Dataset-v5.2 Readiness & Candidate Evidence
  *
- * Design invariants:
- *   - No raw email body shown
- *   - No model training triggered
- *   - No cross-user data exposed
- *   - Adjudication status shown clearly
+ * Governance:
+ *   - No ML retraining triggered
+ *   - Clear distinction between historical and production evidence
+ *   - "No feedback does not imply no model errors"
  * -------------------------------------------------------------------------*/
 
 const STATUS_COLOUR = {
@@ -38,13 +37,6 @@ const PRIORITY_COLOUR = {
   P2: '#f97316',
   P3: '#3b82f6',
   P4: '#6b7280',
-};
-
-const PRIORITY_LABEL = {
-  P1: 'Critical',
-  P2: 'Action Required',
-  P3: 'Informational',
-  P4: 'Low / Routine',
 };
 
 function PriorityBadge({ priority }) {
@@ -99,7 +91,7 @@ function StatCard({ label, value, icon: Icon, colour = 'var(--accent)', sub }) {
   );
 }
 
-function Section({ title, icon: Icon, children, defaultOpen = true }) {
+function Section({ title, icon: Icon, children, defaultOpen = true, badge = null }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
@@ -116,7 +108,17 @@ function Section({ title, icon: Icon, children, defaultOpen = true }) {
           {Icon && <Icon size={14} color="var(--accent)" />}
           {title}
         </span>
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {badge && (
+            <span style={{
+              fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: 'var(--radius-xs)',
+              backgroundColor: 'var(--bg-surface-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)',
+            }}>
+              {badge}
+            </span>
+          )}
+          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </span>
       </button>
       {open && (
         <div style={{ padding: '0.75rem 0.9rem', backgroundColor: 'var(--bg-base)', borderTop: '1px solid var(--border-subtle)' }}>
@@ -129,25 +131,32 @@ function Section({ title, icon: Icon, children, defaultOpen = true }) {
 
 function FeedbackRow({ record }) {
   const orig = record.predicted_priority || record.original_priority || '—';
-  const corr = record.corrected_priority || record.user_priority || '—';
+  const corr = record.corrected_priority || record.user_priority || (record.feedback_type === 'ACCEPT' ? 'Confirmed' : '—');
   const msgId = record.message_id || record.email_id || '—';
-  const ts = record.created_at || record.feedback_timestamp || '—';
   const status = record.adjudication_status || 'PENDING_REVIEW';
   const topic = record.original_topic || record.topic || '';
+  const mVer = record.model_version || 'historical';
 
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: '1fr 80px 80px 120px 140px',
+      display: 'grid', gridTemplateColumns: '1fr 90px 70px 80px 100px 120px',
       alignItems: 'center', gap: '0.5rem',
       padding: '0.4rem 0.5rem', borderBottom: '1px solid var(--border-subtle)',
       fontSize: '0.75rem', color: 'var(--text-secondary)',
     }}>
       <span title={msgId} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.68rem' }}>
-        {msgId.length > 28 ? `${msgId.slice(0, 28)}…` : msgId}
+        {msgId.length > 26 ? `${msgId.slice(0, 26)}…` : msgId}
+      </span>
+      <span style={{ fontSize: '0.68rem', color: mVer === 'priority-v5.1' ? 'var(--accent)' : 'var(--text-muted)' }}>
+        {mVer}
       </span>
       <PriorityBadge priority={orig} />
-      <PriorityBadge priority={corr} />
-      <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>{topic}</span>
+      {corr === 'Confirmed' ? (
+        <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.7rem' }}>✓ Accept</span>
+      ) : (
+        <PriorityBadge priority={corr} />
+      )}
+      <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{topic}</span>
       <StatusBadge status={status} />
     </div>
   );
@@ -156,14 +165,15 @@ function FeedbackRow({ record }) {
 function TableHeader() {
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: '1fr 80px 80px 120px 140px',
+      display: 'grid', gridTemplateColumns: '1fr 90px 70px 80px 100px 120px',
       gap: '0.5rem', padding: '0.3rem 0.5rem',
       fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)',
       borderBottom: '1px solid var(--border-subtle)',
     }}>
       <span>Message ID</span>
+      <span>Model</span>
       <span>Original</span>
-      <span>Corrected</span>
+      <span>Correction</span>
       <span>Topic</span>
       <span>Status</span>
     </div>
@@ -172,55 +182,9 @@ function TableHeader() {
 
 function EmptyState({ message = 'No records found.' }) {
   return (
-    <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-      <Info size={18} style={{ marginBottom: '0.4rem', color: 'var(--text-muted)' }} />
+    <div style={{ padding: '1.25rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+      <Info size={16} style={{ marginBottom: '0.3rem', color: 'var(--text-muted)' }} />
       <div>{message}</div>
-    </div>
-  );
-}
-
-function CorrectionMatrix({ matrix }) {
-  const priorities = ['P1', 'P2', 'P3', 'P4'];
-  if (!matrix) return <EmptyState message="No correction matrix data." />;
-  const hasData = priorities.some(r => priorities.some(c => (matrix[r]?.[c] || 0) > 0));
-  if (!hasData) return <EmptyState message="No priority corrections adjudicated yet." />;
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
-        <thead>
-          <tr>
-            <th style={{ padding: '0.4rem', color: 'var(--text-muted)', textAlign: 'left', fontSize: '0.7rem' }}>
-              Original↓ / Corrected→
-            </th>
-            {priorities.map(p => (
-              <th key={p} style={{ padding: '0.4rem', textAlign: 'center' }}>
-                <PriorityBadge priority={p} />
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {priorities.map(r => (
-            <tr key={r}>
-              <td style={{ padding: '0.4rem' }}><PriorityBadge priority={r} /></td>
-              {priorities.map(c => {
-                const count = matrix[r]?.[c] || 0;
-                const isDiag = r === c;
-                return (
-                  <td key={c} style={{
-                    padding: '0.4rem', textAlign: 'center', fontWeight: count > 0 ? 700 : 400,
-                    color: count > 0 ? (isDiag ? '#6b7280' : PRIORITY_COLOUR[c]) : 'var(--text-muted)',
-                    backgroundColor: count > 0 && !isDiag ? `${PRIORITY_COLOUR[c]}11` : 'transparent',
-                    borderRadius: 'var(--radius-sm)',
-                  }}>
-                    {count || '—'}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
@@ -256,21 +220,24 @@ function ReadinessIndicator({ readiness }) {
         </span>
       </div>
       <div style={{ marginTop: '0.5rem', fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-        ⚠ Training may only begin after explicit offline human review. No automatic training.
+        ⚠ Human adjudication is mandatory. No automated model retraining or promotion.
       </div>
     </div>
   );
 }
 
-
 export function FeedbackReviewPanel() {
-  const [dedupStats, setDedupStats] = useState(null);
+  const [v51Metrics, setV51Metrics] = useState(null);
+  const [modelSeparation, setModelSeparation] = useState(null);
+  const [qualityMetrics, setQualityMetrics] = useState(null);
+  const [boundaryAnalysis, setBoundaryAnalysis] = useState(null);
+  const [safetyAnalysis, setSafetyAnalysis] = useState(null);
+  const [deadlineAnalysis, setDeadlineAnalysis] = useState(null);
   const [cases, setCases] = useState(null);
-  const [p2p3Queue, setP2p3Queue] = useState(null);
-  const [safetyQueue, setSafetyQueue] = useState(null);
-  const [deadlineQueue, setDeadlineQueue] = useState(null);
   const [accepted, setAccepted] = useState(null);
   const [v52, setV52] = useState(null);
+  const [recentQueue, setRecentQueue] = useState([]);
+  const [filterModel, setFilterModel] = useState('all'); // 'all' | 'v5.1' | 'historical'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -280,30 +247,40 @@ export function FeedbackReviewPanel() {
     setError(null);
     try {
       const [
-        dedupRes,
+        v51Res,
+        sepRes,
+        qualRes,
+        boundRes,
+        safeRes,
+        dlRes,
         casesRes,
-        p2p3Res,
-        safetyRes,
-        deadlineRes,
-        acceptedRes,
+        accRes,
         v52Res,
+        queueRes,
       ] = await Promise.all([
-        fetch('/api/adjudication/dedup-stats').then(r => r.json()).catch(() => null),
+        fetch('/api/adjudication/v51-metrics').then(r => r.json()).catch(() => null),
+        fetch('/api/adjudication/model-separation').then(r => r.json()).catch(() => null),
+        fetch('/api/adjudication/quality-metrics').then(r => r.json()).catch(() => null),
+        fetch('/api/adjudication/p2-p3-boundary').then(r => r.json()).catch(() => null),
+        fetch('/api/adjudication/safety-feedback').then(r => r.json()).catch(() => null),
+        fetch('/api/adjudication/deadline-feedback').then(r => r.json()).catch(() => null),
         fetch('/api/adjudication/cases').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/p2-p3-review').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/safety-queue').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/deadline-queue').then(r => r.json()).catch(() => null),
         fetch('/api/adjudication/accepted').then(r => r.json()).catch(() => null),
         fetch('/api/adjudication/v52-candidate').then(r => r.json()).catch(() => null),
+        fetch('/api/adjudication/queue').then(r => r.json()).catch(() => null),
       ]);
 
-      if (dedupRes?.status === 'success') setDedupStats(dedupRes.dedup_stats);
+      if (v51Res?.status === 'success') setV51Metrics(v51Res.v51_metrics);
+      if (sepRes?.status === 'success') setModelSeparation(sepRes.model_separation);
+      if (qualRes?.status === 'success') setQualityMetrics(qualRes.quality_metrics);
+      if (boundRes?.status === 'success') setBoundaryAnalysis(boundRes.boundary_analysis);
+      if (safeRes?.status === 'success') setSafetyAnalysis(safeRes.safety_analysis);
+      if (dlRes?.status === 'success') setDeadlineAnalysis(dlRes.deadline_analysis);
       if (casesRes?.status === 'success') setCases(casesRes.cases);
-      if (p2p3Res?.status === 'success') setP2p3Queue(p2p3Res.queue || []);
-      if (safetyRes?.status === 'success') setSafetyQueue(safetyRes.queue || []);
-      if (deadlineRes?.status === 'success') setDeadlineQueue(deadlineRes.queue || []);
-      if (acceptedRes?.status === 'success') setAccepted(acceptedRes.accepted || []);
+      if (accRes?.status === 'success') setAccepted(accRes.accepted || []);
       if (v52Res?.status === 'success') setV52(v52Res.v52_candidate);
+      if (queueRes?.status === 'success') setRecentQueue(queueRes.queue || []);
+
       setLastRefresh(new Date().toLocaleTimeString());
     } catch (err) {
       setError(err.message);
@@ -316,14 +293,21 @@ export function FeedbackReviewPanel() {
     fetchAll();
   }, [fetchAll]);
 
+  // Filter recent queue by model
+  const filteredQueue = recentQueue.filter(r => {
+    if (filterModel === 'v5.1') return r.model_version === 'priority-v5.1';
+    if (filterModel === 'historical') return r.model_version !== 'priority-v5.1';
+    return true;
+  });
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', fontSize: '0.82rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.82rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Feedback Review Dashboard</div>
+          <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Production Feedback Review Dashboard</div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Production feedback evidence pipeline — human adjudication required before training
+            Phase 53 Production Evidence Pipeline · Human Adjudication Required Before Dataset Inclusion
           </div>
         </div>
         <button
@@ -338,185 +322,242 @@ export function FeedbackReviewPanel() {
           }}
         >
           {loading ? <Loader size={13} className="spin" /> : <RefreshCw size={13} />}
-          {loading ? 'Loading…' : 'Refresh'}
+          {loading ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
 
       {lastRefresh && (
         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-          Last updated: {lastRefresh}
+          Last refreshed: {lastRefresh}
         </div>
       )}
 
       {error && (
         <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)', backgroundColor: '#ef444422', color: '#ef4444', fontSize: '0.75rem' }}>
-          ⚠ Error loading data: {error}
+          ⚠ Error loading dashboard data: {error}
         </div>
       )}
 
-      {/* Governance banner */}
+      {/* Governance & Core Rule */}
       <div style={{
-        padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-sm)',
+        padding: '0.55rem 0.85rem', borderRadius: 'var(--radius-sm)',
         backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
-        fontSize: '0.72rem', color: 'var(--text-muted)',
+        fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.2rem'
       }}>
-        <strong style={{ color: 'var(--text-primary)' }}>Phase 52 Governance</strong>
-        {' · '}priority-v5.1 is ACTIVE PRODUCTION
-        {' · '}No automated training
-        {' · '}No model promotion
-        {' · '}Feedback = evidence only (not automatic ground truth)
+        <div>
+          <strong style={{ color: 'var(--text-primary)' }}>Phase 53 Governance:</strong>
+          {' '}priority-v5.1 ACTIVE PRODUCTION · priority-v4.1 ROLLBACK BASELINE · No automatic retraining · No model promotion
+        </div>
+        <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+          "No feedback does not imply no model errors. Feedback is evidence for human adjudication."
+        </div>
       </div>
 
-      {/* Section 1 — Overview */}
-      <Section title="Feedback Overview" icon={MessageSquare}>
+      {/* SECTION 1 — Production v5.1 Evidence */}
+      <Section title="1. Production v5.1 Evidence" icon={Activity} defaultOpen={true} badge="Active Model">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           <StatCard
-            label="Raw Feedback Events" value={dedupStats?.raw_feedback_events ?? '—'}
-            icon={MessageSquare} colour="#6b7280"
-            sub="Total rows in feedback.jsonl"
+            label="v5.1 Raw Events"
+            value={v51Metrics?.raw_feedback_events ?? 0}
+            icon={MessageSquare}
+            colour="var(--accent)"
+            sub="Events on priority-v5.1"
           />
           <StatCard
-            label="Unique Cases" value={dedupStats?.unique_feedback_cases ?? '—'}
-            icon={Activity} colour="var(--accent)"
+            label="v5.1 Unique Cases"
+            value={v51Metrics?.unique_feedback_cases ?? 0}
+            icon={Activity}
+            colour="#10b981"
             sub="Deduped by (user, message)"
           />
           <StatCard
-            label="Pending Review" value={cases?.pending_adjudication ?? '—'}
-            icon={Clock} colour="#f59e0b"
+            label="Unique Corrections"
+            value={v51Metrics?.unique_corrections ?? 0}
+            icon={AlertTriangle}
+            colour="#f59e0b"
+            sub={`Rate: ${v51Metrics?.correction_rate_pct ?? 0}%`}
           />
           <StatCard
-            label="Accepted" value={cases?.accepted ?? '—'}
-            icon={CheckCircle2} colour="#10b981"
+            label="Acceptances"
+            value={v51Metrics?.accept_count ?? 0}
+            icon={CheckCircle2}
+            colour="#10b981"
+            sub="Confirmed correct"
           />
           <StatCard
-            label="Rejected" value={cases?.rejected ?? '—'}
-            icon={XCircle} colour="#ef4444"
-          />
-          <StatCard
-            label="Needs Context" value={cases?.needs_context ?? '—'}
-            icon={AlertTriangle} colour="#8b5cf6"
+            label="Not Sure"
+            value={v51Metrics?.not_sure_count ?? 0}
+            icon={Info}
+            colour="#8b5cf6"
+            sub="Ambiguous cases"
           />
         </div>
-        {dedupStats && (
-          <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            {dedupStats.duplicate_submissions > 0 && (
-              <span>
-                ⓘ {dedupStats.duplicate_submissions} duplicate submission{dedupStats.duplicate_submissions !== 1 ? 's' : ''} collapsed
-                (same user+message submitted {Math.round((dedupStats.raw_feedback_events || 1) / Math.max(dedupStats.unique_feedback_cases || 1, 1))}× on average)
-              </span>
-            )}
+
+        <div style={{ marginTop: '0.65rem', padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', fontSize: '0.72rem' }}>
+          <strong>Production Status:</strong>{' '}
+          <span style={{ color: (v51Metrics?.unique_feedback_cases || 0) === 0 ? 'var(--text-muted)' : 'var(--text-primary)' }}>
+            {v51Metrics?.status_statement || '0 genuine v5.1 feedback cases observed.'}
+          </span>
+        </div>
+      </Section>
+
+      {/* SECTION 2 — Historical vs Production Separation */}
+      <Section title="2. Historical vs Production Breakdown" icon={Layers} defaultOpen={false}>
+        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
+          Historical feedback (priority-v1 / priority-v4.1) is strictly isolated and never mixed into v5.1 production metrics.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.6rem' }}>
+          <div style={{ padding: '0.65rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ fontWeight: 700, color: 'var(--accent)', marginBottom: '0.3rem' }}>Production: priority-v5.1</div>
+            <div style={{ fontSize: '0.74rem' }}>Raw Events: <strong>{modelSeparation?.v51_feedback?.raw_count ?? 0}</strong></div>
+            <div style={{ fontSize: '0.74rem' }}>Unique Cases: <strong>{modelSeparation?.v51_feedback?.unique_cases ?? 0}</strong></div>
+            <div style={{ fontSize: '0.74rem' }}>Corrections: <strong>{modelSeparation?.v51_feedback?.corrections ?? 0}</strong></div>
+          </div>
+          <div style={{ padding: '0.65rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ fontWeight: 700, color: '#f59e0b', marginBottom: '0.3rem' }}>Rollback: priority-v4.1</div>
+            <div style={{ fontSize: '0.74rem' }}>Raw Events: <strong>{modelSeparation?.v41_feedback?.raw_count ?? 0}</strong></div>
+            <div style={{ fontSize: '0.74rem' }}>Unique Cases: <strong>{modelSeparation?.v41_feedback?.unique_cases ?? 0}</strong></div>
+            <div style={{ fontSize: '0.74rem' }}>Corrections: <strong>{modelSeparation?.v41_feedback?.corrections ?? 0}</strong></div>
+          </div>
+          <div style={{ padding: '0.65rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ fontWeight: 700, color: '#6b7280', marginBottom: '0.3rem' }}>Historical (v1 / Legacy)</div>
+            <div style={{ fontSize: '0.74rem' }}>Raw Events: <strong>{modelSeparation?.older_feedback?.raw_count ?? 0}</strong></div>
+            <div style={{ fontSize: '0.74rem' }}>Unique Cases: <strong>{modelSeparation?.older_feedback?.unique_cases ?? 0}</strong></div>
+            <div style={{ fontSize: '0.74rem' }}>Corrections: <strong>{modelSeparation?.older_feedback?.corrections ?? 0}</strong></div>
+          </div>
+        </div>
+      </Section>
+
+      {/* SECTION 3 — Recent Feedback Queue */}
+      <Section title={`3. Recent Feedback Submissions (${filteredQueue.length})`} icon={Clock} defaultOpen={false}>
+        {/* Model Filter Pills */}
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.6rem' }}>
+          {['all', 'v5.1', 'historical'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilterModel(f)}
+              style={{
+                padding: '0.2rem 0.55rem', borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)',
+                backgroundColor: filterModel === f ? 'var(--accent)' : 'var(--bg-card)',
+                color: filterModel === f ? '#fff' : 'var(--text-muted)',
+                fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {f === 'all' ? 'All Feedback' : f === 'v5.1' ? 'priority-v5.1 Only' : 'Historical Only'}
+            </button>
+          ))}
+        </div>
+
+        {filteredQueue.length === 0 ? (
+          <EmptyState message={`No feedback submissions found for filter '${filterModel}'.`} />
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <TableHeader />
+            {filteredQueue.slice(0, 15).map((r, i) => (
+              <FeedbackRow key={r.feedback_id || i} record={r} />
+            ))}
           </div>
         )}
       </Section>
 
-      {/* Section 2 — Priority correction matrix */}
-      <Section title="Priority Corrections (Accepted)" icon={Activity} defaultOpen={false}>
+      {/* SECTION 4 — P2/P3 Boundary Diagnostic Review */}
+      <Section title={`4. P2/P3 Boundary Diagnostics (${boundaryAnalysis?.pending_boundary_cases ?? 0} Pending)`} icon={Activity} defaultOpen={false}>
         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-          Rows: original model priority. Columns: human-confirmed correct priority.
+          Diagnostic monitoring of P2↔P3 transitions. Topics and domains are diagnostic categories only, not classification rules.
         </div>
-        <CorrectionMatrix matrix={cases?.correction_matrix} />
-      </Section>
-
-      {/* Section 3 — P2/P3 Boundary */}
-      <Section title={`P2/P3 Boundary Review (${p2p3Queue?.length ?? '…'})`} icon={Activity} defaultOpen={false}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-          Feedback cases involving P2↔P3 transitions. Requires careful review — not all corrections indicate model error.
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.6rem' }}>
+          <StatCard label="P2 → P3 Corrections" value={boundaryAnalysis?.p2_to_p3_pending ?? 0} colour="#3b82f6" />
+          <StatCard label="P3 → P2 Corrections" value={boundaryAnalysis?.p3_to_p2_pending ?? 0} colour="#f97316" />
+          <StatCard label="Adjudicated Boundary" value={boundaryAnalysis?.adjudicated_boundary_cases ?? 0} colour="#10b981" />
+          <StatCard label="Accepted Boundary" value={boundaryAnalysis?.accepted_boundary_corrections ?? 0} colour="#10b981" />
         </div>
-        {p2p3Queue?.length === 0 ? (
-          <EmptyState message="No pending P2/P3 boundary cases." />
-        ) : (
-          <>
-            <TableHeader />
-            {p2p3Queue?.map((r, i) => <FeedbackRow key={r.feedback_id || i} record={r} />)}
-          </>
+        {boundaryAnalysis?.breakdown_by_topic && Object.keys(boundaryAnalysis.breakdown_by_topic).length > 0 && (
+          <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', fontSize: '0.72rem' }}>
+            <strong>Breakdown by Topic:</strong>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.3rem' }}>
+              {Object.entries(boundaryAnalysis.breakdown_by_topic).map(([topic, cnt]) => (
+                <span key={topic} style={{ padding: '0.15rem 0.45rem', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
+                  {topic}: <strong>{cnt}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </Section>
 
-      {/* Section 4 — Safety queue */}
-      <Section title={`Safety Cases (${safetyQueue?.length ?? '…'})`} icon={Shield} defaultOpen>
+      {/* SECTION 5 — Safety Feedback Queue */}
+      <Section title={`5. Safety Feedback Queue (${safetyAnalysis?.total_safety_feedback ?? 0})`} icon={Shield} defaultOpen={true}>
         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-          OTP, MFA, password reset, security alerts, account compromise, authentication failures.
-          Invariant: 0 critical P1 downgrades permitted.
+          OTP, MFA, password reset, security alerts, account compromise, infrastructure incidents.
+          Invariant: 0 critical P1 downgrades. Any report indicating critical email classified below P1 appears here immediately.
         </div>
-        {safetyQueue?.length === 0 ? (
-          <EmptyState message="No pending safety cases. ✅" />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <StatCard
+            label="Critical P1 Escalations"
+            value={safetyAnalysis?.critical_p1_escalations ?? 0}
+            icon={Shield}
+            colour={safetyAnalysis?.critical_p1_escalations > 0 ? '#ef4444' : '#10b981'}
+            sub="Classified below P1"
+          />
+          <StatCard
+            label="P1 Downgrades"
+            value={safetyAnalysis?.p1_downgrades ?? 0}
+            icon={AlertTriangle}
+            colour={safetyAnalysis?.p1_downgrades > 0 ? '#f59e0b' : '#10b981'}
+            sub="P1 → P2/P3/P4"
+          />
+        </div>
+        {safetyAnalysis?.safety_queue?.length === 0 ? (
+          <EmptyState message="No pending safety cases. Zero critical safety incidents detected. ✅" />
         ) : (
-          <>
+          <div style={{ overflowX: 'auto' }}>
             <TableHeader />
-            {safetyQueue?.map((r, i) => <FeedbackRow key={r.feedback_id || i} record={r} />)}
-          </>
+            {safetyAnalysis?.safety_queue?.map((r, i) => (
+              <FeedbackRow key={r.feedback_id || i} record={r} />
+            ))}
+          </div>
         )}
       </Section>
 
-      {/* Section 5 — Deadline queue */}
-      <Section title={`Deadline Cases (${deadlineQueue?.length ?? '…'})`} icon={Calendar} defaultOpen={false}>
+      {/* SECTION 6 — Deadline Feedback Queue */}
+      <Section title={`6. Deadline Feedback Queue (${deadlineAnalysis?.total_deadline_feedback ?? 0})`} icon={Calendar} defaultOpen={false}>
         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-          Feedback involving deadline detection or correction.
+          Missed deadline, false deadline, wrong deadline date, historical deadline, deadline not detected.
+          Deadlines are evaluated independently from priority.
         </div>
-        {deadlineQueue?.length === 0 ? (
+        {deadlineAnalysis?.deadline_queue?.length === 0 ? (
           <EmptyState message="No pending deadline review cases." />
         ) : (
-          <>
+          <div style={{ overflowX: 'auto' }}>
             <TableHeader />
-            {deadlineQueue?.map((r, i) => <FeedbackRow key={r.feedback_id || i} record={r} />)}
-          </>
+            {deadlineAnalysis?.deadline_queue?.map((r, i) => (
+              <FeedbackRow key={r.feedback_id || i} record={r} />
+            ))}
+          </div>
         )}
       </Section>
 
-      {/* Section 6 — Accepted training candidates */}
-      <Section title={`Accepted Training Candidates (${accepted?.length ?? '…'})`} icon={Database} defaultOpen={false}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-          Only ACCEPTED adjudicated records may enter dataset-v5.2. No raw email content is stored.
-        </div>
-        {accepted?.length === 0 ? (
-          <EmptyState message="No accepted training candidates yet. Evidence collecting — insufficient adjudicated production feedback." />
-        ) : (
-          <>
-            <TableHeader />
-            {accepted?.map((r, i) => <FeedbackRow key={r.adjudication_id || i} record={r} />)}
-          </>
-        )}
-      </Section>
-
-      {/* Section 7 — Dataset-v5.2 readiness */}
-      <Section title="Dataset-v5.2 Readiness" icon={Database} defaultOpen>
+      {/* SECTION 7 — Dataset-v5.2 Readiness */}
+      <Section title="7. Dataset-v5.2 Evidence & Readiness" icon={Database} defaultOpen={true}>
         {v52 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <ReadinessIndicator readiness={v52.readiness} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
               <StatCard
-                label="Candidates (pre-filter)" value={v52.pool_size_before_leakage_filter ?? 0}
-                icon={Database} colour="var(--accent)"
-              />
-              <StatCard
-                label="Leaked (removed)" value={v52.leaked_examples ?? 0}
-                icon={AlertTriangle} colour={v52.leaked_examples > 0 ? '#ef4444' : '#10b981'}
-              />
-              <StatCard
-                label="Clean Candidates" value={v52.accepted_candidates ?? 0}
+                label="Accepted Candidates" value={v52.accepted_candidates ?? 0}
                 icon={CheckCircle2} colour="#10b981"
+                sub="Eligible for dataset-v5.2"
+              />
+              <StatCard
+                label="Leakage Check" value={v52.leakage_audit?.leakage_free ? '0 Leaks' : 'Leaked'}
+                icon={Shield} colour={v52.leakage_audit?.leakage_free ? '#10b981' : '#ef4444'}
+                sub="Frozen holdouts checked"
               />
             </div>
-            {v52.leakage_audit && (
-              <div style={{
-                padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)',
-                backgroundColor: v52.leakage_audit.leakage_free ? '#10b98111' : '#ef444411',
-                border: `1px solid ${v52.leakage_audit.leakage_free ? '#10b98144' : '#ef444444'}`,
-                fontSize: '0.72rem',
-                color: v52.leakage_audit.leakage_free ? '#10b981' : '#ef4444',
-              }}>
-                Leakage audit: {v52.leakage_audit.leakage_free ? '✅ Leakage-free' : `❌ ${v52.leakage_audit.leakage_count} leaked examples detected`}
-              </div>
-            )}
           </div>
         ) : (
-          loading ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-              <Loader size={13} className="spin" /> Building candidate report…
-            </div>
-          ) : (
-            <EmptyState message="Candidate report unavailable." />
-          )
+          <EmptyState message="v5.2 candidate report loading..." />
         )}
       </Section>
     </div>

@@ -3,6 +3,7 @@ import { ArrowLeft, X, Calendar, User, Users, ExternalLink } from 'lucide-react'
 import { PriorityBadge } from '../priority/PriorityBadge';
 import { AIInsight } from '../ai/AIInsight';
 import { getDeadlineState, cleanSenderName } from '../../utils/formatting';
+import { FeedbackWidget } from './FeedbackWidget';
 
 export function EmailDetail({ email, onClose }) {
   useEffect(() => {
@@ -140,6 +141,19 @@ export function EmailDetail({ email, onClose }) {
                 {topic}
               </span>
             )}
+            <div style={{ marginLeft: 'auto' }}>
+              <FeedbackWidget
+                messageId={email.email_id || email.id}
+                currentPriority={priority}
+                confidence={email.confidence}
+                topic={email.topic}
+                threadId={email.thread_id}
+                deadlineDetected={Boolean(email.deadline_detected)}
+                actionRequired={actionRequired}
+                compact={false}
+                showAccept={true}
+              />
+            </div>
           </div>
 
           {/* 2. Subject */}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { PriorityBadge } from '../priority/PriorityBadge';
 import { formatEmailDate, cleanSenderName, extractSnippet, getDeadlineState } from '../../utils/formatting';
+import { FeedbackWidget } from './FeedbackWidget';
 
 function EmailRowComponent({ email, isSelected, onClick }) {
   const senderDisplay = cleanSenderName(email.sender);
@@ -201,6 +202,19 @@ function EmailRowComponent({ email, isSelected, onClick }) {
               </span>
             )
           )}
+
+          <div style={{ marginLeft: 'auto' }}>
+            <FeedbackWidget
+              messageId={email.email_id || email.id}
+              currentPriority={priority}
+              confidence={email.confidence}
+              topic={email.topic}
+              threadId={email.thread_id}
+              deadlineDetected={Boolean(email.deadline_detected)}
+              actionRequired={actionRequired}
+              compact={true}
+            />
+          </div>
         </div>
       </div>
 
