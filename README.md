@@ -819,3 +819,40 @@ The shadow promotion protocol for `priority-v4.1` compared live production class
 - **Comprehensive Promotion Gate Report:** [`docs/PHASE_49_CANARY_DEPLOYMENT_AND_PROMOTION_GATE.md`](docs/PHASE_49_CANARY_DEPLOYMENT_AND_PROMOTION_GATE.md).
 - **Final Decision:** **`CANARY PASSED — READY FOR EXPLICIT PROMOTION`** (`priority-v4.1` remains ACTIVE in production; `priority-v5.1` has NOT been promoted; explicit Phase 50 will execute final promotion).
 
+---
+
+### Phase 50 — Explicit Production Promotion of priority-v5.1
+
+- **Phase Objective:** Formally promote candidate model `priority-v5.1` from canary evaluation to active production model, archiving `priority-v4.1` as the immediate rollback baseline, verifying production smoke tests, safety fixture retention, and zero-downtime rollback capability.
+- **Pre-Promotion Safety Snapshot:** Created immutable promotion snapshot `dataset/models/promotion_snapshots/phase50_pre_promotion.json` recording `priority-v4.1` active SHA-256 (`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`) and candidate `priority-v5.1` SHA-256 (`8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`).
+- **Promotion Execution:** Promoted `priority-v5.1` in `dataset/models/registry.json`. Status set to `production`, `previous_model` set to `priority-v4.1` (`status: retired`).
+- **Verification Post-Promotion:**
+  - **Smoke Tests:** 20/20 production smoke tests passed.
+  - **Safety Fixtures:** 14/14 safety cases retained P1 correctly (100% safety retention, 0 downgrades).
+  - **Real Gmail Mailbox Inference:** Verified against real mailbox with zero exceptions.
+  - **Multi-User Isolation:** Passed cross-user isolation checks.
+  - **Rollback Verification:** Verified complete two-way rollback cycle: `v5.1` $\to$ `v4.1` $\to$ `v5.1` with instant state recovery and zero data loss.
+- **Automated Tests:** **20/20 Phase 50 tests passed**; **429/429 full backend regression tests passed**; **9/9 frontend tests passed**; production build succeeded.
+- **Final Status:** **`PROMOTION_COMPLETE`** (`priority-v5.1` is ACTIVE PRODUCTION).
+
+---
+
+### Phase 51 — MailMind Production Monitoring, Drift Detection & Feedback Collection
+
+- **Phase Objective:** Implement a comprehensive, read-only observability and continuous monitoring system for production model `priority-v5.1` and rollback baseline `priority-v4.1`, covering prediction distributions, confidence tracking, user feedback collection, P2/P3 boundary analysis, safety monitoring, action/deadline decoupling, domain drift, performance metrics, and an evidence-based v5.2 readiness engine.
+- **Production Invariants & Safety:**
+  - Production model `priority-v5.1` remains strictly **ACTIVE PRODUCTION** (`8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`).
+  - Baseline model `priority-v4.1` remains strictly **RETIRED (ROLLBACK-READY)** (`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`).
+  - **Zero automated retraining** and **zero automated promotion**.
+  - All frozen holdout datasets remain 100% untouched.
+  - Privacy audit confirmed **0 violations**: zero raw email bodies, zero OAuth tokens, zero credentials stored or exposed.
+- **Core Monitoring Architecture:**
+  - `backend/app/core/phase51_monitor.py`: Complete read-only analytics service calculating distribution drift, confidence percentiles, P2/P3 boundary transitions, composite Needs Attention breakdowns, and v5.2 readiness criteria.
+  - `backend/app/api/routes_phase51.py`: Session-authenticated, user-scoped REST API endpoints (`/api/monitoring/phase51/*`).
+  - `frontend/src/components/settings/SystemHealthPanel.jsx`: Integrated dashboard panel under Settings (`Settings → System Health`) visualizing live health metrics with `NORMAL`, `WATCH`, and `ALERT` statuses.
+- **Automated Alerting Engine:** Explicit thresholds for P1 downgrades (0 tolerance), priority distribution shifts ($\pm 5.0$ pp watch / $\pm 10.0$ pp alert), confidence drift ($\pm 0.05$ watch / $\pm 0.10$ alert), P2/P3 correction spikes ($> 15.0\%$ watch / $> 30.0\%$ alert), and latency regressions ($2.0\times$ watch / $5.0\times$ alert). Current alert count: **0 (NORMAL)**.
+- **v5.2 Readiness Framework:** Evidence-based readiness evaluation marked as **`NOT READY`**; enforces strict human review and offline lifecycle gating before any future model iteration.
+- **Automated Tests:** **50/50 Phase 51 tests passed**; **479/479 full backend regression tests passed**; **9/9 frontend tests passed**; production build succeeded.
+- **Comprehensive Final Report:** [`reports/phase51_production_monitoring_report.md`](reports/phase51_production_monitoring_report.md).
+
+

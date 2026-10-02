@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { Sliders, Inbox as InboxIcon, Cpu, Shield, RefreshCw, Layers, Database, Activity, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Sliders, Inbox as InboxIcon, Cpu, Shield, RefreshCw, Layers, Database, Activity, CheckCircle2, AlertTriangle, ArrowRight, HeartPulse } from 'lucide-react';
+import { SystemHealthPanel } from './SystemHealthPanel';
 
 export function SettingsPanel({
   isOpen,
@@ -79,6 +80,7 @@ export function SettingsPanel({
     { id: 'model', label: 'AI & Model', icon: Cpu },
     { id: 'shadow', label: 'Shadow Evaluation', icon: Activity },
     { id: 'canary', label: 'Canary Deployment', icon: Layers },
+    { id: 'health', label: 'System Health', icon: HeartPulse },
     { id: 'privacy', label: 'Privacy', icon: Shield },
   ];
 
@@ -702,6 +704,11 @@ export function SettingsPanel({
                 <div><strong>Local Processing:</strong> All feature extraction, priority classification, and deadline parsing happen locally on your machine. No email content is sent to external cloud APIs.</div>
               </div>
             </div>
+          )}
+
+          {/* TAB: SYSTEM HEALTH (Phase 51 Monitoring) */}
+          {activeTab === 'health' && (
+            <SystemHealthPanel />
           )}
         </div>
 
