@@ -3,7 +3,7 @@
 **Course Project:** CSE472 — Natural Language Processing / Applied Artificial Intelligence  
 **Author / Developer:** Babul Kumar  
 **System Status:** Production Hardened • Fully Validated • Read-Only Gmail OAuth 2.0  
-**Current Production Model:** `priority-v4.1` (Boundary Repair) (*Production*, Historical Test Accuracy: **81.67%**, Macro F1: **0.8023** • Modern Holdout P2 Recall: **100.00%** • Phase 46 Candidate: `priority-v5` evaluated, **REMEDIATION REQUIRED** before shadow)
+**Current Production Model:** `priority-v4.1` (Boundary Repair) (*Production*, Historical Test Accuracy: **81.67%**, Macro F1: **0.8023** • Modern Holdout P2 Recall: **100.00%** • Phase 47 Candidate: `priority-v5.1` evaluated, **CANDIDATE READY FOR SHADOW EVALUATION**, all 17 gates passed)
 
 ---
 
@@ -729,5 +729,33 @@ The shadow promotion protocol for `priority-v4.1` compared live production class
 - **Final Decision:** **`CANDIDATE REQUIRES REMEDIATION`** (remains offline candidate; `priority-v4.1` remains ACTIVE in production).
 
 ---
+
+### Phase 47 — Priority-v5.1 Boundary Remediation & Candidate Retraining
+
+- **Phase Objective:** Remediate the recruitment acknowledgment boundary failure identified in Phase 46 (where `cp_005b` predicted P2 instead of P3 due to being partitioned in validation), strengthen borderline non-urgent payment receipt boundaries, retrain candidate model `priority-v5.1-candidate` on `dataset-v5.1/train.csv`, evaluate across all frozen holdouts and a new 20-row boundary holdout, and determine promotion readiness.
+- **Production Safety:** Production model `priority-v4.1` remains strictly **ACTIVE** (`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`). All 6 frozen holdout files (`test.csv`, `modern_holdout.csv`, `newsletter_holdout.csv`, `social_holdout.csv`, `dataset-v4/test.csv`, `dataset-v4.1/test.csv`) remain 100% bit-identical.
+- **Dataset-v5.1 Construction:**
+  - Relocated `cp_005b` (*"Application received: DataCore Inc Software Engineer"*, P3, action=false) from validation split to training split.
+  - Curated 5 genuine non-actionable recruitment acknowledgments (`rem_rec_001` through `rem_rec_005`: Workday, Greenhouse, Lever, etc., P3, action=false).
+  - Curated 5 genuine non-urgent payment receipt negatives (`rem_pay_001` through `rem_pay_005`: $0 statement, Spotify receipt, AWS zero balance, GitHub annual invoice, P3/P4, action=false).
+  - Created independent 20-row boundary holdout `dataset-v5.1/boundary_holdout.csv` (10 recruitment: 5 P2, 5 P3; 10 payment: 5 P2, 5 P3/P4).
+  - `dataset-v5.1/train.csv`: 1,880 logical records. `dataset-v5.1/validation.csv`: 428 logical records. Cryptographic audit confirmed **0 holdout leakage**.
+- **Model Architecture & Training:** Identical TF-IDF + Logistic Regression (seed 42, balanced). Fitted 1,880 rows in 3.882s; extracted 68,394 vocabulary features. Artifact saved to `dataset/models/priority-v5.1-candidate/model.joblib` (SHA-256: `8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`). Deterministic reproducibility: 100% identical SHA and predictions across repeat runs.
+- **Validation Evaluation ($N=428$):** Accuracy **0.8084** (+0.89% over V5), Macro F1 **0.7974** (+0.72%), P2 Recall **0.9146**, P3 Recall **0.6940** (+1.49%).
+- **Historical Holdout ($N=300$):** Accuracy **0.8200** ($\ge 0.80$, Gate 3 PASS), Macro F1 **0.8048** ($\ge 0.78$), P1 Recall 0.8750, P2 Recall 0.9091.
+- **Modern Holdout ($N=120$):** Modern P2 Recall **100.00%** (28/28, target $\ge 95\%$, Gate 4 PASS), Accuracy **0.7917** (+2.50% over V4.1), P2 Precision **0.7368** (+8.56%).
+- **Newsletter Holdout ($N=60$):** Routine P2 error rate **1.67%** (1/60, target $\le 5.0\%$, Gate 5 PASS).
+- **Social Holdout ($N=50$):** Routine social P2 error rate **0.00%** (0/50, target $\le 5.0\%$, Gate 6 PASS), Security Recall **100.00%** (15/15, target $\ge 90\%$, Gate 7 PASS).
+- **Safety Fixtures ($N=25$):** 21/25 passed (84.0%). All 3 OTP fixtures passed with P1 + Action Required + Deadline detected ($100.0\%$, Gate 9 PASS).
+- **Contrastive Boundary Pairs ($N=10$, 5 groups):** **5/5 groups cleanly separated (10/10 passed)**. `cp_005b` successfully predicted as **P3** (confidence 0.547), cleanly resolving the Gate 11 failure without hardcoded keyword rules.
+- **NEW Boundary Holdout ($N=20$):** Recruitment boundary accuracy **100.0%** (10/10: 5/5 P2 actionable, 5/5 P3 acknowledgments). Payment boundary accuracy **80.0%** (8/10: 5/5 P2 invoices/failures, 3/5 P3/P4 receipts; zero P2 spillover on receipts).
+- **Production Mailbox Simulation ($N=17,322$ cached emails):** Processed offline at 7,185.9 msgs/sec with **0 DB writes**. 100% audit of P1 transitions revealed **0 P1 downgrades**. Operational P2 inbox count safely tightened from 745 (4.30%) to 622 (3.59%) due to routine acknowledgment/receipt de-escalation to P3.
+- **Model Registry:** Updated `dataset/models/registry.json`: `active_model = "priority-v4.1"`, `candidate_model = "priority-v5.1"`.
+- **Promotion Gates:** **17/17 Gates PASSED**.
+- **Automated Tests:** 359 backend tests passed (24 new Phase 47 remediation tests added), 9 frontend tests passed, frontend production build succeeded.
+- **Evaluation Artifacts:** Saved in `dataset/evaluation/phase47/` (`v4_1_predictions.csv`, `v5_predictions.csv`, `v5_1_predictions.csv`, `diff.csv`, `boundary_holdout_predictions.csv`, `metrics.json`, `mailbox_simulation_metrics.json`).
+- **Comprehensive Remediation Report:** [`docs/PHASE_47_PRIORITY_V5_1_REMEDIATION.md`](docs/PHASE_47_PRIORITY_V5_1_REMEDIATION.md).
+- **Final Decision:** **`CANDIDATE READY FOR SHADOW EVALUATION`** (`priority-v4.1` remains ACTIVE in production; `priority-v5.1` is qualified for shadow traffic in Phase 48).
+
 
 

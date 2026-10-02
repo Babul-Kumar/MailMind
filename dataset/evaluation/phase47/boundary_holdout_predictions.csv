@@ -1,0 +1,21 @@
+holdout_id,domain,role,subject,final_label,v4_1_pred,v5_pred,v5_1_pred,v5_1_conf
+bh_rec_p2_01,recruitment,ACTIONABLE,Action Required: Complete your Google Software Engineering technical phone screen scheduling,P2,P2,P2,P2,0.4190645876939537
+bh_rec_p2_02,recruitment,ACTIONABLE,HackerRank Coding Challenge: 90 minutes remaining to complete assessment - Uber Careers,P2,P2,P2,P2,0.4711866974965418
+bh_rec_p2_03,recruitment,ACTIONABLE,Urgent: Sign and return offer letter by Friday 5 PM - Databricks Employment,P2,P2,P2,P2,0.6280207661804625
+bh_rec_p2_04,recruitment,ACTIONABLE,Interview Invitation: Select an available interview slot for Meta ML Engineer role,P2,P2,P2,P2,0.3747931980891451
+bh_rec_p2_05,recruitment,ACTIONABLE,Action Required: Submit reference contact details for Senior Staff Engineer position at Stripe,P2,P2,P2,P2,0.38220426557475706
+bh_rec_p3_01,recruitment,NON_ACTIONABLE,Workday Notification: Application submitted for Site Reliability Engineer - Salesforce,P3,P2,P2,P3,0.43836659597580657
+bh_rec_p3_02,recruitment,NON_ACTIONABLE,Greenhouse: We received your resume for Backend Engineer at Figma,P3,P3,P3,P3,0.5330260366907337
+bh_rec_p3_03,recruitment,NON_ACTIONABLE,Thank you for applying to Amazon - Software Development Engineer I,P3,P2,P2,P3,0.4093110524351321
+bh_rec_p3_04,recruitment,NON_ACTIONABLE,Lever: Your application for Data Scientist at OpenAI was received,P3,P2,P2,P3,0.41094089253295607
+bh_rec_p3_05,recruitment,NON_ACTIONABLE,Careers Update: Your application for Core Infrastructure Engineer is under review,P3,P2,P2,P3,0.38941969362608214
+bh_pay_p2_01,payments,ACTIONABLE,Action Required: Payment failed for your AWS Account #9201 - Update payment method immediately,P2,P2,P2,P2,0.44863329924509904
+bh_pay_p2_02,payments,ACTIONABLE,Invoice #88392 Past Due: Pay $450 within 48 hours to avoid immediate service termination,P2,P2,P2,P2,0.562895608078837
+bh_pay_p2_03,payments,ACTIONABLE,"Important: Your GitHub Enterprise invoice is due on October 5, 2026",P2,P2,P2,P2,0.5944121391835423
+bh_pay_p2_04,payments,ACTIONABLE,Notice of payment failure: Cloudflare CDN plan will be suspended tomorrow unless settled,P2,P2,P2,P2,0.5776093842343568
+bh_pay_p2_05,payments,ACTIONABLE,Action Required: Settle outstanding balance of $120.00 for Twilio API services,P2,P2,P2,P2,0.40327966572442475
+bh_pay_p3_01,payments,NON_ACTIONABLE,Your monthly receipt for Spotify Premium ($10.99) - Paid in full,P3,P3,P3,P3,0.46557161691326526
+bh_pay_p3_02,payments,NON_ACTIONABLE,Payment receipt: Your DigitalOcean droplet payment of $12.00 was successful,P3,P2,P2,P3,0.3859004818007114
+bh_pay_p4_01,payments,NON_ACTIONABLE,Google Cloud Billing: Monthly statement - Amount due: $0.00,P4,P3,P3,P3,0.41928809338887296
+bh_pay_p3_03,payments,NON_ACTIONABLE,Invoice #94820 paid: Thank you for your payment to Slack Technologies,P3,P2,P2,P3,0.4153025916685189
+bh_pay_p4_02,payments,NON_ACTIONABLE,Receipt for your payment of $0.00: Oracle Cloud Free Tier monthly statement,P4,P3,P3,P3,0.37609744356843167

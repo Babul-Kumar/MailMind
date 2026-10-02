@@ -1,0 +1,19 @@
+dataset,index,subject,true_label,v4_1_pred,v5_pred,v5_1_pred,confidence_v5_1
+v5_1_val,302,Registration verified - Account active,P3,P3,P2,P3,0.341
+v5_1_val,344,Accelerate Your Education: AEEE Phase II - Your Key to Amrita's B.Tech Scholarsh,P3,P4,P4,P3,0.381
+v5_1_val,411,Stripe: Your monthly processing fees summary,P3,P2,P2,P3,0.332
+v5_1_val,418,Recruiter view alert: 5 recruiters looked at your resume this week,P3,P4,P4,P3,0.38
+v5_1_val,424,Try our new AI-powered database query optimizer,P4,P4,P4,P3,0.372
+historical,92,Global Data Management - Gas Asset Support,P2,P3,P3,P2,0.399
+historical,111,Thank you for your referral,P4,P4,P2,P4,0.374
+modern,58,Your Thursday morning trip with Uber,P3,P2,P2,P3,0.324
+modern,65,Application received: Software Engineer III,P3,P2,P2,P3,0.485
+newsletter,30,EP200: HTTP/2 over TCP vs HTTP/3 over QUIC,P3,P3,P3,P4,0.407
+v4_test,18,🎉 Your Webinar Registration is Confirmed for 30 Days Full Stack Master Class!,P3,P3,P4,P3,0.353
+v4_1_test,18,🎉 Your Webinar Registration is Confirmed for 30 Days Full Stack Master Class!,P3,P3,P4,P3,0.353
+boundary_holdout,5,Workday Notification: Application submitted for Site Reliability Engineer - Sale,P3,P2,P2,P3,0.438
+boundary_holdout,7,Thank you for applying to Amazon - Software Development Engineer I,P3,P2,P2,P3,0.409
+boundary_holdout,8,Lever: Your application for Data Scientist at OpenAI was received,P3,P2,P2,P3,0.411
+boundary_holdout,9,Careers Update: Your application for Core Infrastructure Engineer is under revie,P3,P2,P2,P3,0.389
+boundary_holdout,16,Payment receipt: Your DigitalOcean droplet payment of $12.00 was successful,P3,P2,P2,P3,0.386
+boundary_holdout,18,Invoice #94820 paid: Thank you for your payment to Slack Technologies,P3,P2,P2,P3,0.415

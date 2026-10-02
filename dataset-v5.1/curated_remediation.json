@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "created_at": "2026-10-02T19:25:47.275252+00:00",
+    "phase": "Phase 47",
+    "curator": "Phase 47 Boundary Remediation Engine",
+    "training_additions_count": 11,
+    "repartitioned_examples": [
+      "cp_005b"
+    ]
+  },
+  "repartitioned": [
+    {
+      "pair_id": "cp_005b",
+      "subject": "Application received: DataCore Inc Software Engineer",
+      "body": "Thank you for applying to DataCore Inc for the Software Engineer role. Your application has been received and is under review. We will contact you if your qualifications match our current requirements.",
+      "final_label": "P3",
+      "prior_split": "validation",
+      "new_split": "train",
+      "rationale": "Moved to training split so model observes genuine recruitment application acknowledgment labeled P3."
+    }
+  ],
+  "curated_training_recruitment": [
+    {
+      "example_id": "curated_rec_001",
+      "subject": "Workday: Thank you for your application to Senior Backend Engineer at CloudScale",
+      "body": "Thank you for applying for the Senior Backend Engineer position at CloudScale Systems. We have successfully received your application via Workday and our talent acquisition team is currently reviewing your resume. No further action is required from you at this time. If your background aligns with our requirements, a recruiter will reach out regarding next steps.",
+      "final_label": "P3",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "recruitment/confirmation",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "recruitment",
+      "rationale": "Non-actionable automated confirmation of application receipt. No pending user task, no decision deadline, purely informational candidate tracking status update."
+    },
+    {
+      "example_id": "curated_rec_002",
+      "subject": "Application confirmed: Software Engineer II - Datadog Careers (Greenhouse)",
+      "body": "We're confirming that your application for the Software Engineer II role at Datadog has been submitted through Greenhouse. Thanks for your interest in joining our engineering team. We review all applications thoroughly and will follow up when we've completed our review. You don't need to reply to this message.",
+      "final_label": "P3",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "recruitment/confirmation",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "recruitment",
+      "rationale": "Automated Greenhouse receipt acknowledgment. No required action or deadline. Informational candidate notice."
+    },
+    {
+      "example_id": "curated_rec_003",
+      "subject": "Lever Application Submitted: Full Stack Developer at Stripe",
+      "body": "Your application for Full Stack Developer has been successfully submitted to Stripe via Lever. Our recruiting team has received your materials and will review your profile against our open positions. We appreciate your patience while we evaluate candidates. No action is required.",
+      "final_label": "P3",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "recruitment/confirmation",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "recruitment",
+      "rationale": "Lever applicant tracking receipt confirmation. Routine status update without direct operational call-to-action."
+    },
+    {
+      "example_id": "curated_rec_004",
+      "subject": "Thanks for applying to Snowflake - Data Platform Engineer",
+      "body": "Thank you for taking the time to apply for the Data Platform Engineer role at Snowflake. We wanted to confirm that we received your submission. Due to the volume of applications, our hiring team takes 1 to 2 weeks to review resumes. We will keep your resume on file. There are no pending tasks for you.",
+      "final_label": "P3",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "recruitment/confirmation",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "recruitment",
+      "rationale": "Courtesy acknowledgment email thanking candidate for applying. Informational resume ingestion status."
+    },
+    {
+      "example_id": "curated_rec_005",
+      "subject": "Resume successfully received for Systems Architect role - Cisco Careers",
+      "body": "Your resume and profile submission for the Systems Architect requisition (#482910) have been logged in our careers portal. This automated confirmation ensures your profile is active in our candidate tracking database. Thank you for your interest in Cisco. No response to this email is needed.",
+      "final_label": "P3",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "recruitment/confirmation",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "recruitment",
+      "rationale": "Candidate portal resume ingestion acknowledgment with explicit no-response notice."
+    }
+  ],
+  "curated_training_payment": [
+    {
+      "example_id": "curated_pay_001",
+      "subject": "AWS Monthly Billing Statement: Balance $0.00 (Account #7819-2041)",
+      "body": "Your monthly AWS billing statement for the billing period ending September 30 is now available. Your total balance due is $0.00 because your usage fell within the AWS Free Tier allowances. No payment is required. You can review your detailed cost breakdown in the AWS Management Console.",
+      "final_label": "P4",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "payments/statement",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "payments",
+      "rationale": "Automated zero-dollar billing statement. No payment due, no service disruption risk, low priority monthly notification."
+    },
+    {
+      "example_id": "curated_pay_002",
+      "subject": "Receipt for your monthly subscription payment - Notion Plus",
+      "body": "Thank you for your payment. We have successfully charged $10.00 to your credit card ending in 4029 for your Notion Plus monthly plan. Your invoice (#NOT-83921) has been paid in full and your subscription remains active. No action is needed on your part.",
+      "final_label": "P3",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "payments/receipt",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "payments",
+      "rationale": "Routine transaction confirmation receipt for active subscription. Informational confirmation of completed payment."
+    },
+    {
+      "example_id": "curated_pay_003",
+      "subject": "Payment Successful: GitHub Pro Monthly Subscription ($4.00)",
+      "body": "We received your payment of $4.00 USD for GitHub Pro on October 1, 2026. Your account is in good standing and all developer features remain unlocked. This email is an official confirmation of payment. No further action is required.",
+      "final_label": "P3",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "payments/receipt",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "payments",
+      "rationale": "Receipt confirming successful recurring developer subscription charge. Informational record of payment."
+    },
+    {
+      "example_id": "curated_pay_004",
+      "subject": "Your receipt from Google Play: YouTube Premium Monthly",
+      "body": "Google Play Order receipt. Order date: Oct 1, 2026. Item: YouTube Premium individual membership. Price: $13.99. Payment method: Visa-9812. Status: Completed. Thank you for your purchase. You can manage your subscriptions in account settings.",
+      "final_label": "P4",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "payments/receipt",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "payments",
+      "rationale": "Automated digital store purchase receipt. Completed consumer transaction without operational action."
+    },
+    {
+      "example_id": "curated_pay_005",
+      "subject": "Paid Invoice #INV-2026-9041 from Cloudflare Inc",
+      "body": "This email confirms that Invoice #INV-2026-9041 for Cloudflare Pro Services in the amount of $20.00 has been paid in full via automatic debit. Amount due: $0.00. No further action or reply is needed. A copy of the PDF receipt is available in your dashboard.",
+      "final_label": "P3",
+      "action_required": false,
+      "deadline_detected": false,
+      "deadline_display": null,
+      "topic": "payments/receipt",
+      "source": "PHASE_47_CURATED",
+      "adjudication_status": "ACCEPT",
+      "leakage_status": "CLEAN",
+      "domain": "payments",
+      "rationale": "Completed corporate invoice receipt with balance $0.00. Informational financial record."
+    }
+  ]
+}

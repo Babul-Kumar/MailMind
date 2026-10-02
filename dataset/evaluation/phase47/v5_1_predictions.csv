@@ -1,0 +1,1130 @@
+dataset,index,subject,true_label,prediction,confidence
+v5_1_val,0,FW:  Global Products Report for 11-21-01,P3,P3,0.3935970253292911
+v5_1_val,1,"HPL Nom for July 28,2000 -- One day Only !",P2,P2,0.6528441852781471
+v5_1_val,2,,P2,P2,0.6252117050691346
+v5_1_val,3,Re: news/updates,P2,P2,0.5657602030077233
+v5_1_val,4,RE:  Corporate Governance,P2,P2,0.8035374125873169
+v5_1_val,5,,P2,P2,0.6327790113871881
+v5_1_val,6,Re: Enron Metals North America Voluntary Separation,P2,P2,0.713183600801195
+v5_1_val,7,Re: Mark Schroeder's agreement,P2,P2,0.7480744055202613
+v5_1_val,8,Home Improvement on HomeAdvisor: Spring Maintenance,P4,P4,0.6550827032685537
+v5_1_val,9,The Maple Leaves,P2,P2,0.685431658765182
+v5_1_val,10,PreBid Meeting - Time Change,P2,P2,0.7414039205035005
+v5_1_val,11,Re: NCL,P2,P2,0.6972318602099052
+v5_1_val,12,,P2,P2,0.40656520287996584
+v5_1_val,13,"Re: Today the World, Tomorrow....Who Knows!?",P2,P2,0.5609520201169579
+v5_1_val,14,UN Wire Alert -- 16 October 2000,P4,P4,0.6001704583514798
+v5_1_val,15,"Re: ""Project DoorStep"" TARGET DATE",P2,P2,0.7362186381520215
+v5_1_val,16,Commissioner.COM E-Reports for UHFFL 11/21/01,P4,P4,0.8193846832161321
+v5_1_val,17,Sally's Thursday morning meeting moved to 8:30 - 10:30 AM,P2,P2,0.6607962494434181
+v5_1_val,18,Tenn Discount,P4,P2,0.34704449429934814
+v5_1_val,19,indomitable: Dictionary.com Word of the Day,P4,P4,0.6577950462791644
+v5_1_val,20,A Christmas Carol - Charles Dickens at The Alley Theatre,P4,P2,0.43296627822401873
+v5_1_val,21,Announcing the Third Annual Texas Finance Festival,P2,P2,0.519665103481327
+v5_1_val,22,FW: Litigation,P2,P2,0.7313580052205203
+v5_1_val,23,FW: Bowen resolution,P2,P2,0.5265491737870006
+v5_1_val,24,Re: Tuition Reimbursement,P2,P2,0.8049517209212252
+v5_1_val,25,Start Date: 10/23/01; HourAhead hour: 11;  <CODESITE>,P3,P3,0.9170827500839537
+v5_1_val,26,"Your confirmation, PHILLIP ALLEN",P4,P4,0.7317004239142232
+v5_1_val,27,=?ANSI_X3.4-1968?Q?Revised_presentation_with_Andy=3Fs_comments_-_04/11/01?=,P2,P2,0.7639831941377165
+v5_1_val,28,FW: question,P2,P2,0.6692510075166292
+v5_1_val,29,RE: Differential Pay for November,P2,P2,0.7712564318994214
+v5_1_val,30,"Buy One, Get One Half Off",P4,P4,0.7781607513863812
+v5_1_val,31,Fwd: One of the funniest things I've read in a while,P2,P4,0.3644425949086946
+v5_1_val,32,Daily-Blessings 12/24/00,P4,P4,0.6919926353416385
+v5_1_val,33,SERC (Vogtle) & WSCC (Navajo & Coronado) Resched/Derated Outages,P2,P2,0.7248261018101665
+v5_1_val,34,OneOk Recap Report for 12/25/01,P3,P3,0.47271001075636054
+v5_1_val,35,Schedule Crawler: HourAhead Failure <CODESITE>,P3,P1,0.8238749266904625
+v5_1_val,36,Yahoo lead.....,P2,P2,0.6969249850014912
+v5_1_val,37,Weather Alarms(tm),P2,P4,0.44574381074544134
+v5_1_val,38,"Save an additional 10%, four days only",P4,P4,0.7963592548404992
+v5_1_val,39,Breaking News from ABCNEWS.com,P4,P4,0.7313066880275292
+v5_1_val,40,A.Word.A.Day--Dr. Strangelove,P4,P4,0.6063456811399757
+v5_1_val,41,Update on ConfirmLogic,P2,P2,0.671997138334911
+v5_1_val,42,Re: Helsinki,P2,P2,0.527850485634378
+v5_1_val,43,Commissioner.COM E-Reports for Big E '01 11/20/01,P4,P4,0.8088789780449155
+v5_1_val,44,Patrice's Notifications for 11/13/01,P4,P4,0.7609684751976693
+v5_1_val,45,Unify Performance Issues are Priority Number One,P2,P2,0.6225461655234409
+v5_1_val,46,Expandable Palm Handhelds with Terrific FREE Extras!,P4,P4,0.7383770473405852
+v5_1_val,47,Big Chart Shows Signs of a Change in Leadership,P4,P4,0.48314979388325624
+v5_1_val,48,InfoBeat Fun - Daily Dose - 12/05/2000,P4,P4,0.6100140750403598
+v5_1_val,49,Start Date: 4/16/01; HourAhead hour: 23;  <CODESITE>,P3,P3,0.9419859710451837
+v5_1_val,50,FW: CEC updated report,P3,P2,0.483930380050603
+v5_1_val,51,Start Date: 4/22/01; HourAhead hour: 17;  <CODESITE>,P3,P3,0.8859451599061794
+v5_1_val,52,CNN Breaking News,P4,P4,0.6565411366862822
+v5_1_val,53,Start Date: 12/22/01; HourAhead hour: 9;,P3,P3,0.8056155734870684
+v5_1_val,54,Customize your Energy Central Direct account today!,P4,P4,0.622183706171826
+v5_1_val,55,FW: As Requested: Info on Fax machines,P3,P2,0.750342639601812
+v5_1_val,56,The Adizes Way to Manage in Difficult Times,P2,P2,0.33477263015638464
+v5_1_val,57,*EMCA* Attempted Break In on Morgan,P4,P4,0.5977073384817213
+v5_1_val,58,Recieve $125.00  Free From Five Roses Casino Now!!,P4,P4,0.8427945173461545
+v5_1_val,59,URGENT!  Re: Your priceline hotel request: 31328711209,P2,P4,0.6567971355746153
+v5_1_val,60,Press Conference,P3,P2,0.42423478706485185
+v5_1_val,61,Friends Fly Free and Other Great Savings,P4,P4,0.7775578113975916
+v5_1_val,62,Brendan Devlin update,P3,P2,0.45288263751663976
+v5_1_val,63,FW: Beaux Freres Sale Ends Friday,P4,P4,0.5970523042025816
+v5_1_val,64,"Tall Corn Ethanol Plant Taking Shape in Iowa, in an Advisory by
+ Industrialinfo.com",P2,P2,0.5241543987032364
+v5_1_val,65,Don't pass this up XXX.,P4,P4,0.4403340380189988
+v5_1_val,66,Corrected Organization Announcement,P3,P2,0.4322849820122458
+v5_1_val,67,Schedule Crawler: HourAhead Failure,P1,P1,0.9085422414473359
+v5_1_val,68,Project Doorstep Update,P2,P2,0.6183605991964123
+v5_1_val,69,SAP System Response Update,P3,P2,0.43190491955612825
+v5_1_val,70,HSX: This Week on the Exchange,P3,P4,0.5536591457483263
+v5_1_val,71,Diabetes E-News Now! Health Care Professional Edition 5/24/2001,P4,P4,0.6734675452432394
+v5_1_val,72,Schedule Crawler: HourAhead Failure,P1,P1,0.9296444665435071
+v5_1_val,73,"Click. Spin. Chances to Win up to $10,000!",P4,P4,0.7741225587480182
+v5_1_val,74,This Week's Top 20,P4,P4,0.7474357215894598
+v5_1_val,75,Re: Good Morning,P2,P2,0.7186525880068099
+v5_1_val,76,EIA Releases Energy Outlook 2001,P2,P2,0.34742275381403354
+v5_1_val,77,Time Warner -- AOL,P3,P3,0.3332575008539862
+v5_1_val,78,,P2,P2,0.5058203211616922
+v5_1_val,79,FW: The List?,P3,P2,0.6597084842165478
+v5_1_val,80,Out of Office AutoReply: Desktop Purchase for Loraine Lindberg,P2,P2,0.6114225814657286
+v5_1_val,81,FW: H-1B status and transfer expenses,P2,P2,0.7678746288230728
+v5_1_val,82,"$198 Coast-To-Coast, Caribbean $328, Turkey Fares From $59, More",P4,P4,0.7828749204490253
+v5_1_val,83,Start Date: 10/22/01; HourAhead hour: 5;  <CODESITE>,P3,P3,0.9476583882307736
+v5_1_val,84,Welcome to Power Finance & Risk,P2,P4,0.3637336002212839
+v5_1_val,85,Start Date: 10/18/01; HourAhead hour: 18;  <CODESITE>,P3,P3,0.9194572852957532
+v5_1_val,86,Start Date: 4/25/01; HourAhead hour: 12;  <CODESITE>,P3,P3,0.9495120034079405
+v5_1_val,87,Whitepaper Download,P3,P3,0.4167518661991417
+v5_1_val,88,<<Concur Expense Document>> - Jennifer Thome,P3,P3,0.8793634380021607
+v5_1_val,89,HAVING TROUBLE GETTING APPROVED ON LOANS,P4,P4,0.5371203493075131
+v5_1_val,90,Electronic Newsletter Deadline,P2,P2,0.462872557385649
+v5_1_val,91,Market Notice Report for EES (12/08 11:33),P3,P2,0.39211791540165
+v5_1_val,92,RE:,P2,P2,0.6623480669450043
+v5_1_val,93,Start Date: 12/28/01; HourAhead hour: 16;,P3,P3,0.9316637846676037
+v5_1_val,94,FW: Caribbean On Sale,P4,P4,0.5990357846166232
+v5_1_val,95,RE: hey there,P2,P2,0.529632723078842
+v5_1_val,96,eco challenge,P4,P2,0.31337463176596003
+v5_1_val,97,Your News Alert for YHOO,P4,P3,0.415024905189303
+v5_1_val,98,"If you don't back up your hard drive now, you're crazy",P4,P4,0.7250412061048859
+v5_1_val,99,Ameriflash Newsletter,P3,P2,0.617743778076977
+v5_1_val,100,[cheatsheets] Breaking News-Marshall Faulk To Start!,P4,P4,0.5938759062106036
+v5_1_val,101,"True Orange, October 1, 2001, Part 1 of 3",P3,P4,0.5142050082182655
+v5_1_val,102,FW: Fw: Oil changes: Men vs. Women,P2,P2,0.42045093102491726
+v5_1_val,103,daily charts and matrices as hot links 1/24,P4,P2,0.6017070756597966
+v5_1_val,104,MAIN (Quad Cities) & WSCC (Pittsburg) Forced/Resched Outages,P2,P2,0.71898362502031
+v5_1_val,105,CommodityLogic Financial Invoice Exchange v1.0,P2,P2,0.3800433348928404
+v5_1_val,106,Travelocity.com fare watcher update,P2,P4,0.5878751073152698
+v5_1_val,107,RE: West Ops Reports,P3,P2,0.46108038420718506
+v5_1_val,108,Apply Today for a No Deposit Visa or MasterCard,P4,P4,0.7491375657648057
+v5_1_val,109,Copy Your Favorite DVD Movies ... Great Gift Idea !!!,P4,P4,0.7393278089123226
+v5_1_val,110,Skadden,P2,P2,0.821149939504466
+v5_1_val,111,WSCC (San Juan 03) (Colstrip 03),P2,P2,0.7534025643261799
+v5_1_val,112,Mike sent you a Yahoo! Greeting,P4,P4,0.6256103410388119
+v5_1_val,113,Fwd: FW: Top Forty things You will NEVER hear a Southern Man say:,P2,P2,0.5446281475909882
+v5_1_val,114,Consumer Group Press Conference,P3,P2,0.494622852451081
+v5_1_val,115,"Price Reservations 17 February 2002 Real-Time and Hour-Ahead
+ Markets, and 18 February 2002 Day-Ahead Market",P3,P3,0.6160626256205457
+v5_1_val,116,\\spr1inf1\sapfiles\ifout\04000\20020110-ENWC.XLS,P2,P2,0.6027729567660361
+v5_1_val,117,Attention Body Shop Members -- UPDATE on Body Shop Closure,P3,P2,0.3731708246793623
+v5_1_val,118,FW: signature authority for ena upstream,P2,P2,0.7319196288595886
+v5_1_val,119,Enron Europe Organisational Changes,P2,P2,0.4794725559206995
+v5_1_val,120,ENA Litigation Status Report,P2,P2,0.5977789790960976
+v5_1_val,121,"SERC (Hatch, Rocky Mountain, & Pasco Cogen), MAIN (Arnold), ECAR
+  (Mitchell), & NPCC (Seabrook) Resched. Outages",P2,P2,0.7182820553634026
+v5_1_val,122,Add/Drop notification,P4,P4,0.702750942402528
+v5_1_val,123,"Re: Class Request: Outlook-1056 Outlook, David Gorte",P2,P2,0.46530532841078875
+v5_1_val,124,ClickAtHome is Coming Soon!,P2,P4,0.34582502146104516
+v5_1_val,125,Re: Birthday,P4,P2,0.7504562926158923
+v5_1_val,126,Advance your career with an Advanced Degree.,P4,P4,0.7980921139569608
+v5_1_val,127,Bill Rome Mediation,P2,P2,0.5586363604180511
+v5_1_val,128,Start Date: 3/3/01; HourAhead hour: 16;  <CODESITE>,P3,P3,0.8989381822874939
+v5_1_val,129,Schedule Crawler: HourAhead Failure <CODESITE>,P3,P1,0.6549368159636476
+v5_1_val,130,"Neil Anderson Devotional for Wednesday, February  6, 2002",P4,P4,0.661683474468209
+v5_1_val,131,"SR Technics Palmdale Grand Opening, 3/22",P2,P2,0.5362325307914465
+v5_1_val,132,AWADmail Issue 66,P4,P4,0.6462398226921044
+v5_1_val,133,Re:,P2,P2,0.6628724150325203
+v5_1_val,134,Refinance Without Perfect Credit,P4,P4,0.5809078505485241
+v5_1_val,135,SoCal Storage,P3,P2,0.4031494496451364
+v5_1_val,136,"[TigerStock!] TI News: Last Email Newsletter - TigerInvestor.com
+ Closes Down - Bye and Thanks!",P3,P4,0.4628478771471578
+v5_1_val,137,ENA Estate Group,P3,P2,0.5313663631563066
+v5_1_val,138,,P2,P2,0.43105436263878333
+v5_1_val,139,Further note on access of operating standards,P2,P2,0.575644683364972
+v5_1_val,140,European Trip Report 22-30 Jan 2000,P2,P2,0.6094110915169708
+v5_1_val,141,Re: Kennecott ETA,P2,P2,0.7104045795022306
+v5_1_val,142,"Settelement Request for an Equistar ""Buyback"" ticket with ENA as
+ Shipper",P2,P2,0.6836784395544268
+v5_1_val,143,The Oxford Princeton Programme E-Newsletter -- November 2001,P2,P4,0.41220466997441085
+v5_1_val,144,Investigation Research,P2,P2,0.7544160781814696
+v5_1_val,145,Ameritrade 10-second Guarantee,P3,P4,0.5170106248558052
+v5_1_val,146,BRM Weekly Assignment: Due 11/2/01,P2,P2,0.6477275266309716
+v5_1_val,147,For Subscribers Only,P3,P4,0.4294654313050124
+v5_1_val,148,"FRCC (Northside), SERC (Greene County), NPCC (Ravenswood &
+ Northfield  Mnt.), & MAIN (Waukegan) Resched Outages",P2,P2,0.7248281505753299
+v5_1_val,149,"Your VentureWire Professional Two-Week, No-Risk Trial",P4,P4,0.4256274318000863
+v5_1_val,150,Re: Cougars to I-AA,P4,P4,0.4081571559738893
+v5_1_val,151,RE: GE Legal Opinion,P2,P2,0.6282805150223902
+v5_1_val,152,Bisti Motor Update,P2,P2,0.5191359027709714
+v5_1_val,153,FW: 1/22/01 Memo to Jim Prentice,P2,P2,0.5334666469156643
+v5_1_val,154,UN Wire Alert -- 17 October 2000,P4,P4,0.595985178826776
+v5_1_val,155,"You Could Win Instantly a Trip to the Biggest Sports Event of Your
+ Choice",P4,P4,0.6789125611197596
+v5_1_val,156,Start Date: 12/18/01; HourAhead hour: 15;,P3,P3,0.9283272638473088
+v5_1_val,157,Start Date: 4/24/01; HourAhead hour: 24;  <CODESITE>,P3,P3,0.8649498358672476
+v5_1_val,158,Re: Authorised Traders : Montreal & Chicago,P2,P2,0.7054061495960928
+v5_1_val,159,Commodity Exchange Act Passes Congress,P2,P2,0.5467374128592201
+v5_1_val,160,ETS and  Corporate Change Control,P2,P2,0.5405588452857266
+v5_1_val,161,"Datek Gold: Same Advantages, New Name and Number",P2,P4,0.3754834675701731
+v5_1_val,162,"Computing  Services OUTAGE for Sunday, April 8th",P2,P2,0.5038529809691921
+v5_1_val,163,"EMAZING Health & Fitness Tip of the Day - Stretching Out Upper-Back
+ Stress",P4,P4,0.6765349923945619
+v5_1_val,164,RE: Chilean pulp capacity,P2,P2,0.6668999011308112
+v5_1_val,165,"Trader, Cattle Rallies, Silver Glistens",P4,P4,0.6769166334971579
+v5_1_val,166,,P2,P2,0.6102780479770923
+v5_1_val,167,Metals,P3,P2,0.40525036869082354
+v5_1_val,168,,P2,P2,0.652365732488325
+v5_1_val,169,"Power Mart '01 - Pre-register for your FREE exhibition pass today
+              !",P4,P4,0.6733438602422372
+v5_1_val,170,You could search for a year and..........,P4,P4,0.5590779523823083
+v5_1_val,171,"Earn 5,250 Points & get a FREE cell phone!",P4,P4,0.8340219034133017
+v5_1_val,172,Genoil addition to MPR,P2,P2,0.6395810952645705
+v5_1_val,173,EMERGENCY,P2,P2,0.4493380962614813
+v5_1_val,174,Another Move Up the Career Ladder,P3,P2,0.39155837376957553
+v5_1_val,175,Hot Game - Free Demo!,P4,P4,0.7590074340554251
+v5_1_val,176,Start Date: 4/28/01; HourAhead hour: 23;  <CODESITE>,P3,P3,0.9419089758489281
+v5_1_val,177,Fundamentals Package - West Gas Team,P3,P2,0.5596629548058106
+v5_1_val,178,Re:,P2,P2,0.7642914075195192
+v5_1_val,179,More Dalton Baby Info,P2,P3,0.33526928956292223
+v5_1_val,180,"greeting-cards.com NEW paper cards and FREE e-cards for January 16
+ - 23!",P3,P4,0.7667401225176679
+v5_1_val,181,RE: CABC Update -- FERC Open Seat Decision,P2,P2,0.7093996808004173
+v5_1_val,182,Re: Additional Note,P2,P2,0.6489595571225735
+v5_1_val,183,Re: Re[4]: Tonight,P2,P2,0.42933511694877213
+v5_1_val,184,Re: daily charts and matrices as hot links 2/6,P2,P2,0.6237909663656112
+v5_1_val,185,Schedule Crawler: HourAhead Failure <CODESITE>,P1,P1,0.9013817489326329
+v5_1_val,186,"RE: Good News, Lease Signed",P4,P4,0.45909260085201403
+v5_1_val,187,Consulting Services Agreement,P2,P2,0.7012501047007473
+v5_1_val,188,"$1,000 Instant Winner Email?",P4,P4,0.7747394996109239
+v5_1_val,189,,P2,P2,0.4483316955853147
+v5_1_val,190,Re: Opportunities at ENA,P2,P2,0.7598337960428286
+v5_1_val,191,FW: Check it out . . .,P4,P2,0.4424887809353761
+v5_1_val,192,Real Deals from Travelocity,P4,P4,0.893504443835366
+v5_1_val,193,New Item,P2,P2,0.5931982990421748
+v5_1_val,194,Start Date: 1/2/02; HourAhead hour: 11;,P3,P3,0.9311547145387455
+v5_1_val,195,U2.COM Update - November 17th 2001,P2,P4,0.6321363064017331
+v5_1_val,196,EcoElectrica LNG Requirements for Remainder of 2001,P2,P2,0.5043297961432965
+v5_1_val,197,"Re: Fw: Gear Box no. 19103, Trent Mesa WTG #79",P3,P2,0.7504329660267285
+v5_1_val,198,Schedule Crawler: HourAhead Failure,P1,P1,0.9207511566048344
+v5_1_val,199,FW: Request for Migration of Sitara EOLBridge into Production,P2,P2,0.7347460738315559
+v5_1_val,200,Re:,P2,P2,0.4964275115857374
+v5_1_val,201,CGAS Basis,P2,P2,0.4062216937392589
+v5_1_val,202,quondam: Dictionary.com Word of the Day,P4,P4,0.7039795271355025
+v5_1_val,203,Schedule Crawler: HourAhead Failure,P1,P1,0.9231103067279912
+v5_1_val,204,Northern Natural Gas,P2,P2,0.46273075595082575
+v5_1_val,205,Fw: to lift your spirits,P4,P4,0.4606970511683126
+v5_1_val,206,PAC ENROLLMENT,P2,P2,0.42475887482151387
+v5_1_val,207,,P2,P2,0.5520981286554631
+v5_1_val,208,"We are 511 long for 12/12, and this is accurate",P2,P2,0.46040889130369794
+v5_1_val,209,RE: Hey Greg,P2,P2,0.6921878622273996
+v5_1_val,210,Breakfast With The Fool: Biogen Beats the Street,P4,P4,0.4970180055629965
+v5_1_val,211,RE: ENA/Blue Dog: Incumbency Certificate,P4,P2,0.7926899727611945
+v5_1_val,212,Continental Airlines Vacations Special Deals,P4,P4,0.7298360005471389
+v5_1_val,213,FERC RTO Week Workshops... Summarized by EEI,P2,P2,0.44132289100972794
+v5_1_val,214,Ammonia/Urea Update Overview,P2,P2,0.44376547199217625
+v5_1_val,215,RE: Middle name,P2,P2,0.8220597031324056
+v5_1_val,216,"Internet Daily for May 30, 2001",P3,P3,0.35683920766072447
+v5_1_val,217,"Access on the Block: International Transmission Auctions - CERA A
+ lert - December 20, 2000",P2,P2,0.5644209948027098
+v5_1_val,218,Re: PNG Local Production July 00,P2,P2,0.7440628185266502
+v5_1_val,219,Article,P2,P2,0.5072494493455593
+v5_1_val,220,EnronOnline,P2,P2,0.8635865356652535
+v5_1_val,221,Alberto Levy,P3,P2,0.4819139245211154
+v5_1_val,222,RE: NW Update,P2,P2,0.7197946088891836
+v5_1_val,223,Conflict of Interest Policy Mailing to Vendors,P2,P2,0.5031384357057231
+v5_1_val,224,"November 19, 2001 - The age of alliances",P2,P4,0.5480777252978116
+v5_1_val,225,ACCOUNT NOTIFICATION: Margin email notice,P2,P2,0.42186170098128434
+v5_1_val,226,Travelocity.com fare watcher update,P2,P4,0.6095219036085459
+v5_1_val,227,Schedule Crawler: HourAhead Failure <CODESITE>,P1,P1,0.6127671141339573
+v5_1_val,228,RE: A Question,P2,P2,0.745369503187661
+v5_1_val,229,Re: favor,P2,P2,0.6703425045041819
+v5_1_val,230,Enron Canada,P2,P2,0.639680233982908
+v5_1_val,231,Interim Solution for Real-Time EOL deals,P2,P2,0.5679874217378341
+v5_1_val,232,Start Date: 1/10/02; HourAhead hour: 11;,P3,P3,0.9221515959429595
+v5_1_val,233,Helsinki Report,P3,P2,0.5760524561127681
+v5_1_val,234,"Power Mart '01 - Pre-register for your FREE exhibition pass
+ today             !",P4,P4,0.6735776761378258
+v5_1_val,235,Start Date: 4/9/01; HourAhead hour: 10;  <CODESITE>,P3,P3,0.9538119898920651
+v5_1_val,236,"Recent report from CS First Boston on Energy and Natural
+ GasCompanies",P2,P2,0.5125603207965984
+v5_1_val,237,Sigaba Secure Internet Communication,P2,P4,0.35759367871178227
+v5_1_val,238,RE: Drunken Brothers,P4,P4,0.4053651441743194
+v5_1_val,239,,P2,P2,0.4382174783773287
+v5_1_val,240,FW: Weather repiort,P2,P2,0.7816386965375725
+v5_1_val,241,Decremental Bidding,P2,P2,0.5374142941774072
+v5_1_val,242,Merchant Power Monthly   Free Sample,P3,P4,0.48341477208915345
+v5_1_val,243,Real Deals From Travelocity.com,P4,P4,0.8542938161907893
+v5_1_val,244,"Today's Headlines from NYTimes.com Sunday, December 30, 2001",P4,P4,0.48178158694546347
+v5_1_val,245,Your News Alert for JDSU,P3,P3,0.48256835449072855
+v5_1_val,246,Start Date: 4/23/01; HourAhead hour: 13;  <CODESITE>,P3,P3,0.9464340947808154
+v5_1_val,247,MusicNews.Creed.Incubus.U2.KidRock.Jay-Z.Custom.AAF.Madonna.Nelly@ARTISTdirect,P4,P4,0.7886682198555696
+v5_1_val,248,HR Organizational Changes,P3,P2,0.419328955798586
+v5_1_val,249,e-marketplace update,P3,P2,0.3898007385750049
+v5_1_val,250,,P2,P2,0.36596738562532644
+v5_1_val,251,"FW: You Own MSFT, Consider Other Software Opportunities",P4,P2,0.4842191114601059
+v5_1_val,252,What's New at Howard University (01/08/02),P4,P4,0.34400690306168125
+v5_1_val,253,"Weekly Market Update: ASPS, Internet Hosting, Content Distribution,
+ Integrated Providers",P3,P3,0.45610391087150115
+v5_1_val,254,<<Concur Expense Document>> - East Power Lunch Meeting,P3,P3,0.7944058080196454
+v5_1_val,255,draft employee memo,P4,P2,0.4997487156609446
+v5_1_val,256,Re: Protecting Enron people data,P2,P2,0.6664873677050773
+v5_1_val,257,Re: Bluegrass Guitar - Top Ten Song List,P4,P4,0.5129957479594216
+v5_1_val,258,Draft to Measurement,P2,P2,0.7106291808495795
+v5_1_val,259,India Relief Effort,P3,P2,0.39221636110605246
+v5_1_val,260,TRV Notification:  (NG - PROPT P/L - 10/05/2001),P3,P3,0.6772666494130175
+v5_1_val,261,,P2,P2,0.4877619156247151
+v5_1_val,262,Re: wouldn't you like to see us,P2,P2,0.7334443337020363
+v5_1_val,263,"Trader, Specific Documented Results . . .",P4,P4,0.6723476630719913
+v5_1_val,264,FW: Mullet,P2,P2,0.7810334698608077
+v5_1_val,265,CIO/CTO looking for a Permanent Postion.,P1,P3,0.3403376737670117
+v5_1_val,266,Assistance for Former Employees,P3,P2,0.366092697062966
+v5_1_val,267,10% Bonus on ALL Deposits,P4,P4,0.7020419493871449
+v5_1_val,268,Additonal PCB Sampling on the SoCal System,P2,P2,0.4151935385645499
+v5_1_val,269,RE: FW: April Audit Committee Presentation Meetings,P2,P2,0.7384736392030937
+v5_1_val,270,Get Up To $500.00 CASH,P4,P4,0.7501967359084034
+v5_1_val,271,"Mexico Executive Retreat, Presentation Summaries - CERA Report",P2,P2,0.5565655760523706
+v5_1_val,272,"Receive a FREE Motorola Pager - Click Here NOW.
+                                                5380",P4,P4,0.4183347244113138
+v5_1_val,273,Legislative Update,P2,P2,0.5464504686967501
+v5_1_val,274,Paribas MNA -  Interim Draft of x-affiliate netting agreement,P2,P2,0.750896576022202
+v5_1_val,275,The world this week: Business 9th - 15th June 2001,P4,P4,0.5124087202957152
+v5_1_val,276,Introducing Super Saver Shipping,P2,P4,0.6775368860883603
+v5_1_val,277,ERV Notification:  (Violation/Notification Memo - 09/04/2001),P2,P2,0.5011276642923592
+v5_1_val,278,Lite Bytz RSVP,P2,P2,0.3645106469948144
+v5_1_val,279,The Original Advantage #e13105,P4,P4,0.5423783767035654
+v5_1_val,280,Start Date: 2/2/02; HourAhead hour: 8;,P3,P3,0.9574166456165161
+v5_1_val,281,THE SHIPPING NEWS - Now Playing,P4,P4,0.6736006762328784
+v5_1_val,282,Need more contact lenses?,P4,P4,0.6431040699688666
+v5_1_val,283,SUPPLEMENTAL Weekend Outage Report for 4-13-01 through 4-16-01,P3,P3,0.5506734493956227
+v5_1_val,284,Company Sleuth Daily Report for WMSON,P3,P3,0.42740894615668434
+v5_1_val,285,Review for a new accounting system 4053A (Sheila),P2,P2,0.5144451843070755
+v5_1_val,286,Expense Reports Awaiting Your Approval,P2,P2,0.6849131125160627
+v5_1_val,287,Our Turkeys Talk!,P4,P4,0.733558868027749
+v5_1_val,288,lmay2,P3,P3,0.38603574861767487
+v5_1_val,289,Start Date: 10/20/01; HourAhead hour: 13;  <CODESITE>,P3,P3,0.9413730976932773
+v5_1_val,290,RE: Waiting on your reply -Stack Users,P2,P2,0.5777309216959762
+v5_1_val,291,"Super sales to Las Vegas, Europe and more!",P4,P4,0.8018116287273624
+v5_1_val,292,Signature Pages for the PDA and SPA attached,P2,P2,0.7362989925231239
+v5_1_val,293,(MS-27) SWITCHES OF GUARANTEE,P2,P2,0.43860103613884704
+v5_1_val,294,Start Date: 1/2/02; HourAhead hour: 2;,P3,P3,0.866418666255288
+v5_1_val,295,FoolWatch: A Microsoft Face Off,P3,P4,0.604124739071817
+v5_1_val,296,Bullets,P1,P2,0.5985631888482476
+v5_1_val,297,FW: Temporaries' Access Rights,P2,P2,0.603774175532867
+v5_1_val,298,FW: Wire Transfer Confirmation,P2,P2,0.61880250637168
+v5_1_val,299,Updated:,P2,P2,0.3811707668994561
+v5_1_val,300,CodeVita 2026 - Registration Verification Link,P2,P2,0.4107834552135358
+v5_1_val,301,URGENT Security Incident: Account breach detected,P1,P1,0.5544591446026221
+v5_1_val,302,Registration verified - Account active,P3,P3,0.3406220911397235
+v5_1_val,303,Verify top fashion deals with up to 60% off,P4,P4,0.5168028452672984
+v5_1_val,304,Your monthly account security report.,P4,P3,0.5530642902309155
+v5_1_val,305,Notice: Email address verification confirmed,P3,P4,0.3364097672803892
+v5_1_val,306,Security verification history - September 2026,P4,P3,0.3827955347764961
+v5_1_val,307,Notification: Previous verification session expired,P3,P1,0.5082730121861803
+v5_1_val,308,Your phone number verification was successful,P3,P2,0.32126325153925583
+v5_1_val,309,Quarterly Security & Privacy Digest,P4,P3,0.46714107742060856
+v5_1_val,310,"Executive Briefing: Agents Will Route Around Your UI by 2026—What It Means for Your Org, Stack, and Roadmap",P3,P3,0.5507404058452915
+v5_1_val,311,"💬 Babul, add Hemant Kumar to your network",P4,P4,0.4939378801197177
+v5_1_val,312,Jio Financial gets SEBI nod for broking business; JSW Paints acquires AkzoNobel & more,P4,P4,0.6609090083233389
+v5_1_val,313,[Subscriber Exclusive] Become an AI Engineer - Cohort 4,P4,P3,0.5108997436888082
+v5_1_val,314,"Travis Kalanick: 10 Lessons on Stealth Building, Physical AI, and His New $70B Bet",P3,P3,0.5166522791549839
+v5_1_val,315,"TypeScript, C# and Turbo Pascal with Anders Hejlsberg",P3,P3,0.6202629325558737
+v5_1_val,316,"How to Learn a Language: The Complete System That Actually Works | Viktoria Verde, PhD in Language Mind",P3,P3,0.7063805076104062
+v5_1_val,317,The complete guide to AI coding in 2026,P3,P3,0.61127482924959
+v5_1_val,318,"I Tested Cowork, Lindy, Sauna, and Opal Against 3 Questions. The Best Scored 1 out of 4.",P3,P3,0.6967223268763103
+v5_1_val,319,The Free Founder Operating System,P3,P3,0.4440346051455369
+v5_1_val,320,"The Pulse: a new trend, smart model routing",P3,P3,0.47397656562736484
+v5_1_val,321,From IDEs to AI Agents with Steve Yegge,P3,P3,0.6261529852836308
+v5_1_val,322,You and Bhavneet Kour have 6 mutual connections. View people you may know,P4,P4,0.3511429273088493
+v5_1_val,323,Anthropic Has a Certification for Claude Architects. Here’s the Full Curriculum,P3,P3,0.5015510427625518
+v5_1_val,324,"Markets continue climbing, Nov auto sales, & more - Groww Digest (every day)",P3,P3,0.8354852571099464
+v5_1_val,325,"💬 Babul, add Md Noore Alahi",P4,P4,0.5153120939537934
+v5_1_val,326,OpenAI’s Next Image Model Just Leaked. The Examples Are Insane.,P3,P3,0.45773751056106937
+v5_1_val,327,ESPN’s list of Greatest 25 cricketers of 21st century,P3,P3,0.37498983647308615
+v5_1_val,328,SSC ANSWER KEY,P3,P3,0.4794211510883807
+v5_1_val,329,Executive Briefing: Why Your World Model Will Look Authoritative for Six Months and Wrong at Year Two,P3,P3,0.5413576260807764
+v5_1_val,330,A Single Sentence from a Family Member Shifted an AI Diagnosis 12x. That Anchoring Bias Is in Your Agents Right No…,P3,P3,0.6262283458044712
+v5_1_val,331,Meta's Layoffs Tell Us About the Future of AI Jobs—But Everyone Missed the Real Story! (+ a Custom News Prompt),P3,P3,0.6411072829208815
+v5_1_val,332,Shinkhal Sinha and others share their thoughts on LinkedIn,P4,P4,0.4600904683841019
+v5_1_val,333,"Jio Platforms IPO gets SEBI approval, Hero Moto increases stake in Ather, & more - Groww Digest",P3,P3,0.8670825370113048
+v5_1_val,334,"India's inflation falls in April, L&T secures large orders, & more - Groww Digest",P3,P3,0.8264716810154944
+v5_1_val,335,"How to Fight Clickbait: Meta, LinkedIn & YouTube Case Studies",P3,P3,0.37639228225076055
+v5_1_val,336,the rise of ‘nonchalance’ and the weight it has put on us.,P3,P3,0.33938257837703656
+v5_1_val,337,2026 Sneak Peek: The First Job-by-Job Guide to AI Evolution,P3,P3,0.6395767544599574
+v5_1_val,338,How do I prepare for CA Intermediate Audit?,P3,P3,0.4406651602101989
+v5_1_val,339,"💬 Add Sandhya Jaiswal, Content Writer",P4,P4,0.35707701708690537
+v5_1_val,340,"You're in the top 1%. Here's your Amazon PPIs, rewards & SWAGs",P4,P4,0.6013981352958848
+v5_1_val,341,"Quarterly results, rise in tax filing, & more - Groww Digest",P3,P3,0.8705978328314209
+v5_1_val,342,I want to connect,P4,P4,0.8808886131657209
+v5_1_val,343,How Meta Built a New AI-Powered Ads Model for 5% Better Conversions,P3,P3,0.7416715270830944
+v5_1_val,344,Accelerate Your Education: AEEE Phase II - Your Key to Amrita's B.Tech Scholarship Seats!,P3,P3,0.380548654038389
+v5_1_val,345,"Startup Growth Guide🔁, YC RFS💡, The Year of Churn💀",P3,P3,0.6030154762306145
+v5_1_val,346,How NVIDIA Builds Open Models for the Age of AI,P3,P3,0.6093654662652105
+v5_1_val,347,How was your NEET 2020 paper?,P4,P3,0.4482812839826882
+v5_1_val,348,Open Tab: Lachlan Cartwright,P3,P3,0.5092186984442436
+v5_1_val,349,7 profile views,P4,P3,0.411416771895365
+v5_1_val,350,"💬 Add Sahil Khan, Graphic Designer",P4,P4,0.3638678590215183
+v5_1_val,351,Chamath Palihapitiya posted new notes,P3,P3,0.4170753226884309
+v5_1_val,352,You have 7 profile views,P4,P3,0.3495043814766234
+v5_1_val,353,"""Game Theory Will Change Your Life: The Invisible Rules Running Every Interaction"" and 4 more",P3,P3,0.5975139600693855
+v5_1_val,354,Which funds/stocks did investors choose? | Investments Weekly: 3 Oct - 9 Oct,P3,P3,0.7458705010521848
+v5_1_val,355,I am 53yrs married woman with two major sons studying in Universities. My husband is a...,P4,P2,0.336669262835864
+v5_1_val,356,New login to Instagram from Instagram on CPH2373,P1,P1,0.9338294110256534
+v5_1_val,357,Deep Dive: Is AI Disrupting the Future of Work?,P3,P3,0.575974210432267
+v5_1_val,358,"Babul, last week your posts got 92 views!",P4,P4,0.5523439439226262
+v5_1_val,359,Against resolutions,P3,P3,0.3660685846716688
+v5_1_val,360,I just requested to connect,P4,P4,0.821824065787552
+v5_1_val,361,What are the sacrifices you made to score 80% Above in the 12th CBSE Board 2019?,P3,P3,0.36571296548451127
+v5_1_val,362,I've Talked to Hundreds of Companies About AI & Jobs: Here's The Jobs Guide No One is Writing (+ Prompts),P3,P3,0.6928226124955461
+v5_1_val,363,"Waaree Energies approves Rs 8,175 cr capex, markets closed today, & more - Groww Digest",P3,P3,0.836792221740758
+v5_1_val,364,"Radiant lists at premium, service sector growth, & more - Groww Digest (every day)",P3,P3,0.8331708439137857
+v5_1_val,365,I want to connect,P4,P4,0.8808886131657209
+v5_1_val,366,Mohamed Basyouny and others share their thoughts on LinkedIn,P4,P4,0.47471894058173125
+v5_1_val,367,"⏰ Land GenAI Jobs: LinkedIn + AI Agents (100% Open Source, Personalized) is starting in 1 hour",P4,P3,0.5146862241016085
+v5_1_val,368,Mohammad Imitiyaj Ali and Nakka  Srinivasulu  are open to work,P4,P3,0.3720852841868457
+v5_1_val,369,"Wheat export ban lifted, L&T’s new Rs 15,000 cr order, & more - Groww Digest",P3,P3,0.8414046829203591
+v5_1_val,370,"Massive fee hike for H-1B, India's industrial production rises, & more - Groww Digest",P3,P3,0.8266926108711575
+v5_1_val,371,Step Into Leadership: A Webinar for Women in Tech,P3,P3,0.4446316543398553
+v5_1_val,372,New login to Instagram from Chrome on Windows,P1,P1,0.922667691254425
+v5_1_val,373,"IT stocks tumble after OpenAI’s new launch, Dr Reddy’s Q4 profit plunges 86% YoY & more",P4,P4,0.6211136719435749
+v5_1_val,374,I want to connect,P4,P4,0.8808886131657209
+v5_1_val,375,Here are 3 things recruiters look for in…,P4,P4,0.5899511405193094
+v5_1_val,376,Your weekly progress report from Google Health,P3,P3,0.694326395587326
+v5_1_val,377,I want to connect,P4,P4,0.8808886131657209
+v5_1_val,378,"GDP grows at 7.8% in Oct-Dec, LIC in GIFT City, & more - Groww Digest",P3,P3,0.8406226170526232
+v5_1_val,379,"Rise in air traffic, quarterly results, & more - Groww Digest (every day)",P3,P3,0.8398520791195616
+v5_1_val,380,👤 Misha Jha is a new friend suggestion for you,P4,P4,0.5518574417104606
+v5_1_val,381,Your Instagram password has been changed,P4,P4,0.4957105230893403
+v5_1_val,382,How to Model Mezzanine Financing End-to-End (Without Losing the Plot),P3,P3,0.37057026957232564
+v5_1_val,383,"Grab my Ultimate Guide to Codex and catch up to the 1 in 1,600 people using it every week (mostly no code!))",P3,P3,0.5283183507924124
+v5_1_val,384,"India-Canada to restart trade talks, ICICI Prudential to raise Rs 1,200 cr, & more - Groww Digest",P3,P3,0.8087895323231218
+v5_1_val,385,EP217: Latency vs Throughput vs Bandwidth,P3,P3,0.4434650996819316
+v5_1_val,386,"Textile PLI scheme attracts investments, storm hits US, & more - Groww Digest (every day)",P3,P3,0.838340865629545
+v5_1_val,387,"Govtʼs Rs 37.5 cr coal gasification scheme, Airtel profits down 33%, & more - Groww Digest",P3,P3,0.8309273338175229
+v5_1_val,388,IEEE Transactions on Software Engineering: Camera-ready deadline,P2,P2,0.4078685931952639
+v5_1_val,389,Meta: Action required on your internship application,P2,P2,0.5084878576025481
+v5_1_val,390,NSF Research Grant: Full proposal submission cutoff date,P2,P2,0.4177382029129734
+v5_1_val,391,Let's Encrypt SSL certificate expiration notice for api.company.com,P2,P2,0.45212273004526315
+v5_1_val,392,Heroku: Your database will be deleted in 7 days due to non-payment,P2,P2,0.5375124562282562
+v5_1_val,393,Action required: Elasticsearch cluster storage 88% full,P2,P2,0.4499025719600629
+v5_1_val,394,Palantir: Complete your online coding challenge,P2,P2,0.4747799084446136
+v5_1_val,395,Apple: Onsite interview schedule confirmation required,P2,P2,0.536305834267796
+v5_1_val,396,Vercel: Invoice past due - Production deployment paused,P2,P2,0.4337954781315441
+v5_1_val,397,CSE 472: Project Milestone 2 submission deadline,P2,P2,0.4277253543696636
+v5_1_val,398,Bloomberg: Technical assessment invitation - Expiring in 4 days,P2,P2,0.3844196382281362
+v5_1_val,399,PagerDuty: Integration token expiration notice,P2,P2,0.3358844366408222
+v5_1_val,400,Kubernetes cluster version 1.27 deprecation: Upgrade required,P2,P2,0.4000017749766088
+v5_1_val,401,DAAD Research Fellowship: Submission deadline reminder,P2,P2,0.5701266742734388
+v5_1_val,402,Technical vetting challenge deadline: 48 hours remaining,P2,P2,0.5287695706133743
+v5_1_val,403,Google Summer of Code: Project proposal submission deadline,P2,P2,0.5222945382257761
+v5_1_val,404,Cognitive Science: Experiment participation credit cutoff,P2,P2,0.498007694987353
+v5_1_val,405,Action required: Deprecation of GitHub Actions runner v3,P2,P2,0.4253093060069745
+v5_1_val,406,Vercel: Bandwidth threshold alert - 90% quota consumed,P2,P2,0.4427767914986023
+v5_1_val,407,Receipt for your recent payment to Spotify,P3,P4,0.36255795678178976
+v5_1_val,408,Glassdoor: Company salary trends and interview insights,P3,P3,0.5824780176601506
+v5_1_val,409,Career Advice: Writing an impactful technical resume,P3,P3,0.5544779723359358
+v5_1_val,410,Your tax invoice summary for FY 2025-26,P3,P3,0.3674393695455487
+v5_1_val,411,Stripe: Your monthly processing fees summary,P3,P3,0.3321938856899369
+v5_1_val,412,New Open-Source Course Materials: Deep Learning Specialization,P3,P4,0.45842781854014975
+v5_1_val,413,Wise: Transfer completed successfully to recipient,P3,P3,0.3722747114169473
+v5_1_val,414,Handshake: Virtual career fairs and employer sessions this week,P3,P4,0.38655244594494254
+v5_1_val,415,Tech Hiring Trends: Fall 2026 Market Report,P3,P3,0.6549078967247608
+v5_1_val,416,Uber Receipts: Your trip on Tuesday evening,P3,P2,0.37618544634731
+v5_1_val,417,Global Fellowship Opportunities Digest: Grants and Scholarships,P3,P3,0.49324198860376833
+v5_1_val,418,Recruiter view alert: 5 recruiters looked at your resume this week,P3,P3,0.3802977469383562
+v5_1_val,419,Datadog Quarterly Feature Roundup & Architecture Guide,P3,P3,0.4669362558233514
+v5_1_val,420,Exclusive Offer: Double your cloud credits this quarter,P4,P4,0.3886231511469039
+v5_1_val,421,Join our live virtual hackathon kickoff stream,P4,P4,0.36058508742021916
+v5_1_val,422,Explore our new pricing tiers for growing businesses,P4,P3,0.37709583199407704
+v5_1_val,423,Developer Workshop: Hands-on Kubernetes deployment,P4,P3,0.5325315025745679
+v5_1_val,424,Try our new AI-powered database query optimizer,P4,P3,0.3719399834048827
+v5_1_val,425,Explore MongoDB University: Free certification vouchers,P4,P3,0.41663889219245415
+v5_1_val,426,University Career Fair: Register for upcoming employer booths,P4,P3,0.4078543609631516
+v5_1_val,427,Offer letter enclosed: Accept or decline by October 8,P2,P2,0.4836774311712382
+historical,0,10% OFF + Holiday Gift Guide,P4,P4,0.6664817834815029
+historical,1,Start Date: 1/6/02; HourAhead hour: 6;,P3,P3,0.9233317784122117
+historical,2,FW: Enron Announces Plans to Merge with Dynegy,P2,P2,0.5829181687547642
+historical,3,option candlesticks as a hot link,P4,P2,0.6538513205869311
+historical,4,Up to 40% OFF and FREE SHIPPING on Your Holiday Shopping!,P4,P4,0.7688821793941404
+historical,5,Re:,P2,P2,0.8289145738322166
+historical,6,Start Date: 1/9/02; HourAhead hour: 18;,P3,P3,0.9373962758494299
+historical,7,Sorry I can't Go to Portland Conf,P4,P2,0.46037951261866605
+historical,8,Re: EGPG MAP for Enron website,P2,P2,0.7437839977844014
+historical,9,FW: Azurix / Wessex insurances,P2,P2,0.6751043306343815
+historical,10,CES deal 231667,P2,P3,0.3487071522914866
+historical,11,Expense Reports Awaiting Your Approval,P2,P2,0.6997798987761039
+historical,12,Send  a Kiss for Valentine's Day!,P2,P4,0.7505633692281725
+historical,13,"Price Reservations 12 February 2002 Real-Time and Hour-Ahead
+ Markets, and 13 February 2002 Day-Ahead Market",P3,P3,0.635715024270319
+historical,14,Broadcast Message for Houston Enron Employees,P3,P2,0.4239463360418428
+historical,15,ALL daily charts and matrices as hot links 10/8,P2,P2,0.5858370253538178
+historical,16,Exceptions for Pay Period May 16 - 31 (previous pay period),P2,P2,0.603151224407335
+historical,17,Market Notice Report for NRC (12/11 05:57),P3,P3,0.36035173384259134
+historical,18,Schedule Crawler: HourAhead Failure,P1,P1,0.9349293999962298
+historical,19,Start Date: 4/3/01; HourAhead hour: 15;  <CODESITE>,P3,P3,0.88400179053466
+historical,20,Schedule Crawler: HourAhead Failure,P1,P1,0.9328728739351893
+historical,21,Re: Global Operations Controller Forum,P2,P2,0.6968317676845188
+historical,22,Commissioner.COM E-Reports for Big E '01 11/21/01,P4,P4,0.8187391376243414
+historical,23,Find Great Gifts at ebay.com today!,P4,P4,0.7228002140151986
+historical,24,Schedule Crawler: DayAhead Failure,P1,P1,0.8910060986803128
+historical,25,FW: Mark Report....AGA Update,P2,P2,0.6235033179581486
+historical,26,Online Money Machine,P4,P4,0.7411573525761984
+historical,27,RE: RE: Whats up!!!!!,P2,P2,0.7206252569759436
+historical,28,EMAZING Internet Tip of the Day - Northern Light Search,P4,P4,0.71240428212105
+historical,29,Angel Flight South Central pilot death,P4,P2,0.36869557301192524
+historical,30,Raspberry Summer Delight - from BHG.com,P4,P4,0.6720544134234382
+historical,31,Start Date: 1/13/02; HourAhead hour: 15;,P3,P3,0.9271642929337982
+historical,32,Re: Next pdx.pm meeting,P4,P2,0.38471984285052296
+historical,33,Celebration,P2,P2,0.7342702259129151
+historical,34,Re: MDEA Agreement Scheduling,P2,P2,0.7413279112587232
+historical,35,"EnronOnline Weekly Public Report for September 21, 2001",P2,P2,0.4653014077002051
+historical,36,FW: TW A/R,P2,P2,0.7363352843982142
+historical,37,Start Date: 1/26/02; HourAhead hour: 6;,P3,P3,0.9357936691297748
+historical,38,Forgotten Password,P2,P4,0.39564424145747096
+historical,39,Start Date: 4/16/01; HourAhead hour: 12;  <CODESITE>,P3,P3,0.9050838365564436
+historical,40,FW: <<Concur Expense Document>> - SWB 3/2/2001,P2,P2,0.5243876646574513
+historical,41,Telephone Call with Jerry Murdock,P2,P2,0.7391958284476686
+historical,42,GRS' FERCwatch - 02/26/02 (No. 2),P2,P2,0.4400194901958164
+historical,43,Commissioner.COM E-Reports for Feeley's FFL 12/29/01,P4,P4,0.7350999716574549
+historical,44,Natural Gas Gridiron Waivers,P4,P4,0.6008612548182288
+historical,45,My HomeAdvisor: Going Green,P4,P4,0.7252730429996825
+historical,46,,P4,P4,0.36311441691164814
+historical,47,"Save 60%-80% Inkjets-Laser Cartridges  Fax Supplies Manufacture
+ Direct",P4,P4,0.427524788450323
+historical,48,New Interest Rates and Loan Consolidation,P4,P2,0.46788497340146157
+historical,49,Re: India Help,P2,P2,0.6563975056204463
+historical,50,Sunday Weather Update 06/03,P2,P2,0.42731319964672515
+historical,51,Save 25% on new COM+ CD-Rom training from AppDev!,P4,P4,0.6301086434629155
+historical,52,Market Notice Report for SWPP (12/08 11:56),P3,P3,0.3795131686042818
+historical,53,Weekly Regulatory and Government Affairs Report,P3,P2,0.46718517069609
+historical,54,Re: I am officially in a bit of a panic!,P2,P2,0.5636914724045972
+historical,55,FW: YOU WANT TO KNOW ABOUT THIS....,P2,P2,0.5636827788271865
+historical,56,Re: Keneally's,P2,P2,0.7188923887416756
+historical,57,Wrap up your holiday shopping at 1-800-FLOWERS.COM!,P4,P4,0.7082276465665944
+historical,58,RE: An unusual request,P2,P2,0.8246234901460765
+historical,59,Fwd: [Fwd: Chicken Soup for the Beer Drinkers Soul],P4,P4,0.4732819160630043
+historical,60,"(ClearStation) Recommendation : CRY (Long) by kensey, Tue Oct 23
+ 2001",P4,P4,0.5316479736190836
+historical,61,TW Imbalance Mtg.,P2,P2,0.7752643673584538
+historical,62,Monthly Transaction Reminder Form 4 for January,P2,P2,0.776302587614922
+historical,63,NYU - STERN (MBA) Admissions Office Reception,P2,P2,0.3992074541962023
+historical,64,"Re: Another RUSH-Massey Coal Sales Company, Inc.",P2,P2,0.6985870371715509
+historical,65,ICE New User Enrollment,P2,P2,0.6790109517478157
+historical,66,Re:,P2,P2,0.5928223953726564
+historical,67,"Enerfax Daily's free web version of gas & power prices and info Go
+ to www.enerfax.com if can not view properly.htm",P2,P4,0.48173707185847336
+historical,68,,P2,P2,0.47859721756854534
+historical,69,NARUC commissioners BIC meeting,P3,P2,0.5823148336974745
+historical,70,,P2,P2,0.5581183109486504
+historical,71,SPE-GCS E-Newsletter,P4,P4,0.39813143512337246
+historical,72,"CAISO Notification - Supplemental Market Notice Regarding Impleme
+	ntation of FERC's May 25, 2001 Order",P2,P2,0.5280841639122623
+historical,73,west pl daily morning report,P3,P3,0.3595300002650594
+historical,74,Cost Centers and Timekeeping,P2,P2,0.5813029489161825
+historical,75,RE: PG&E settlement offer,P2,P2,0.6997093784285755
+historical,76,Start Date: 10/25/01; HourAhead hour: 18;  <CODESITE>,P3,P3,0.9331677313196516
+historical,77,Enron Mid-Year 2000 Performance Management Process,P2,P2,0.40328871783089826
+historical,78,FW: Meter 757980 - AGRA - Exol TBS #1,P3,P2,0.7535165893723154
+historical,79,FW: Condom Sense....,P2,P2,0.46066108875448614
+historical,80,E-delivery Notification - Confirms,P2,P2,0.38643940459723786
+historical,81,HOTEL RESERVATIONS IN AUSTIN,P2,P2,0.564826636696368
+historical,82,Schedule Crawler: HourAhead Failure,P1,P1,0.9344359610587842
+historical,83,[EDIS]  URGENT  WEATHER MESSAGE [Urgent: San Francisco Bay],P1,P1,0.5540150482346725
+historical,84,RE: McBride Contract,P2,P2,0.8148466301308053
+historical,85,Btrieve free ride ends,P4,P4,0.4365543210688084
+historical,86,daily charts 11/21,P2,P2,0.5873201567616392
+historical,87,Network management goes open source,P4,P4,0.4313187320591497
+historical,88,Steve Susman,P4,P2,0.5299918145523597
+historical,89,RE: IMPORTANT -- PAYMENT TO NE-ISO for 12.26.01,P3,P2,0.5805581009798014
+historical,90,Start Date: 1/9/02; HourAhead hour: 7;,P3,P3,0.9574166456165161
+historical,91,"Human Genome Sciences Expands R&D and Pharmaceutical Manufacturing
+ Presence in Maryland, in an Advisory by Industrialinfo.com",P2,P2,0.5164423010318835
+historical,92,Global Data Management - Gas Asset Support,P2,P2,0.39942113919984534
+historical,93,"CAISO Notice: Stakeholder Meeting on Congestion Reform - LRS proc
+ urement",P2,P2,0.6812584301043787
+historical,94,Links to Ferc Filings,P2,P2,0.3775159726405792
+historical,95,Organizational Announcement,P3,P2,0.4713287579602465
+historical,96,Conoco Rodeo Run,P2,P2,0.5753594602799135
+historical,97,"Hotel Bargains throughout the U.S., Europe, Canada, the Caribbean
+ and Asia!",P4,P4,0.7947381368374152
+historical,98,Win a $100 Amazon Gift Certificate!,P4,P4,0.7414305595721455
+historical,99,BSUpdated Schedule For the month of April,P3,P2,0.3435013533721382
+historical,100,Summary of SB 1x hearing 4-30 -- Windfall Profits Tax,P2,P2,0.6397297902726748
+historical,101,,P2,P2,0.5068298748406594
+historical,102,RE: ELM Course Offering,P2,P2,0.6868124692905873
+historical,103,RE: New document in PSerc Document Archive archive,P3,P2,0.4859935145688269
+historical,104,Fwd: Urgent message,P2,P4,0.41230393857257314
+historical,105,BNP PARIBAS Commodity Futures Weekly AGA Survey,P2,P2,0.6643087056769921
+historical,106,You still have time!,P2,P2,0.49140471957920767
+historical,107,Re: Our Travel Itinerary,P2,P2,0.7563821528400151
+historical,108,SUPPLEMENTAL Weekend Outage Report for 2-02-01 through 2-05-01,P3,P3,0.594448804575711
+historical,109,"Neil Anderson Devotional for Sunday, January 20, 2002",P4,P4,0.6412060445624757
+historical,110,Modeling,P2,P2,0.4850302017429016
+historical,111,Thank you for your referral,P4,P4,0.37372131741069714
+historical,112,01-480,P2,P3,0.391908796152557
+historical,113,OGI/CPD software courses (2-6-02),P4,P4,0.4310529603299994
+historical,114,Re:Trading track questions,P2,P2,0.7294797643256482
+historical,115,NFL Odds,P3,P4,0.7324477718696581
+historical,116,Declined: Storage 101 Class,P3,P2,0.6008117953688377
+historical,117,Rescheduled Outages (MAIN) (ERCOT) (SERC) (MAAC),P2,P2,0.7251022327277562
+historical,118,HTC upcoming events,P4,P2,0.4652549548105037
+historical,119,Making Money: Smart Online Resources for 30-Somethings,P4,P4,0.7761176460509844
+historical,120,CA Emissions/Environmental Issues,P2,P2,0.5792091065949115
+historical,121,FW: Manual Entry,P2,P2,0.6145694193773862
+historical,122,"Enron, start your engines. The Xcelerator is here!",P3,P3,0.4418035662597044
+historical,123,RE: are trading,P2,P2,0.5994670192144905
+historical,124,Re: Project Canary Labor and Employment Request,P2,P2,0.575991482237194
+historical,125,Re: 4/5 errors,P2,P2,0.6549717494832427
+historical,126,FEA announces the release of @ENERGY 2.0,P2,P2,0.6150504629307333
+historical,127,"Hot fares to Miami, New Orleans, London and more!",P4,P4,0.7959400647590114
+historical,128,Re: Blue Dolphin Pipe,P2,P2,0.7375198434328686
+historical,129,Re: slumber party,P2,P2,0.5746457974147089
+historical,130,Commissioner.COM E-Reports for Soccer Sucks 11/26/01,P4,P4,0.8266893790545385
+historical,131,RE: FERC Contact Re:  Enron Situation Impact on Pipelines,P2,P2,0.7541976417586066
+historical,132,follow up,P2,P2,0.46052430090085683
+historical,133,Lose 10 Pounds by Dec. 17th !,P4,P4,0.6010062278287965
+historical,134,<<Concur Expense Document>> - Michael Roan,P3,P3,0.8823614286472252
+historical,135,"MAAC (Indian River), MAPP (Boswell & Genoa), NPCC (Barrett &
+ Northport),  & SPP (Seminole) Forced/Resched Outages",P2,P2,0.7127778450283762
+historical,136,A New Tool for New Times,P4,P4,0.5661284552952804
+historical,137,"Attention Golfers!! ________
+                                                   ssown",P4,P4,0.5489591678977486
+historical,138,Start Date: 12/13/01; HourAhead hour: 7;,P3,P3,0.9505834311543899
+historical,139,RE: *EMCA* Lawn Mowed,P4,P4,0.7878816977532297
+historical,140,16 pics of redhead teen posing,P3,P4,0.618715370584279
+historical,141,Texans News 06-21,P4,P4,0.4994886295064917
+historical,142,,P2,P2,0.5890375835515442
+historical,143,RE: urgent info needed for DIP - interco,P2,P2,0.7110586528668092
+historical,144,Look what's for sale,P4,P4,0.3408782720234489
+historical,145,Yahoo! Breaking News,P4,P4,0.7739510210871802
+historical,146,Do Not Delete - Repeat parent for Doorstep - London,P3,P2,0.47396499246776913
+historical,147,"Sara, Hurry! IRA Deadline is April 15th!",P3,P4,0.6008629735960745
+historical,148,Start Date: 1/14/02; HourAhead hour: 10;,P3,P3,0.9190773937452381
+historical,149,Atlantic 5 Analyst Report,P3,P2,0.4456328009727916
+historical,150,Welcome to DisneyStore.com,P4,P4,0.6473452130823788
+historical,151,Sunfinder Vacations October Bulletin,P4,P4,0.6170770537109651
+historical,152,RE: Moody's Value At Risk Detailed Presentation - June 26,P2,P2,0.7973791399970555
+historical,153,Breakthrough Technology....Lose Fat FAst! *GUARANTEED*,P4,P4,0.5898145758217428
+historical,154,RE: Enron Stock?,P2,P2,0.6963730249103393
+historical,155,,P2,P2,0.5282802524401317
+historical,156,"Neil Anderson Devotional for Wednesday, October 24, 2001",P4,P4,0.6425010622272269
+historical,157,RE:,P2,P2,0.7617788240998618
+historical,158,URGENT - Very Confidential,P2,P2,0.714675625656326
+historical,159,Travelocity.com fare watcher update,P4,P4,0.6201154654302761
+historical,160,TRV Notification:  (East Position Totals - 10/17/2001),P3,P3,0.7173565914492406
+historical,161,Good Advice to Protect Yourself,P4,P4,0.39775770352515616
+historical,162,DVDs as low as $9.49....,P4,P4,0.7273416840924846
+historical,163,RE: EIP Incentive Plan,P2,P2,0.7272880696084264
+historical,164,Farm-fresh biopower,P4,P4,0.4877970926047605
+historical,165,Start Date: 4/16/01; HourAhead hour: 16;  <CODESITE>,P3,P3,0.9416634094434596
+historical,166,Start Date: 4/13/01; HourAhead hour: 11;  <CODESITE>,P3,P3,0.9020605466656054
+historical,167,Robert Benson's Visa,P2,P2,0.47203915258259893
+historical,168,Weekend Outage Report for 12-01-00 through 12-04-00,P3,P3,0.5954474624828517
+historical,169,Start Date: 4/28/01; HourAhead hour: 24;  <CODESITE>,P3,P3,0.9163619467111932
+historical,170,Update--Day 1 of California PUC Hearings,P2,P2,0.7402330711021233
+historical,171,"Now at Ofoto: a new look, editing tools, tips and more!",P4,P4,0.7348263665942992
+historical,172,Lynn/Vacation Larry/Family Leave,P3,P2,0.5152931412609096
+historical,173,Find more of what's inside NYTimes.com,P2,P4,0.5717836940252845
+historical,174,"PGE Position Reports - As of December 27, 2001",P3,P3,0.5194648769096648
+historical,175,There's Still Time for Great Gifts,P4,P4,0.6779932865785416
+historical,176,Brent Friedenberg Reports,P3,P2,0.3776404446375375
+historical,177,EnTouch Newsletter,P2,P2,0.5617242793544375
+historical,178,RE: Additional Agency Correspondence,P4,P2,0.7328890297390108
+historical,179,Commissioner.COM E-Reports for UHFFL 11/27/01,P4,P4,0.8192910519199416
+historical,180,Receive up to $500 in Grocery Savings,P4,P4,0.7300773349794125
+historical,181,Design of long-term contractual mechanism for California,P2,P2,0.6874580028739358
+historical,182,Quick Tips for the UBSWE migration,P2,P2,0.5143160205388291
+historical,183,Start Date: 4/22/01; HourAhead hour: 10;  <CODESITE>,P3,P3,0.9095411343723739
+historical,184,Start Date: 10/23/01; HourAhead hour: 6;  <CODESITE>,P3,P3,0.9471804067196126
+historical,185,Start Date: 1/2/02; HourAhead hour: 23;,P3,P3,0.9446076196479977
+historical,186,NFL Odds,P3,P4,0.7120690446551792
+historical,187,Start Date: 12/13/01; HourAhead hour: 20;,P3,P3,0.9368690358520495
+historical,188,"Win 4 Nights of Delight at Miraval Life in Balance Resort in
+ Arizona!",P4,P4,0.5956664153966128
+historical,189,Start Date: 10/19/01; HourAhead hour: 8;  <CODESITE>,P3,P3,0.9493683375718903
+historical,190,Schedule Crawler: HourAhead Failure <CODESITE>,P3,P1,0.8248833574563882
+historical,191,Start Date: 1/12/02; HourAhead hour: 1;,P3,P3,0.950973132918779
+historical,192,"newsprint update, 11/19",P2,P3,0.36891806733040916
+historical,193,RE: elders,P3,P4,0.4645771639833293
+historical,194,PAC REMINDER,P2,P2,0.46469893607624047
+historical,195,Due Diligence,P2,P2,0.794805192481939
+historical,196,Organization Announcement,P3,P2,0.38443710750627924
+historical,197,bibulous: Dictionary.com Word of the Day,P4,P4,0.6944141884646738
+historical,198,"Re: Meeting with Governor Davis, need for additional
+ comments/suggestions",P3,P2,0.5057320866582455
+historical,199,(01-367) EFP Filing Deadlines,P2,P2,0.6237977834277811
+historical,200,Security for ECN 2886,P2,P2,0.5662725496689214
+historical,201,"Skipping Stone Co-Sponsors ""Energy"" Network Event",P4,P4,0.6052507330645402
+historical,202,Start Date: 4/21/01; HourAhead hour: 17;  <CODESITE>,P3,P3,0.9151306109025145
+historical,203,FERC Staff Concerns on the Gas Side,P3,P2,0.6970943274828281
+historical,204,tax loss selling,P4,P2,0.38214696930139813
+historical,205,$Special Notice$,P4,P4,0.7814446988803709
+historical,206,Start Date: 1/12/02; HourAhead hour: 12;,P3,P3,0.9411735911651438
+historical,207,Fwd: FW: philly_fans.jpg,P4,P2,0.5091535440250485
+historical,208,Override Letter,P2,P2,0.7729792361585356
+historical,209,Your News Alert for TXN,P3,P3,0.4413240685859741
+historical,210,"One-Day, Internet-Only Sale",P4,P4,0.5634128835019226
+historical,211,Home Contact Information,P2,P2,0.4846399778172123
+historical,212,Enron In Action 12.04.00,P3,P4,0.41456597032276227
+historical,213,"Enron Metals Notification Memo 13th November 2001: Five Day Loss
+ Limit",P2,P2,0.49829209864111235
+historical,214,ENA/Blue Dog: Incumbency Certificate,P2,P2,0.7609701868147554
+historical,215,"NYISO - MIS OUTAGE - October 17, 2001",P2,P2,0.6239705976902612
+historical,216,RE: New Folder to be set up,P2,P2,0.804497769566749
+historical,217,Start Date: 10/14/01; HourAhead hour: 14;  <CODESITE>,P3,P3,0.8728525308082958
+historical,218,Expense Reports Awaiting Your Approval,P2,P2,0.6806955382777182
+historical,219,Start Date: 1/31/02; HourAhead hour: 3;,P3,P3,0.9347803264985314
+historical,220,EnronOnline Phase 2,P2,P2,0.5922654947003279
+historical,221,Christopher Lawerence @ Hyperia,P4,P4,0.6132398262575829
+historical,222,FW: Urgent!,P2,P2,0.6865911838928573
+historical,223,Commodity Logic and DCAF- High Level Joint Vision,P2,P2,0.5359533410743132
+historical,224,Your buy.com order is on its way,P4,P4,0.5307367062937618
+historical,225,RIGZONE Industry News,P4,P4,0.6151174175240521
+historical,226,E-Next Generation Purchase by DAED I/II,P2,P2,0.7867719872093368
+historical,227,"Win $1,000,000! at Megasports.com!",P4,P4,0.7199533362649289
+historical,228,Re: Media General,P2,P2,0.6702734614962688
+historical,229,Re: LaPlata,P2,P2,0.4993667469899422
+historical,230,FW: FW: Some TALIBAN JOKES for you  today,P2,P2,0.552119730957524
+historical,231,Real Deals from Travelocity,P4,P4,0.8946927077811176
+historical,232,Traders added to Estate EPMI Performance books,P3,P2,0.7423164025827139
+historical,233,FW: Voting Final Analysis,P2,P2,0.6411273966091743
+historical,234,Agenda Items for Tomorrow's Board of Directors Meeting,P2,P2,0.6886039751914549
+historical,235,FW: <<Concur Expense Document>> - Company Card Notification,P2,P3,0.4155481012235666
+historical,236,Schedule Crawler: HourAhead Failure,P1,P1,0.934564737018311
+historical,237,tw imbalance summary,P3,P2,0.4762323473849553
+historical,238,"January 14-18, 2002 Edition",P3,P4,0.46801360418678184
+historical,239,Re: Perd $,P4,P4,0.6769366837080253
+historical,240,Re:,P2,P2,0.3812146615388837
+historical,241,,P4,P4,0.47213758733014727
+historical,242,"FW: True Orange, October 22, 2001, Part 1 of 3",P2,P4,0.47276643734392193
+historical,243,,P4,P2,0.4201673061733304
+historical,244,"2000 International Collective Wisdom Portfolio (http: //psm20.mlpc
+ .privnet.us.ml",P2,P2,0.4969800661942313
+historical,245,"November 17, 2001 - Protecting your home",P2,P4,0.6335163696470502
+historical,246,Mother may I?,P2,P4,0.8302511651896587
+historical,247,updated budget for doorstep,P2,P2,0.6105369433524196
+historical,248,The Insider from Travelocity.com,P4,P4,0.8211728981393752
+historical,249,Re: N5737 Ken Lay's phone,P2,P2,0.6282422854361663
+historical,250,RE: Oxy Strangers Gas,P2,P2,0.8172157212233003
+historical,251,FW: FEA Announces the Release of @GLOBAL 5.0,P2,P2,0.5265001248124404
+historical,252,Re:,P2,P2,0.42660673590478415
+historical,253,Thanksgiving Special from AirTran Airways,P4,P4,0.626937045733105
+historical,254,,P2,P2,0.562635877149867
+historical,255,FoolWatch: 3 Can't-Miss Investing Tools,P4,P4,0.5077306569674066
+historical,256,Fwd: Fw: Worth passing on!,P2,P2,0.4428487674421945
+historical,257,"FYI: Sacramento Bee--Dan Walters: Repaying huge power debts still
+	 looms as a high political hurdle",P2,P2,0.5168413074395526
+historical,258,Get 25% Cash Back and up to 80% off your Holiday Shopping!,P4,P4,0.8151838817527469
+historical,259,[EDIS]  STAGE 3 ELECTRICAL EMERGENCY DECLARED [News: Statewide],P2,P1,0.797043551502567
+historical,260,RE: Enron EFS issues,P2,P2,0.81831984897933
+historical,261,"Phillip, it's trivia time!!",P4,P4,0.6728169228713788
+historical,262,A.Word.A.Day--psychobabble,P4,P4,0.6638324371782085
+historical,263,"Goldman, Sachs & Co. agreement with ENA",P2,P2,0.5076437783340967
+historical,264,ERV Notification:  (Enron Americas Position Report - 11/14/2001),P2,P2,0.47787643721548617
+historical,265,RE: Assistants Holiday Gift,P2,P2,0.6851701222040106
+historical,266,Tana Jones May 2 trip to San Antonio,P3,P3,0.37807798795151476
+historical,267,Dashboard Report - ENA,P2,P2,0.4203161279728203
+historical,268,RFF In The News,P3,P2,0.35555696007957494
+historical,269,Contact Details & Re: About to trade Weather on Thursday,P2,P2,0.6555516376781565
+historical,270,Are You Single? Find Someone today.,P4,P4,0.8343519766273709
+historical,271,FW: Passwords?,P2,P2,0.6057238379983868
+historical,272,Start Date: 2/27/01; HourAhead hour: 18;  <CODESITE>,P3,P3,0.9517809340247259
+historical,273,,P3,P2,0.6385028570402629
+historical,274,Commissioner.COM Transaction Request,P4,P4,0.4636927529993493
+historical,275,Input Needed,P2,P2,0.5123977369858996
+historical,276,Re: Upcoming concert,P2,P2,0.41519974204763815
+historical,277,RE:,P2,P2,0.8251288712210346
+historical,278,"If you arrange administrative or clerical temporary employees, this
+ e-mail contains important information for you.",P2,P2,0.5682178271027131
+historical,279,Schedule Crawler: HourAhead Failure,P1,P1,0.9311214102901567
+historical,280,Re: Lisa Peterson,P2,P2,0.6621546573191605
+historical,281,IntelliBytes - April Issue,P2,P2,0.5078773240133623
+historical,282,Minutes of 11 October 2001 PRC Committee Meetingi,P2,P2,0.55817227360107
+historical,283,Re: Thanksgiving dinner,P2,P2,0.7239990285362274
+historical,284,"Friendly computer tips... Free, I promise",P4,P4,0.5005619428186391
+historical,285,Start Date: 12/18/01; HourAhead hour: 19;,P3,P3,0.937347467162291
+historical,286,Get 4 DVD's for 49 cents or Take 5 videos for 1 cent each!,P4,P4,0.7839437201447529
+historical,287,RIGZONE Industry News,P4,P4,0.5549459063676786
+historical,288,BNP PARIBAS Commodity Futures Weekly AGA Survey,P2,P2,0.6626504078905506
+historical,289,Protocol for preservation of evidence,P3,P2,0.6714937393545257
+historical,290,RE: PGE and Virtual Capacity,P2,P2,0.7004609406877205
+historical,291,<<Concur Expense Document>> - MEH 11.07.01,P3,P3,0.8065303262745516
+historical,292,TRV Notification:  (East Position Totals - 10/24/2001),P3,P3,0.7275390017446134
+historical,293,Fwd: Ouch!!!,P2,P2,0.5341413936081549
+historical,294,Jersey's are here,P2,P2,0.5192618621174457
+historical,295,Enron Metals Violation Memo 13th November 2001: VaR Limit,P2,P2,0.5553026951176214
+historical,296,FW: Options Sessions begin today,P2,P2,0.6762887343533229
+historical,297,Enron Net Works organizaiton announcement,P1,P2,0.5661865640362725
+historical,298,Re: Petro Canada,P2,P2,0.6659855098983275
+historical,299,"Win $1,000,000! at Megasports.com!",P4,P4,0.8470502392018311
+modern,0,Your Google sign-in code,P1,P1,0.7634994691757966
+modern,1,Verify your identity,P1,P1,0.9161019085013299
+modern,2,Your Supabase login verification code,P1,P1,0.8904690421775944
+modern,3,Figma One-Time Passcode,P1,P1,0.338917157034814
+modern,4,Your Linear login code,P1,P1,0.9067278912508501
+modern,5,Railway sign-in verification,P1,P1,0.9060366042098542
+modern,6,Vercel verification code,P1,P1,0.815697380358144
+modern,7,Postman account sign-in code,P1,P1,0.7621204399056956
+modern,8,Atlas Cloud: Authentication passcode,P1,P1,0.4824784231854256
+modern,9,Universal Login: One-Time Passcode,P1,P1,0.9636655126800558
+modern,10,Two-step login code for your vault,P1,P1,0.8541247717016459
+modern,11,1Password: New device authorization code,P1,P1,0.7488116100104468
+modern,12,Duo MFA Passcode,P1,P1,0.34987783069767225
+modern,13,Your Apple ID verification code,P1,P1,0.7556042371633982
+modern,14,GitLab 2FA verification code,P1,P1,0.9519640618436568
+modern,15,Zoom login verification code,P1,P1,0.9629033324558406
+modern,16,Coinbase two-step verification code,P1,P1,0.8976949822745383
+modern,17,Uber authentication code,P1,P1,0.8496043482378342
+modern,18,Cloudflare Zero Trust MFA PIN,P1,P1,0.4321151748926216
+modern,19,HCP Vault login verification,P1,P1,0.6221895419579259
+modern,20,Steam account: Password reset code,P1,P1,0.9010183566516324
+modern,21,Reset your Spotify password,P1,P1,0.8609641412041469
+modern,22,PayPal: Security code to reset your password,P1,P1,0.9161415802695613
+modern,23,Reddit password reset request,P1,P1,0.7529910899667684
+modern,24,Epic Games Account: Security Code,P1,P1,0.9318178999338621
+modern,25,Your Airbnb password reset PIN,P1,P1,0.814581917902609
+modern,26,Reset your Canva password,P1,P1,0.8661302490172917
+modern,27,Dropbox password reset instruction,P1,P1,0.7189060248217554
+modern,28,Adobe ID: Password reset verification code,P1,P1,0.8322881507238513
+modern,29,Twitch password reset verification,P1,P1,0.9111553412513343
+modern,30,Binance: Email verification code,P1,P1,0.9372590771384611
+modern,31,Stripe: Action required to verify identity,P1,P1,0.8879286103725597
+modern,32,DigitalOcean: Verify your email address,P1,P1,0.7463295193576673
+modern,33,Kraken Account Activation Code,P1,P1,0.7843029982224331
+modern,34,Upwork: Verify your email to complete registration,P1,P1,0.7925003002968998
+modern,35,Your account verification was completed successfully,P3,P3,0.4259318809484287
+modern,36,Your account was verified yesterday,P3,P4,0.3095099584762691
+modern,37,Identity verification completed,P3,P3,0.3131922290096576
+modern,38,AWS account verification confirmed,P3,P3,0.28868758699055064
+modern,39,Your previous login verification was successful,P3,P1,0.6886931047278326
+modern,40,Critical security alert: Suspicious sign-in blocked,P1,P1,0.6663897879774467
+modern,41,Security incident: Personal access token leaked,P1,P1,0.3183699480137728
+modern,42,Microsoft account security alert: Unusual sign-in activity,P1,P1,0.8404559515992874
+modern,43,Urgent security notice: Account suspended due to suspicious activity,P1,P1,0.5189515213384197
+modern,44,Slack Security: Suspicious session detected,P1,P1,0.3598005863291331
+modern,45,Your security settings were updated,P3,P3,0.35766463057785036
+modern,46,Your monthly security report is ready,P4,P3,0.5291238877605122
+modern,47,Annual Privacy & Security Policy Checkup,P3,P3,0.4016419240012712
+modern,48,1Password Watchtower: Monthly security digest,P4,P3,0.5122644891238124
+modern,49,Routine security checkup: Password age reminder,P3,P3,0.31126090388710365
+modern,50,Payment failed: Immediate payment required,P1,P2,0.43192815851310806
+modern,51,AWS Account: Final notice before suspension,P1,P2,0.43532882610574397
+modern,52,Account past due: Service suspension notice,P1,P2,0.3999331570417839
+modern,53,Jira Cloud: Payment overdue - action required,P1,P2,0.4683182127337245
+modern,54,"Invoice #49120 due on October 15, 2026",P2,P2,0.4720707085459319
+modern,55,GitHub Copilot: Upcoming payment reminder,P2,P2,0.4984245620029775
+modern,56,Google Workspace invoice due,P2,P2,0.392665917041662
+modern,57,Notion Plus: Statement is ready,P2,P2,0.44591886233932226
+modern,58,Your Thursday morning trip with Uber,P3,P3,0.32384153623082
+modern,59,Your receipt from Apple,P3,P3,0.42206345269918183
+modern,60,Coding challenge invitation: 48 hours to complete,P2,P2,0.5942752222891241
+modern,61,Interview scheduling: Please submit your availability,P2,P2,0.6038546675351566
+modern,62,Meta Career Portal: Action required on your application,P2,P2,0.5498490875274565
+modern,63,Technical vetting challenge deadline,P2,P2,0.4011581754608458
+modern,64,Canonical Written Assessment - Due in 5 days,P2,P2,0.6612265547041656
+modern,65,Application received: Software Engineer III,P3,P3,0.48471804021916093
+modern,66,Update regarding your application to Figma,P3,P2,0.4263639477858094
+modern,67,Amazon Jobs: Candidate status update,P3,P3,0.4462777189007786
+modern,68,Thank you for interviewing with Netflix,P4,P2,0.3945840948319523
+modern,69,Apple Careers: Role filled notice,P4,P3,0.3798780138970707
+modern,70,NeurIPS 2026: Paper submission deadline approaching,P2,P2,0.6501286021677575
+modern,71,NSF Research Grant: Proposal cutoff date,P2,P2,0.5619706225547666
+modern,72,AI Hackathon: Project submission due tomorrow,P2,P2,0.4582814991070183
+modern,73,IEEE Transactions: Camera-ready copy due date,P2,P2,0.4781439008793296
+modern,74,Kaggle Grand Challenge: Final submission deadline,P2,P2,0.5605105563113749
+modern,75,Course Registration: Deadline is October 12,P2,P2,0.43561484157557484
+modern,76,Global Fellowship Application: Due in 7 days,P2,P2,0.5514762224753645
+modern,77,DAAD Research Fellowship: Submission deadline reminder,P2,P2,0.6784197206655788
+modern,78,ACM Student Research Competition: Abstract due date,P2,P2,0.6813045754235945
+modern,79,YC W27 Batch: Application deadline is approaching,P2,P2,0.49389752097007605
+modern,80,Critical error spike: Production database connection pool exhausted,P1,P2,0.33118006226378804
+modern,81,PagerDuty trigger: Host cpu usage 99% critical alert,P1,P3,0.3535389187480447
+modern,82,DDoS attack mitigation active on primary domain,P1,P3,0.3142879436573095
+modern,83,Action required: Deprecation of GitHub Actions runner v3,P2,P2,0.536811173147252
+modern,84,Elasticsearch cluster storage 85% full,P2,P2,0.38661777887183957
+modern,85,Let's Encrypt certificate expiration notice,P2,P2,0.3640135364731115
+modern,86,Redis Enterprise: Scheduled maintenance required,P2,P2,0.4897107754699979
+modern,87,Docker Hub: Automated build succeeded,P3,P3,0.5540867612682471
+modern,88,CircleCI pipeline #1842 passed on main branch,P3,P3,0.36310728772651546
+modern,89,Grafana Cloud: What's new in v11.2,P3,P3,0.42043452370230605
+modern,90,Flash Sale: 85% off all web development courses today only,P4,P4,0.47096798864134404
+modern,91,Special promotion: Save $100 on All Products Pack,P4,P4,0.5048778882004589
+modern,92,Weekend special: Flat 50% discount on large pizzas,P4,P4,0.41733662758004003
+modern,93,TLDR Tech: Weekly digest of AI developments and startups,P4,P3,0.6897975713438138
+modern,94,Hacker Newsletter #712: The best curated links of the week,P4,P3,0.44875008933201166
+modern,95,Black Friday sneak peek: Up to 40% off ThinkPad laptops,P4,P4,0.38045346009418785
+modern,96,Advance your career: Browse professional certificates,P4,P3,0.4460287700038061
+modern,97,JavaScript Weekly Issue 684,P4,P3,0.5335130861719252
+modern,98,Getaway deals: Save 20% on your next hotel reservation,P4,P4,0.44193287701298395
+modern,99,Morning Brew: Today's business and market roundup,P4,P3,0.37838714810433466
+modern,100,Deep Learning: Assignment 4 is live - deadline October 14,P2,P2,0.45859087725488035
+modern,101,CS229: Homework 2 due on Wednesday at 11:59 PM,P2,P2,0.5163327823941107
+modern,102,6.036 Lab Assignment 3 submission cutoff,P2,P2,0.6759312594900293
+modern,103,Data Structures: Quiz 5 deadline is approaching,P2,P2,0.4942295035053621
+modern,104,Term Project Milestone 1 submission due,P2,P2,0.5874736875693776
+modern,105,Deep Learning: Assignment 3 solution released,P3,P3,0.4019793583426844
+modern,106,CS188: Midterm exam grades are published,P3,P2,0.3912449964124925
+modern,107,CS229: Lecture 8 slides and recording available,P3,P3,0.36311163668500573
+modern,108,Module 4 reading materials uploaded,P3,P3,0.3780138407137004
+modern,109,Distinguished guest lecture announcement,P3,P3,0.4084990370714752
+modern,110,Updates to our Terms of Service,P3,P3,0.3926798462033147
+modern,111,Notice: Spotify Privacy Policy update,P3,P3,0.5003284597361192
+modern,112,Upcoming scheduled maintenance on GitHub Actions,P3,P2,0.3789584190968459
+modern,113,Company holiday schedule for Thanksgiving 2026,P3,P2,0.38367304880166114
+modern,114,Stack Overflow: Community guidelines refresh,P3,P3,0.3493047532564265
+modern,115,Meeting summary: Weekly Engineering Sync,P3,P3,0.49363247601608373
+modern,116,Annual user satisfaction survey,P4,P3,0.36103592291777514
+modern,117,Workspace statistics: September 2026,P4,P3,0.3997591305484702
+modern,118,People you may know on LinkedIn,P4,P4,0.44180169617306486
+modern,119,Stories recommended for you based on your reading history,P4,P3,0.37473897720964133
+newsletter,0,I WAS EXPECTING 380 AND RANK OF 1.5 LKH AT MOST BUT BOTH OF THEM INCREASED GOT 403 AT ...,P3,P2,0.3415512361390405
+newsletter,1,How LLMs Learn from the Internet: The Training Process,P3,P3,0.6031147946740439
+newsletter,2,Against Claudefishing,P3,P3,0.6516637971100644
+newsletter,3,"Multimodal LLMs Basics: How LLMs Process Text, Images, Audio & Videos",P3,P3,0.5221024208251468
+newsletter,4,Executive Briefing: The Memory Gap Killing Your Enterprise Agent Investments,P3,P3,0.5752718532699443
+newsletter,5,[Oracle University Learning Community] Weekly Digest: Oracle University Learning Community,P3,P3,0.510592813026798
+newsletter,6,Design Engineering with Maggie Appleton,P3,P3,0.5680463985793632
+newsletter,7,Your automation strategy has a blind spot the size of your entire legacy stack. Codex just filled it.,P3,P3,0.38256869974466173
+newsletter,8,LeetCode Weekly Digest,P3,P3,0.4226329163134875
+newsletter,9,What is the monthly salary of LIC AAO?,P3,P3,0.45339317274438146
+newsletter,10,Last-Minute Revision Tips for Class 12 Physics Exams,P3,P3,0.46229537231072715
+newsletter,11,Google’s biggest quarter ever,P3,P3,0.4858107697292322
+newsletter,12,Your prompts are disposable. Your rejections compound. Here's the skill nobody is developing (+ the guide kit to s…,P3,P3,0.5850665014083835
+newsletter,13,Your AI coding agent deleted 2.5 years of customer data in minutes. Here's why an experienced engineer couldn't st…,P3,P3,0.5474541797844149
+newsletter,14,"Stop paying frontier prices for work a cheaper AI would crush. Grab the model-picker prompt that routes the deck, …",P3,P3,0.5649046960125557
+newsletter,15,Ruben Dominguez posted new notes,P3,P3,0.45009961676170157
+newsletter,16,I got selected for TCS (3.36 LPA) and Wipro (3.5 LPA). Which one should I choose (pas...?,P3,P4,0.3556586040370223
+newsletter,17,"boyzz_editz009, your September Creator Monthly Newsletter is here",P3,P3,0.530349869971795
+newsletter,18,Which funds/stocks did investors choose? | Investments Weekly: 10 Oct - 16 Oct,P3,P3,0.7360301878288162
+newsletter,19,"बैंक अकाउंट में मिनिमम बैलेंस रखने को लेकर RBI ने बनाए नए नियम, 1 तारीख से होंगे लागू ...",P3,P3,0.55172933533716
+newsletter,20,Why your AI output feels generic (it's not your prompting) + 4 prompts to fix it plus an AI customization guide,P3,P3,0.6024797567913723
+newsletter,21,"Nifty Bank Index to add 2 more stocks, India-US defence deal, & more - Groww Digest",P3,P3,0.8087514582070524
+newsletter,22,Is ASO in MEA a clerical or an officer post?,P3,P3,0.3576536533221144
+newsletter,23,"UltraTech's Rs 240 dividend, Varun Beverages profits up 20%, & more - Groww Digest",P3,P3,0.8164599406541733
+newsletter,24,"ChatGPT's NEW Image Model vs. Nano Banana: 9 Tests + 82 Image Prompts Across Advertising, Board Slides, and Educat…",P3,P3,0.5491117120495481
+newsletter,25,"The AI agent that thinks like Jensen Huang, Elon Musk, and Dario Amodei",P3,P3,0.6297304525710785
+newsletter,26,BREAKING: I’m Sharing the Pitch Decks That Built Unicorns,P3,P3,0.5311724656089003
+newsletter,27,153 Email Addresses from Top AI VC Funds,P3,P3,0.5669116448090927
+newsletter,28,Open Tab: Ashlee Vance,P3,P3,0.4616903131230182
+newsletter,29,ICP Bitcoin DeFi Hackathon,P3,P3,0.36426715546382643
+newsletter,30,EP200: HTTP/2 over TCP vs HTTP/3 over QUIC,P3,P4,0.40724515622574936
+newsletter,31,How to use AI to Research Stocks like a Hedge Fund Analyst,P3,P3,0.6259101896194955
+newsletter,32,Deep Dive: SpaceX,P3,P3,0.4686407009150037
+newsletter,33,"""How to articulate yourself intelligently"" and 4 more",P3,P3,0.6646626416593077
+newsletter,34,Executive Briefing: Gumroad Let a Customer Approve Its Code. Here's Where Your Agent Should Stop,P3,P3,0.4942739151957463
+newsletter,35,"Meme Boy, your May Creator Monthly Newsletter is here",P3,P3,0.6191764177124256
+newsletter,36,"Why Gold, Silver, Platinum, and Palladium All Spiked at Once",P3,P3,0.41737376471028204
+newsletter,37,"Kaynes lists at premium, fall in mobile subscribers, & more  - Groww Digest (every day)",P3,P3,0.8259505697599585
+newsletter,38,I Spent 20 Hours Reading AI News—Here's Your 10-Minute Briefing with What Actually Matters,P3,P3,0.5941007397849667
+newsletter,39,"Four upcoming IPOs, negative inflation in India, & more - Groww Digest",P3,P3,0.8435703116893877
+newsletter,40,A Guide to Service Mesh Architectural Pattern,P3,P3,0.5939649337759356
+newsletter,41,Executive Briefing: The Two-Class System Forming Inside Every Knowledge Work Function,P3,P3,0.5279783616801741
+newsletter,42,"Adani Ports to raise Rs 6,000 cr, ITC's profits up 300%, & more - Groww Digest",P3,P3,0.8162689023322254
+newsletter,43,"Sugar output falls, markets close in green, & more - Groww Digest (every day)",P3,P3,0.8252003296286715
+newsletter,44,I am 5'6'' Indian male. Am I really that short?,P3,P3,0.4571345679362085
+newsletter,45,The Psychology Trick That Makes AI Output 10x Better,P3,P3,0.619440575266475
+newsletter,46,How was your 12th Board 2024 Result?,P3,P3,0.4580486756974495
+newsletter,47,"Need of a Husband—————- A woman went to a psychiatrist and said to him *""I don't want ...",P3,P3,0.33603531050763646
+newsletter,48,How lonely are you?,P3,P3,0.4354888139328211
+newsletter,49,"Direct tax collection rises, India's first off-grid green hydrogen plant, & more - Groww Digest",P3,P3,0.814036228977802
+newsletter,50,I Made the Holodeck for Hard AI Conversations: Grab 6 Prompt Simulators That Help With Tough AI Conversations Abou…,P3,P3,0.5721782716553501
+newsletter,51,"Mistral raised €105M at seed with 6 employees, 4 weeks in, and no customers. Here is the memo that did it",P3,P3,0.5342595488797103
+newsletter,52,Executive Briefing: The $350K Job Has Three Parts and You Already Do One,P3,P3,0.5846202760370639
+newsletter,53,"From Chrome DevTools to AI Engineering, with Addy Osmani",P3,P3,0.6442882686233903
+newsletter,54,"Infrastructure output up 3.8%, Muthoot Finance Rs 26 dividend, & more - Groww Digest",P3,P3,0.8442182487222182
+newsletter,55,"RBI starts its 3-day meet, Indian Railways earns more from freight, & more - Groww Digest (every day)",P3,P3,0.8442329101137668
+newsletter,56,"Meme Shorts, your February Creator Monthly Newsletter is here",P3,P3,0.6546013758165563
+newsletter,57,The Agent Loop: How AI Goes From Answering Questions to Doing Things,P3,P3,0.6102845351175133
+newsletter,58,LeetCode Weekly Digest,P3,P3,0.4782492778630322
+newsletter,59,How was your SSC CGL 2024 pre exam?,P3,P3,0.5913311576799889
+social,0,New login to Instagram from Instagram on moto g96 5G,P1,P1,0.936800111157196
+social,1,New login to Instagram from Chrome on Windows,P1,P1,0.9312853191585545
+social,2,New login to Instagram from Instagram on CPH2373,P1,P1,0.9343313097340303
+social,3,New login on Instagram from Threads on RMX3782,P1,P1,0.8940620174415687
+social,4,New login to Instagram from Instagram on Samsung SM-M215F,P1,P1,0.9186800727272724
+social,5,New login to Instagram from Instagram on RMX3782,P1,P1,0.9406673442602543
+social,6,New login to Instagram from Instagram on RMX5266,P1,P1,0.9300357856720232
+social,7,New login on Instagram from Instagram on V2040,P1,P1,0.8887705112066521
+social,8,New login to Instagram from Instagram on RMX3782,P1,P1,0.9474473515266093
+social,9,New login to Instagram from Instagram on CPH2373,P1,P1,0.922486219651701
+social,10,New login to X from 10.79.0 on Android,P1,P1,0.7966576915968011
+social,11,New login to Instagram from Instagram on moto g96 5G,P1,P1,0.9309799338020709
+social,12,New login on Instagram from Instagram on CPH2373,P1,P1,0.9080515908965052
+social,13,New login to Instagram from Edge on Windows,P1,P1,0.9390797075418226
+social,14,"Babul, your pin is 586606. Please confirm your email address",P2,P4,0.4476225652717871
+social,15,"Infosys buyback opens on Nov 20, TCS bags 5-year NHS IT deal & more",P4,P4,0.7408524602587034
+social,16,60 updates for you: about सनातन धर्म  and others,P4,P4,0.6392841531526486
+social,17,"Shivansh accepted your invitation, explore their network",P3,P3,0.5781436787461212
+social,18,"Kumar accepted your invitation, explore their network",P3,P3,0.5917974088075056
+social,19,I want to connect,P4,P4,0.8808886131657209
+social,20,You appeared in 4 searches,P4,P4,0.5984720707474623
+social,21,What do IITians score in their 10th board? (in percentage),P4,P3,0.36870688467028734
+social,22,What is your NEET 2023 result?,P4,P3,0.4849251721379876
+social,23,How do I study for long hours straight?,P4,P3,0.3514058489240609
+social,24,"IndiGo set to join SENSEX, defence stocks tumble & more",P4,P4,0.7408757713737755
+social,25,👤 Aryan Tiwari is a new friend suggestion for you,P4,P4,0.4772078374092551
+social,26,"sananworld1767, see what's been happening on Instagram",P4,P4,0.7276077899371473
+social,27,"babulkumar114, we've made it easy to get back on Instagram",P4,P1,0.3584563413678975
+social,28,Information Technology Rules Annual Reminder,P4,P3,0.3348987418824756
+social,29,Appen is hiring: URGENT HIRING! Easy Paid Tasks | Mobile Work (Hindi Fluency) APPLY NOW!!.,P4,P4,0.35878526472290123
+social,30,I want to connect,P4,P4,0.8808886131657209
+social,31,"Anishqa accepted your invitation, explore their network",P3,P3,0.5781436787461212
+social,32,Annu Chaudhary is in your Samastipur network,P4,P4,0.5265350754599089
+social,33,"What is the in hand salary of 13,85,000 LPA in Cognizant?",P4,P3,0.45576933179600476
+social,34,"sananworld1767, see what's been happening on Instagram",P4,P4,0.7329294146971089
+social,35,"L&T wins ultra mega order, govt. approves ₹30,000 crore compensation to OMCs & more",P4,P4,0.7094080004816593
+social,36,I want to connect,P4,P4,0.8808886131657209
+social,37,"HUL, Nestle India Q4 net profit falls, Lupin gets USFDA nod & more",P4,P4,0.7436188565378499
+social,38,I want to connect,P4,P4,0.7946667094933467
+social,39,ONLINE WORK FROM HOME OPPORTUNITY is hiring: Unemployed.,P4,P4,0.38430654833575917
+social,40,Aim to understand how applicant tracking…,P4,P4,0.586463161882142
+social,41,I want to connect,P4,P4,0.8302828620465845
+social,42,"💬 Babul, add SOURAV BANERJEE",P4,P4,0.5236741645136429
+social,43,"Babul, add Sarah Walters - Associate Professor of Demography",P4,P4,0.4378075203189741
+social,44,Be first to hear about new openings,P4,P4,0.35739645851636975
+social,45,I want to connect,P4,P4,0.8808886131657209
+social,46,I want to connect,P4,P4,0.8129650966306325
+social,47,"Project financing stocks surge, Suzlon Energy wins new order & more",P4,P4,0.6330311351521245
+social,48,I want to connect,P4,P4,0.8808886131657209
+social,49,I want to connect,P4,P4,0.754276653162984
+v4_test,0,"Wholesale inflation up, Muthoot Finance profits up 126.67%, & more - Groww Digest",P3,P3,0.8388865296025092
+v4_test,1,Executive Briefing: What Cursor’s $57K CMS Deletion Reveals About Where Agent Value Actually Lives,P3,P3,0.6303402926736956
+v4_test,2,"Forex reserves fall, ONGC's Rs 6.25 dividend, & more - Groww Digest",P3,P3,0.8540066877957327
+v4_test,3,"US interest rates unchanged, Bajaj Finance's profit up 27%, & more - Groww Digest",P3,P3,0.8631960859182874
+v4_test,4,"sananworld1767, catch up on moments you've missed",P4,P4,0.6782679481799712
+v4_test,5,Introducing country leaderboards and post translations,P3,P3,0.43234893512653894
+v4_test,6,Day 3 Livestream Starting Soon!,P4,P3,0.4142530229810496
+v4_test,7,Which funds/stocks did investors choose? | Investments Weekly: 19 Sept - 25 Sept,P3,P3,0.7312523937388952
+v4_test,8,"Oil stocks tumble, HDFC Bank rises & more",P4,P4,0.6764444186804991
+v4_test,9,"Renewable energy target on track, new rural jobs, & more - Groww Digest (every day)",P3,P3,0.8270297711968221
+v4_test,10,I am married for 2 years. My husband lied to me about his software job. He is currentl...,P4,P3,0.3641626662313633
+v4_test,11,"Babul, add Jashan Kaur",P4,P4,0.6348013838887859
+v4_test,12,LeetCode Weekly Digest,P4,P3,0.4417659048768372
+v4_test,13,Your Bi-Weekly Roundup: New AI Challenges & Big Winner Announcements,P4,P3,0.6249071012951083
+v4_test,14,⏳ LIMITED TIME OFFER: All in One Interview Prep Black Friday Sale,P4,P4,0.4200021938355037
+v4_test,15,"If I invest 1000 per month in SIP for 20 years, how much will I return after 20 years...?",P3,P3,0.37638523209919467
+v4_test,16,"Sedemac Mechatronics IPO listed, Ashok Leyland's new battery pack plant, & more - Groww Digest",P3,P3,0.8672957186312383
+v4_test,17,I want to connect,P4,P4,0.8321357417961259
+v4_test,18,🎉 Your Webinar Registration is Confirmed for 30 Days Full Stack Master Class!,P3,P3,0.3527308054369297
+v4_test,19,Counterfeit Bug in Zcash found via Opus 4.8,P3,P3,0.4967150509762368
+v4_test,20,I want to connect,P4,P4,0.773992987642493
+v4_test,21,"Rise in steel production, time of day tariff, & more - Groww Digest (every day)",P3,P3,0.8288225489952429
+v4_test,22,The GTM System Most Founders Build Too Late,P3,P3,0.4911153476887974
+v4_test,23,I want to connect,P4,P4,0.8808886131657209
+v4_test,24,"RBI's Rs 2.69 lakh cr dividend, Ashok Leyland's 1:1 stock split, & more - Groww Digest",P3,P3,0.8608566958724879
+v4_test,25,"boyzz_editz009, your April Creator Monthly Newsletter is here",P3,P3,0.704352254034794
+v4_test,26,Holiday gift ideas for techies,P3,P4,0.3760171707261484
+v4_test,27,"Babul, start a conversation with your new connection, Muskan",P4,P4,0.6414172838170552
+v4_test,28,"sananworld1767, see what's been happening on Instagram",P4,P4,0.7331366855378485
+v4_test,29,"Grab my Zero to Hero AI Agent Guide for NON-Tech: 28 Prompts, 4 Get Started Scenarios, Detailed Guides Across 4 To…",P3,P3,0.6346824110215005
+v4_test,30,The Only Startup Growth Guide You’ll Need in 2026,P3,P3,0.576475813347008
+v4_test,31,You have an invitation,P4,P4,0.8421379578338227
+v4_test,32,"Rise in GST collection, auto sales, & more - Groww Digest",P3,P3,0.8641581307884614
+v4_test,33,"Meme Shorts, your April Creator Monthly Newsletter is here",P3,P3,0.5731067218959415
+v4_test,34,Did you just reset your password?,P1,P1,0.36496776289325267
+v4_test,35,OpenAI Codex is THE Best Model in the World at Strategy—5 Minute Quick Start Guide + 29 Prompts,P3,P3,0.5659099938371622
+v4_test,36,"Hyundai Motor hits all-time high, Hindustan Zinc to announce dividend & more",P4,P4,0.5990196839307866
+v4_test,37,What are your SSC CHSL 2021 normalised marks?,P3,P3,0.5572270805078413
+v4_test,38,New login to Instagram from Instagram on RMX3782,P1,P1,0.9318727941024691
+v4_test,39,Can you tell me something about yourself?,P3,P3,0.3525925422157806
+v4_test,40,I'm 29. I have wasted 7 years for government exam preparation. What should I do?,P3,P3,0.3183864012539334
+v4_test,41,(3/9) Edit PDFs right in Dropbox,P4,P3,0.4579681234074827
+v4_test,42,There’s no right or wrong answer to this…,P4,P4,0.615336948674378
+v4_test,43,NetAcad Student Newsletter – April 2025,P3,P4,0.41611835618365683
+v4_test,44,What is the salary of a tax assistant in SSC CGL?,P4,P3,0.42301658952691334
+v4_test,45,"sananworld1767, see what's been happening on Instagram",P4,P4,0.7239349546082605
+v4_test,46,"sananworld1767, see what's been happening on Instagram",P4,P4,0.7338955501733866
+v4_test,47,You have an invitation,P4,P4,0.8421379578338227
+v4_test,48,"Manufacturing PMI rises, Hyundai Motor profits up 6.3%, & more - Groww Digest",P3,P3,0.8590645084881586
+v4_test,49,"Indian Oil's Rs 3 dividend, Dixon-Inventec joint venture, & more - Groww Digest",P3,P3,0.8633922685689301
+v4_test,50,The Final Lap! Submit Your TrackShift 2025 Idea Before Midnight - AI for Good Hackathon,P4,P2,0.42336215424725826
+v4_test,51,I want to connect,P4,P4,0.7905911953032033
+v4_test,52,The Pulse: Meta’s self-inflicted resignation-wave,P3,P3,0.44881610871436656
+v4_test,53,First Time Sharing This: Grab My Private AI Writing Teaching Method + 8 Prompts (+ Demo),P3,P3,0.6488948123633951
+v4_test,54,"Dhruv accepted your invitation, explore their network",P3,P3,0.5781436787461212
+v4_test,55,I just requested to connect,P4,P4,0.821824065787552
+v4_test,56,"DMart opens 500th store, Vedanta extends demerger timeline & more",P4,P4,0.6835884818954979
+v4_test,57,"Jio listing, export duty on onions, & more - Groww Digest",P3,P3,0.8854067402147909
+v4_test,58,Anthropic’s $30 Trillion Moonshot,P3,P3,0.510223223988746
+v4_test,59,How to Build a Real Operating Plan: Inside a Fully Linked Startup FP&A Model,P3,P3,0.4663105948949543
+v4_1_test,0,"Wholesale inflation up, Muthoot Finance profits up 126.67%, & more - Groww Digest",P3,P3,0.8388865296025092
+v4_1_test,1,Executive Briefing: What Cursor’s $57K CMS Deletion Reveals About Where Agent Value Actually Lives,P3,P3,0.6303402926736956
+v4_1_test,2,"Forex reserves fall, ONGC's Rs 6.25 dividend, & more - Groww Digest",P3,P3,0.8540066877957327
+v4_1_test,3,"US interest rates unchanged, Bajaj Finance's profit up 27%, & more - Groww Digest",P3,P3,0.8631960859182874
+v4_1_test,4,"sananworld1767, catch up on moments you've missed",P4,P4,0.6782679481799712
+v4_1_test,5,Introducing country leaderboards and post translations,P3,P3,0.43234893512653894
+v4_1_test,6,Day 3 Livestream Starting Soon!,P4,P3,0.4142530229810496
+v4_1_test,7,Which funds/stocks did investors choose? | Investments Weekly: 19 Sept - 25 Sept,P3,P3,0.7312523937388952
+v4_1_test,8,"Oil stocks tumble, HDFC Bank rises & more",P4,P4,0.6764444186804991
+v4_1_test,9,"Renewable energy target on track, new rural jobs, & more - Groww Digest (every day)",P3,P3,0.8270297711968221
+v4_1_test,10,I am married for 2 years. My husband lied to me about his software job. He is currentl...,P4,P3,0.3641626662313633
+v4_1_test,11,"Babul, add Jashan Kaur",P4,P4,0.6348013838887859
+v4_1_test,12,LeetCode Weekly Digest,P4,P3,0.4417659048768372
+v4_1_test,13,Your Bi-Weekly Roundup: New AI Challenges & Big Winner Announcements,P4,P3,0.6249071012951083
+v4_1_test,14,⏳ LIMITED TIME OFFER: All in One Interview Prep Black Friday Sale,P4,P4,0.4200021938355037
+v4_1_test,15,"If I invest 1000 per month in SIP for 20 years, how much will I return after 20 years...?",P3,P3,0.37638523209919467
+v4_1_test,16,"Sedemac Mechatronics IPO listed, Ashok Leyland's new battery pack plant, & more - Groww Digest",P3,P3,0.8672957186312383
+v4_1_test,17,I want to connect,P4,P4,0.8321357417961259
+v4_1_test,18,🎉 Your Webinar Registration is Confirmed for 30 Days Full Stack Master Class!,P3,P3,0.3527308054369297
+v4_1_test,19,Counterfeit Bug in Zcash found via Opus 4.8,P3,P3,0.4967150509762368
+v4_1_test,20,I want to connect,P4,P4,0.773992987642493
+v4_1_test,21,"Rise in steel production, time of day tariff, & more - Groww Digest (every day)",P3,P3,0.8288225489952429
+v4_1_test,22,The GTM System Most Founders Build Too Late,P3,P3,0.4911153476887974
+v4_1_test,23,I want to connect,P4,P4,0.8808886131657209
+v4_1_test,24,"RBI's Rs 2.69 lakh cr dividend, Ashok Leyland's 1:1 stock split, & more - Groww Digest",P3,P3,0.8608566958724879
+v4_1_test,25,"boyzz_editz009, your April Creator Monthly Newsletter is here",P3,P3,0.704352254034794
+v4_1_test,26,Holiday gift ideas for techies,P3,P4,0.3760171707261484
+v4_1_test,27,"Babul, start a conversation with your new connection, Muskan",P4,P4,0.6414172838170552
+v4_1_test,28,"sananworld1767, see what's been happening on Instagram",P4,P4,0.7331366855378485
+v4_1_test,29,"Grab my Zero to Hero AI Agent Guide for NON-Tech: 28 Prompts, 4 Get Started Scenarios, Detailed Guides Across 4 To…",P3,P3,0.6346824110215005
+v4_1_test,30,The Only Startup Growth Guide You’ll Need in 2026,P3,P3,0.576475813347008
+v4_1_test,31,You have an invitation,P4,P4,0.8421379578338227
+v4_1_test,32,"Rise in GST collection, auto sales, & more - Groww Digest",P3,P3,0.8641581307884614
+v4_1_test,33,"Meme Shorts, your April Creator Monthly Newsletter is here",P3,P3,0.5731067218959415
+v4_1_test,34,Did you just reset your password?,P1,P1,0.36496776289325267
+v4_1_test,35,OpenAI Codex is THE Best Model in the World at Strategy—5 Minute Quick Start Guide + 29 Prompts,P3,P3,0.5659099938371622
+v4_1_test,36,"Hyundai Motor hits all-time high, Hindustan Zinc to announce dividend & more",P4,P4,0.5990196839307866
+v4_1_test,37,What are your SSC CHSL 2021 normalised marks?,P3,P3,0.5572270805078413
+v4_1_test,38,New login to Instagram from Instagram on RMX3782,P1,P1,0.9318727941024691
+v4_1_test,39,Can you tell me something about yourself?,P3,P3,0.3525925422157806
+v4_1_test,40,I'm 29. I have wasted 7 years for government exam preparation. What should I do?,P3,P3,0.3183864012539334
+v4_1_test,41,(3/9) Edit PDFs right in Dropbox,P4,P3,0.4579681234074827
+v4_1_test,42,There’s no right or wrong answer to this…,P4,P4,0.615336948674378
+v4_1_test,43,NetAcad Student Newsletter – April 2025,P3,P4,0.41611835618365683
+v4_1_test,44,What is the salary of a tax assistant in SSC CGL?,P4,P3,0.42301658952691334
+v4_1_test,45,"sananworld1767, see what's been happening on Instagram",P4,P4,0.7239349546082605
+v4_1_test,46,"sananworld1767, see what's been happening on Instagram",P4,P4,0.7338955501733866
+v4_1_test,47,You have an invitation,P4,P4,0.8421379578338227
+v4_1_test,48,"Manufacturing PMI rises, Hyundai Motor profits up 6.3%, & more - Groww Digest",P3,P3,0.8590645084881586
+v4_1_test,49,"Indian Oil's Rs 3 dividend, Dixon-Inventec joint venture, & more - Groww Digest",P3,P3,0.8633922685689301
+v4_1_test,50,The Final Lap! Submit Your TrackShift 2025 Idea Before Midnight - AI for Good Hackathon,P4,P2,0.42336215424725826
+v4_1_test,51,I want to connect,P4,P4,0.7905911953032033
+v4_1_test,52,The Pulse: Meta’s self-inflicted resignation-wave,P3,P3,0.44881610871436656
+v4_1_test,53,First Time Sharing This: Grab My Private AI Writing Teaching Method + 8 Prompts (+ Demo),P3,P3,0.6488948123633951
+v4_1_test,54,"Dhruv accepted your invitation, explore their network",P3,P3,0.5781436787461212
+v4_1_test,55,I just requested to connect,P4,P4,0.821824065787552
+v4_1_test,56,"DMart opens 500th store, Vedanta extends demerger timeline & more",P4,P4,0.6835884818954979
+v4_1_test,57,"Jio listing, export duty on onions, & more - Groww Digest",P3,P3,0.8854067402147909
+v4_1_test,58,Anthropic’s $30 Trillion Moonshot,P3,P3,0.510223223988746
+v4_1_test,59,How to Build a Real Operating Plan: Inside a Fully Linked Startup FP&A Model,P3,P3,0.4663105948949543
+boundary_holdout,0,Action Required: Complete your Google Software Engineering technical phone screen scheduling,P2,P2,0.4190645876939537
+boundary_holdout,1,HackerRank Coding Challenge: 90 minutes remaining to complete assessment - Uber Careers,P2,P2,0.4711866974965418
+boundary_holdout,2,Urgent: Sign and return offer letter by Friday 5 PM - Databricks Employment,P2,P2,0.6280207661804625
+boundary_holdout,3,Interview Invitation: Select an available interview slot for Meta ML Engineer role,P2,P2,0.3747931980891451
+boundary_holdout,4,Action Required: Submit reference contact details for Senior Staff Engineer position at Stripe,P2,P2,0.38220426557475706
+boundary_holdout,5,Workday Notification: Application submitted for Site Reliability Engineer - Salesforce,P3,P3,0.43836659597580657
+boundary_holdout,6,Greenhouse: We received your resume for Backend Engineer at Figma,P3,P3,0.5330260366907337
+boundary_holdout,7,Thank you for applying to Amazon - Software Development Engineer I,P3,P3,0.4093110524351321
+boundary_holdout,8,Lever: Your application for Data Scientist at OpenAI was received,P3,P3,0.41094089253295607
+boundary_holdout,9,Careers Update: Your application for Core Infrastructure Engineer is under review,P3,P3,0.38941969362608214
+boundary_holdout,10,Action Required: Payment failed for your AWS Account #9201 - Update payment method immediately,P2,P2,0.44863329924509904
+boundary_holdout,11,Invoice #88392 Past Due: Pay $450 within 48 hours to avoid immediate service termination,P2,P2,0.562895608078837
+boundary_holdout,12,"Important: Your GitHub Enterprise invoice is due on October 5, 2026",P2,P2,0.5944121391835423
+boundary_holdout,13,Notice of payment failure: Cloudflare CDN plan will be suspended tomorrow unless settled,P2,P2,0.5776093842343568
+boundary_holdout,14,Action Required: Settle outstanding balance of $120.00 for Twilio API services,P2,P2,0.40327966572442475
+boundary_holdout,15,Your monthly receipt for Spotify Premium ($10.99) - Paid in full,P3,P3,0.46557161691326526
+boundary_holdout,16,Payment receipt: Your DigitalOcean droplet payment of $12.00 was successful,P3,P3,0.3859004818007114
+boundary_holdout,17,Google Cloud Billing: Monthly statement - Amount due: $0.00,P4,P3,0.41928809338887296
+boundary_holdout,18,Invoice #94820 paid: Thank you for your payment to Slack Technologies,P3,P3,0.4153025916685189
+boundary_holdout,19,Receipt for your payment of $0.00: Oracle Cloud Free Tier monthly statement,P4,P3,0.37609744356843167
