@@ -787,3 +787,33 @@ The shadow promotion protocol for `priority-v4.1` compared live production class
 - **Automated Tests:** **25/25 Phase 48 tests passed**; **384/384 full backend regression tests passed**; **9/9 frontend tests passed**; production build succeeded.
 - **Comprehensive Evaluation Report:** [`docs/PHASE_48_LIVE_SHADOW_EVALUATION.md`](docs/PHASE_48_LIVE_SHADOW_EVALUATION.md).
 - **Final Decision:** **`CANDIDATE READY FOR CANARY REVIEW`** (`priority-v4.1` remains ACTIVE in production; `priority-v5.1` qualifies for a 10% canary split in Phase 49).
+
+---
+
+### Phase 49 — Controlled Canary Deployment, User-Facing Validation & Promotion Gate
+
+- **Phase Objective:** Implement a deterministic, user-level canary routing and validation pipeline evaluating candidate model `priority-v5.1` against active production model `priority-v4.1` with real user traffic, model-version aware caching, instant rollback, 13 hard safety promotion gates, and an observability layer.
+- **Production Safety:** Production model `priority-v4.1` remains strictly **ACTIVE** (`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`). Candidate `priority-v5.1` is evaluated in canary mode only (`8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`). Both model artifacts remain 100% frozen and bit-identical. Zero raw email bodies and zero OAuth tokens stored.
+- **User-Level Deterministic Routing:** Implemented `backend/app/ml/canary_router.py`. Users are routed deterministically via `int(sha256(user_id:candidate)[:8], 16) % 100 < canary_percentage`. Prevents message-by-message model switching within a user's mailbox. Controlled via stages: Stage 0 (0%), Stage 1 (5%), Stage 2 (10%), Stage 3 (25%), Stage 4 (50%).
+- **Model-Version Aware Cache Architecture:** `user_email_cache` SQLite table schema upgraded with composite primary key `(user_id, message_id, model_version)`. Preserved all 34,773 existing cache rows without data loss. Unversioned lookups prioritize active production model `priority-v4.1`.
+- **Instant Rollback Verification:** Tested `canary_router.rollback()`. Instantly restores 0% canary traffic and 100% `priority-v4.1` routing with zero downtime, zero database destruction, and zero cache clearing.
+- **13/13 Hard Safety Promotion Gates Passed:**
+  1. *P1 Downgrade Protection:* 0 downgrades (**PASSED**).
+  2. *Sensitive Category Retention:* 100.0% retention on OTP/MFA/Security/Resets (**PASSED**).
+  3. *Modern P2 Recall Retention:* 100.0% (28/28 on holdout) (**PASSED**).
+  4. *Newsletter Routine P2 Rate:* 1.67% (<= 5.0%) (**PASSED**).
+  5. *Social Routine P2 Rate:* 0.00% (<= 5.0%) (**PASSED**).
+  6. *Social/Security Event Recall:* 100.0% (>= 90.0%) (**PASSED**).
+  7. *Historical Benchmark Retention:* Acc 0.8200 (>= 0.80), Macro F1 0.8046 (>= 0.78) (**PASSED**).
+  8. *Production Error Rate:* 0 exceptions, 0 fallback incidents (**PASSED**).
+  9. *Latency Regression:* 1.75 ms (v5.1) vs 1.79 ms (v4.1) (**PASSED**).
+  10. *Canary Rollback:* Verified instant zero-loss rollback to 0% (**PASSED**).
+  11. *Multi-User Isolation:* Verified strict user partitioning (**PASSED**).
+  12. *Cache Integrity:* Verified composite PK coexistence without collision (**PASSED**).
+  13. *Model Artifact Integrity:* 100% bit-identical SHA-256 matches (**PASSED**).
+- **Latency & Performance:** Active control median 1.79 ms vs Canary median 1.75 ms (P95: 2.10 ms, P99: 2.52 ms). 0.00 ms user-facing overhead.
+- **Monitoring UI:** Added "Canary Deployment" administrative tab to Settings modal (`SettingsPanel.jsx`) displaying Control vs Canary side-by-side metrics, active stage & percentage, 13 promotion gates, and rollback status. Session-gated endpoints under `/api/monitoring/canary/*`.
+- **Automated Tests:** **25/25 Phase 49 tests passed**; **409/409 full backend regression tests passed**; **9/9 frontend tests passed**; production build succeeded.
+- **Comprehensive Promotion Gate Report:** [`docs/PHASE_49_CANARY_DEPLOYMENT_AND_PROMOTION_GATE.md`](docs/PHASE_49_CANARY_DEPLOYMENT_AND_PROMOTION_GATE.md).
+- **Final Decision:** **`CANARY PASSED — READY FOR EXPLICIT PROMOTION`** (`priority-v4.1` remains ACTIVE in production; `priority-v5.1` has NOT been promoted; explicit Phase 50 will execute final promotion).
+

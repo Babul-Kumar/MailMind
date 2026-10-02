@@ -47,6 +47,7 @@ def log_prediction(
     topic: Optional[str],
     needs_attention: bool = False,
     refinement_applied: bool = False,
+    canary_group: str = "control",
 ) -> None:
     """
     Appends one prediction record to the user-scoped prediction log.
@@ -64,6 +65,7 @@ def log_prediction(
             "message_id": message_id,
             "thread_id": thread_id or "",
             "model_version": model_version,
+            "canary_group": canary_group,
             "predicted_priority": predicted_priority,
             "confidence": round(float(confidence), 4),
             "action_required": bool(action_required),

@@ -22,6 +22,8 @@ def compute_sha256(filepath: str) -> str:
 
 def initialize_registry_if_missing():
     """Initializes registry.json with priority-v1 (baseline) if not present."""
+    if os.path.exists(REGISTRY_PATH):
+        return
     os.makedirs(MODELS_DIR, exist_ok=True)
     v1_dir = os.path.join(MODELS_DIR, "priority-v1")
     os.makedirs(v1_dir, exist_ok=True)

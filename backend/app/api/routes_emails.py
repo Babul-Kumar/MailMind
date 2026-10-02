@@ -223,13 +223,17 @@ def get_classified_emails(
         raise HTTPException(status_code=502, detail=f"Failed to list message IDs: {str(e)}")
     t_list_ms = (time.perf_counter() - t_list_start) * 1000
 
-    # 2. Check User-Scoped Cache
+    # 2. Check User-Scoped Cache using Canary Router
     t_cache_start = time.perf_counter()
-    active_version = model_registry.get_active_version()
+    from backend.app.ml.canary_router import canary_router
+    pipeline, route_info = canary_router.get_pipeline_for_user(user_id)
+    user_model_version = route_info["model_version"]
+    canary_group = route_info["canary_group"]
+
     cached_map, missing_ids = user_email_cache.get_batch(
         user_id=user_id,
         message_ids=target_ids,
-        active_model_version=active_version
+        active_model_version=user_model_version
     )
     t_cache_ms = (time.perf_counter() - t_cache_start) * 1000
 
@@ -252,9 +256,8 @@ def get_classified_emails(
                     raw_missing[mid] = parsed
         t_fetch_ms = (time.perf_counter() - t_fetch_start) * 1000
 
-        # Predict missing messages using fast vectorized batch inference
+        # Predict missing messages using fast vectorized batch inference with routed pipeline
         t_infer_start = time.perf_counter()
-        pipeline = load_model()
         missing_ordered = [raw_missing[mid] for mid in missing_ids if mid in raw_missing]
         predicted_missing = predict_batch(missing_ordered, pipeline=pipeline)
         t_infer_ms = (time.perf_counter() - t_infer_start) * 1000
@@ -262,15 +265,17 @@ def get_classified_emails(
         for pred in predicted_missing:
             mid = pred.get("email_id")
             if mid:
+                pred["model_version"] = user_model_version
+                pred["canary_group"] = canary_group
                 user_email_cache.set(user_id, mid, pred)
                 newly_classified[mid] = pred
-                # Phase 43: fire-and-forget prediction log (no raw body, no credentials)
+                # Phase 43/49: fire-and-forget prediction log (no raw body, no credentials)
                 try:
                     log_prediction(
                         user_id=user_id,
                         message_id=mid,
                         thread_id=pred.get("thread_id"),
-                        model_version=pred.get("model_version", active_version),
+                        model_version=user_model_version,
                         predicted_priority=pred.get("final_priority") or pred.get("predicted_priority", "P4"),
                         confidence=pred.get("confidence", 0.0),
                         action_required=bool(pred.get("action_required")),
@@ -279,6 +284,7 @@ def get_classified_emails(
                         topic=pred.get("topic"),
                         needs_attention=bool(pred.get("needs_attention")),
                         refinement_applied=bool(pred.get("refinement_applied")),
+                        canary_group=canary_group,
                     )
                 except Exception:
                     pass  # observability must never break production
@@ -300,7 +306,7 @@ def get_classified_emails(
 
     # Check if user has an extensive analyzed mailbox in persistent cache
     # If the user has more emails in cache and specifically requests pagination or filtering:
-    stats_db = user_email_cache.get_mailbox_stats(user_id)
+    stats_db = user_email_cache.get_mailbox_stats(user_id, model_version=user_model_version)
     total_cached = stats_db.get("total_analyzed", 0)
 
     has_explicit_max = "max_emails" in request.query_params
@@ -318,7 +324,8 @@ def get_classified_emails(
             search=query,
             page=page,
             page_size=page_size,
-            action_required=action_required
+            action_required=action_required,
+            model_version=user_model_version
         )
         total_analyzed = total_matching
         stats = stats_db
@@ -368,6 +375,8 @@ def get_classified_emails(
         "request_id": request_id,
         "user_id_hash": user_id_hash,
         "endpoint": "/api/emails",
+        "model_version": user_model_version,
+        "canary_group": canary_group,
         "gmail_list_ms": round(t_list_ms, 2),
         "cache_lookup_ms": round(t_cache_ms, 2),
         "gmail_fetch_ms": round(t_fetch_ms, 2),
@@ -428,8 +437,13 @@ def get_email_detail(request: Request, email_id: str):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
 
-    # Check cache first
-    cached = user_email_cache.get(user_id, email_id)
+    from backend.app.ml.canary_router import canary_router
+    pipeline, route_info = canary_router.get_pipeline_for_user(user_id)
+    user_model_version = route_info["model_version"]
+    canary_group = route_info["canary_group"]
+
+    # Check cache first with model_version
+    cached = user_email_cache.get(user_id, email_id, model_version=user_model_version)
     if cached and cached.get("body") and cached.get("body") != cached.get("snippet"):
         return {"status": "success", "email": cached}
 
@@ -438,8 +452,9 @@ def get_email_detail(request: Request, email_id: str):
     if not full_email:
         raise HTTPException(status_code=404, detail="Email not found in mailbox.")
 
-    pipeline = load_model()
     classified = predict_email(full_email, pipeline=pipeline)
+    classified["model_version"] = user_model_version
+    classified["canary_group"] = canary_group
     user_email_cache.set(user_id, email_id, classified)
 
     # Phase 48: Non-blocking candidate shadow inference hook (failsafe)

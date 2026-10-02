@@ -1,0 +1,8 @@
+{
+  "canary_enabled": false,
+  "canary_percentage": 0,
+  "stage": 0,
+  "active_model": "priority-v4.1",
+  "candidate_model": "priority-v5.1",
+  "updated_at": 1790973873.273764
+}

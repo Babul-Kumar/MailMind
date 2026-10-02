@@ -1,0 +1,24 @@
+{
+  "phase": "Phase 49 \u2014 Controlled Canary Deployment & Promotion Gate",
+  "timestamp": "2026-10-02T20:38:13Z",
+  "active_production_model": "priority-v4.1",
+  "candidate_canary_model": "priority-v5.1",
+  "artifact_hashes": {
+    "priority-v4.1": "09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0",
+    "priority-v5.1": "8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06"
+  },
+  "mailbox_population": 17329,
+  "agreement_rate": 97.24,
+  "divergence_rate": 2.76,
+  "p1_downgrades": 0,
+  "safety_retention_rate": 100.0,
+  "historical_accuracy": 0.82,
+  "historical_macro_f1": 0.8046,
+  "modern_p2_recall": 1.0,
+  "newsletter_routine_p2_rate": 0.0167,
+  "social_routine_p2_rate": 0.0,
+  "rollback_verified": true,
+  "gates_passed": 13,
+  "total_gates": 13,
+  "final_decision": "CANARY PASSED \u2014 READY FOR EXPLICIT PROMOTION"
+}

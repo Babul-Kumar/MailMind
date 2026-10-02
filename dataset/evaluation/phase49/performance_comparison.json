@@ -1,0 +1,16 @@
+{
+  "active_v41": {
+    "median_latency_ms": 1.79,
+    "p95_latency_ms": 2.2,
+    "p99_latency_ms": 2.65,
+    "error_rate": 0.0
+  },
+  "canary_v51": {
+    "median_latency_ms": 1.75,
+    "p95_latency_ms": 2.1,
+    "p99_latency_ms": 2.52,
+    "error_rate": 0.0
+  },
+  "user_facing_overhead_ms": 0.0,
+  "latency_regression": false
+}

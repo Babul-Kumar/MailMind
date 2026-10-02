@@ -50,79 +50,150 @@ class UserEmailCache:
         return self._local.conn
 
     def _init_db(self):
-        """Initializes tables and indexes."""
+        """Initializes tables and indexes, ensuring version-aware composite primary key (user_id, message_id, model_version)."""
         with self._lock:
             conn = self._get_connection()
-            conn.execute("""
-            CREATE TABLE IF NOT EXISTS user_email_cache (
-                user_id TEXT NOT NULL,
-                message_id TEXT NOT NULL,
-                thread_id TEXT,
-                internal_date INTEGER DEFAULT 0,
-                date_str TEXT,
-                sender TEXT,
-                recipients TEXT,
-                subject TEXT,
-                snippet TEXT,
-                body TEXT,
-                content_hash TEXT,
-                model_version TEXT,
-                predicted_priority TEXT,
-                action_required INTEGER DEFAULT 0,
-                deadline_detected INTEGER DEFAULT 0,
-                deadline_display TEXT,
-                needs_attention INTEGER DEFAULT 0,
-                refinement_applied INTEGER DEFAULT 0,
-                confidence REAL DEFAULT 0.0,
-                topic TEXT,
-                data_json TEXT NOT NULL,
-                analyzed_at REAL,
-                is_stale INTEGER DEFAULT 0,
-                PRIMARY KEY (user_id, message_id)
-            );
-            """)
+            # Check if user_email_cache table exists
+            cur = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user_email_cache';")
+            table_exists = cur.fetchone() is not None
+
+            if not table_exists:
+                conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_email_cache (
+                    user_id TEXT NOT NULL,
+                    message_id TEXT NOT NULL,
+                    thread_id TEXT,
+                    internal_date INTEGER DEFAULT 0,
+                    date_str TEXT,
+                    sender TEXT,
+                    recipients TEXT,
+                    subject TEXT,
+                    snippet TEXT,
+                    body TEXT,
+                    content_hash TEXT,
+                    model_version TEXT NOT NULL DEFAULT 'priority-v1',
+                    predicted_priority TEXT,
+                    action_required INTEGER DEFAULT 0,
+                    deadline_detected INTEGER DEFAULT 0,
+                    deadline_display TEXT,
+                    needs_attention INTEGER DEFAULT 0,
+                    refinement_applied INTEGER DEFAULT 0,
+                    confidence REAL DEFAULT 0.0,
+                    topic TEXT,
+                    data_json TEXT NOT NULL,
+                    analyzed_at REAL,
+                    is_stale INTEGER DEFAULT 0,
+                    deadline_status TEXT DEFAULT 'NONE',
+                    action_evidence TEXT,
+                    PRIMARY KEY (user_id, message_id, model_version)
+                );
+                """)
+            else:
+                # Check if model_version is part of the primary key
+                cols = conn.execute("PRAGMA table_info(user_email_cache);").fetchall()
+                pk_cols = [c[1] for c in cols if c[5] > 0]
+                if "model_version" not in pk_cols:
+                    conn.execute("""
+                    CREATE TABLE IF NOT EXISTS user_email_cache_v49 (
+                        user_id TEXT NOT NULL,
+                        message_id TEXT NOT NULL,
+                        thread_id TEXT,
+                        internal_date INTEGER DEFAULT 0,
+                        date_str TEXT,
+                        sender TEXT,
+                        recipients TEXT,
+                        subject TEXT,
+                        snippet TEXT,
+                        body TEXT,
+                        content_hash TEXT,
+                        model_version TEXT NOT NULL DEFAULT 'priority-v1',
+                        predicted_priority TEXT,
+                        action_required INTEGER DEFAULT 0,
+                        deadline_detected INTEGER DEFAULT 0,
+                        deadline_display TEXT,
+                        needs_attention INTEGER DEFAULT 0,
+                        refinement_applied INTEGER DEFAULT 0,
+                        confidence REAL DEFAULT 0.0,
+                        topic TEXT,
+                        data_json TEXT NOT NULL,
+                        analyzed_at REAL,
+                        is_stale INTEGER DEFAULT 0,
+                        deadline_status TEXT DEFAULT 'NONE',
+                        action_evidence TEXT,
+                        PRIMARY KEY (user_id, message_id, model_version)
+                    );
+                    """)
+                    conn.execute("""
+                    INSERT OR IGNORE INTO user_email_cache_v49 (
+                        user_id, message_id, thread_id, internal_date, date_str,
+                        sender, recipients, subject, snippet, body, content_hash,
+                        model_version, predicted_priority, action_required,
+                        deadline_detected, deadline_display, needs_attention,
+                        refinement_applied, confidence, topic, data_json, analyzed_at,
+                        is_stale, deadline_status, action_evidence
+                    )
+                    SELECT
+                        user_id, message_id, thread_id, internal_date, date_str,
+                        sender, recipients, subject, snippet, body, content_hash,
+                        COALESCE(model_version, 'priority-v1'), predicted_priority,
+                        action_required, deadline_detected, deadline_display,
+                        needs_attention, refinement_applied, confidence, topic,
+                        data_json, analyzed_at, is_stale,
+                        COALESCE(deadline_status, 'NONE'), action_evidence
+                    FROM user_email_cache;
+                    """)
+                    conn.execute("DROP TABLE user_email_cache;")
+                    conn.execute("ALTER TABLE user_email_cache_v49 RENAME TO user_email_cache;")
+
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_date ON user_email_cache(user_id, internal_date DESC);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_priority ON user_email_cache(user_id, predicted_priority);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_attention ON user_email_cache(user_id, needs_attention);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_version ON user_email_cache(user_id, model_version);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_thread ON user_email_cache(user_id, thread_id);")
-            try:
-                conn.execute("ALTER TABLE user_email_cache ADD COLUMN deadline_status TEXT DEFAULT 'NONE';")
-            except Exception:
-                pass
-            try:
-                conn.execute("ALTER TABLE user_email_cache ADD COLUMN action_evidence TEXT;")
-            except Exception:
-                pass
             conn.commit()
 
-    def get(self, user_id: str, message_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieves a cached prediction record for a specific user and message ID."""
+    def get(self, user_id: str, message_id: str, model_version: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Retrieves a cached prediction record for a specific user, message ID, and optional model version."""
         if not user_id or not message_id:
             return None
+
         with self._lock:
             user_mem = self._mem_cache.get(user_id)
-            if user_mem and message_id in user_mem:
-                return user_mem[message_id]
+            if user_mem:
+                if model_version and (message_id, model_version) in user_mem:
+                    return user_mem[(message_id, model_version)]
+                elif not model_version and message_id in user_mem:
+                    return user_mem[message_id]
 
         conn = self._get_connection()
-        cur = conn.execute(
-            "SELECT data_json, thread_id, is_stale FROM user_email_cache WHERE user_id = ? AND message_id = ?",
-            (user_id, message_id)
-        )
+        if model_version:
+            cur = conn.execute(
+                "SELECT data_json, thread_id, is_stale, model_version FROM user_email_cache WHERE user_id = ? AND message_id = ? AND model_version = ?",
+                (user_id, message_id, model_version)
+            )
+        else:
+            from backend.app.ml.registry import model_registry
+            active_ver = model_registry.get_active_version()
+            cur = conn.execute(
+                "SELECT data_json, thread_id, is_stale, model_version FROM user_email_cache WHERE user_id = ? AND message_id = ? ORDER BY (model_version = ?) DESC, analyzed_at DESC LIMIT 1",
+                (user_id, message_id, active_ver)
+            )
         row = cur.fetchone()
-        if not row:
-            return None
-        if row["is_stale"] == 1:
+        if not row or row["is_stale"] == 1:
             return None
         try:
             data = json.loads(row["data_json"])
             if not data.get("thread_id") and row["thread_id"]:
                 data["thread_id"] = row["thread_id"]
+            m_ver = row["model_version"] or data.get("model_version", "priority-v1")
             with self._lock:
                 if user_id not in self._mem_cache:
                     self._mem_cache[user_id] = {}
-                self._mem_cache[user_id][message_id] = data
+                self._mem_cache[user_id][(message_id, m_ver)] = data
+                from backend.app.ml.registry import model_registry
+                active_ver = model_registry.get_active_version()
+                if not model_version or m_ver == active_ver or message_id not in self._mem_cache[user_id]:
+                    self._mem_cache[user_id][message_id] = data
             return data
         except Exception:
             return None
@@ -133,7 +204,7 @@ class UserEmailCache:
             return
         self.store_batch(user_id, [data])
 
-    def store_batch(self, user_id: str, items: List[Dict[str, Any]]):
+    def store_batch(self, user_id: str, items: List[Dict[str, Any]], model_version: Optional[str] = None):
         """Batch inserts or replaces prediction records for a specific user."""
         if not user_id or not items:
             return
@@ -146,7 +217,7 @@ class UserEmailCache:
             user_mem = self._mem_cache[user_id]
 
             for item in items:
-                mid = item.get("email_id") or item.get("id") or ""
+                mid = item.get("email_id") or item.get("id") or item.get("message_id") or ""
                 if not mid:
                     continue
 
@@ -155,7 +226,8 @@ class UserEmailCache:
                 body = item.get("body", "")
                 c_hash = item.get("content_hash") or compute_content_hash(subject, snippet, body)
                 from backend.app.ml.registry import model_registry
-                model_ver = item.get("model_version") or model_registry.get_active_version()
+                active_ver = model_registry.get_active_version()
+                model_ver = item.get("model_version") or model_version or active_ver
                 priority = item.get("predicted_priority") or item.get("final_priority") or "P4"
                 action_req = 1 if item.get("action_required") else 0
                 deadline_det = 1 if item.get("deadline_detected") else 0
@@ -180,7 +252,9 @@ class UserEmailCache:
                     item_copy["deadline_status"] = item["deadline_status"]
                 if "action_evidence" in item:
                     item_copy["action_evidence"] = item["action_evidence"]
-                user_mem[mid] = item_copy
+                user_mem[(mid, model_ver)] = item_copy
+                if model_ver == active_ver or mid not in user_mem:
+                    user_mem[mid] = item_copy
                 data_json = json.dumps(item_copy)
 
                 rows.append((
@@ -232,12 +306,16 @@ class UserEmailCache:
             user_mem = self._mem_cache.get(user_id, {})
             # Check L1 cache
             for mid in message_ids:
-                if mid in user_mem:
-                    rec = user_mem[mid]
-                    if not active_model_version or rec.get("model_version") == active_model_version:
-                        cached[mid] = rec
-                    else:
-                        missing.append(mid)
+                rec = None
+                if active_model_version and (mid, active_model_version) in user_mem:
+                    rec = user_mem[(mid, active_model_version)]
+                elif mid in user_mem:
+                    rec_cand = user_mem[mid]
+                    if not active_model_version or rec_cand.get("model_version") == active_model_version:
+                        rec = rec_cand
+
+                if rec is not None:
+                    cached[mid] = rec
                 else:
                     missing.append(mid)
 
@@ -247,26 +325,38 @@ class UserEmailCache:
         # For any missing from L1, check L2 SQLite store
         conn = self._get_connection()
         chunk_size = 500
-        found_in_l2 = {}
+        found_in_l2: Dict[str, Tuple[Dict[str, Any], str]] = {}
         for i in range(0, len(missing), chunk_size):
             chunk = missing[i:i + chunk_size]
             placeholders = ",".join(["?"] * len(chunk))
-            sql = f"""
-                SELECT message_id, data_json, model_version, is_stale
-                FROM user_email_cache
-                WHERE user_id = ? AND message_id IN ({placeholders})
-            """
-            params = [user_id] + list(chunk)
+            if active_model_version:
+                sql = f"""
+                    SELECT message_id, data_json, model_version, is_stale
+                    FROM user_email_cache
+                    WHERE user_id = ? AND message_id IN ({placeholders}) AND model_version = ?
+                """
+                params: List[Any] = [user_id] + list(chunk) + [active_model_version]
+            else:
+                sql = f"""
+                    SELECT message_id, data_json, model_version, is_stale
+                    FROM user_email_cache
+                    WHERE user_id = ? AND message_id IN ({placeholders})
+                    ORDER BY analyzed_at DESC
+                """
+                params = [user_id] + list(chunk)
+
             cur = conn.execute(sql, params)
             for row in cur.fetchall():
                 if row["is_stale"] == 1:
                     continue
                 if active_model_version and row["model_version"] != active_model_version:
                     continue
-                try:
-                    found_in_l2[row["message_id"]] = json.loads(row["data_json"])
-                except Exception:
-                    pass
+                mid = row["message_id"]
+                if mid not in found_in_l2:
+                    try:
+                        found_in_l2[mid] = (json.loads(row["data_json"]), row["model_version"])
+                    except Exception:
+                        pass
 
         # Populate L1 and final missing list
         still_missing = []
@@ -275,8 +365,10 @@ class UserEmailCache:
                 self._mem_cache[user_id] = {}
             for mid in missing:
                 if mid in found_in_l2:
-                    cached[mid] = found_in_l2[mid]
-                    self._mem_cache[user_id][mid] = found_in_l2[mid]
+                    data, m_ver = found_in_l2[mid]
+                    cached[mid] = data
+                    self._mem_cache[user_id][(mid, m_ver)] = data
+                    self._mem_cache[user_id][mid] = data
                 else:
                     still_missing.append(mid)
 
@@ -399,7 +491,8 @@ class UserEmailCache:
         page: int = 1,
         page_size: int = 50,
         sort_order: str = "desc",
-        action_required: Optional[bool] = None
+        action_required: Optional[bool] = None,
+        model_version: Optional[str] = None
     ) -> Tuple[List[Dict[str, Any]], int]:
         """
         Queries cached emails for display pagination with fast indexing and search.
@@ -413,6 +506,10 @@ class UserEmailCache:
         conn = self._get_connection()
         where_clauses = ["user_id = ?", "is_stale = 0"]
         params: List[Any] = [user_id]
+
+        if model_version:
+            where_clauses.append("model_version = ?")
+            params.append(model_version)
 
         if priority and priority != "ALL":
             if priority == "NEEDS_ATTENTION":
@@ -460,7 +557,7 @@ class UserEmailCache:
 
         return emails, total_count
 
-    def get_mailbox_stats(self, user_id: str) -> Dict[str, Any]:
+    def get_mailbox_stats(self, user_id: str, model_version: Optional[str] = None) -> Dict[str, Any]:
         """
         Computes comprehensive aggregate statistics over the COMPLETE analyzed mailbox.
         Runs in 1-2 ms via direct SQL aggregation.
@@ -469,7 +566,13 @@ class UserEmailCache:
             return self._empty_stats()
 
         conn = self._get_connection()
-        cur = conn.execute("""
+        where_sql = "user_id = ? AND is_stale = 0"
+        params: List[Any] = [user_id]
+        if model_version:
+            where_sql += " AND model_version = ?"
+            params.append(model_version)
+
+        cur = conn.execute(f"""
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN predicted_priority = 'P1' THEN 1 ELSE 0 END) as p1_count,
@@ -481,8 +584,8 @@ class UserEmailCache:
                 AVG(confidence) as avg_conf,
                 MAX(analyzed_at) as last_analyzed
             FROM user_email_cache
-            WHERE user_id = ? AND is_stale = 0
-        """, (user_id,))
+            WHERE {where_sql}
+        """, params)
         row = cur.fetchone()
 
         total = row["total"] or 0

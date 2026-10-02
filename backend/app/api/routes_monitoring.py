@@ -280,3 +280,120 @@ def shadow_monitoring_feedback_correlation(request: Request):
         logger.error("shadow_monitoring_feedback_correlation error: %s", exc)
         raise HTTPException(status_code=500, detail=f"Shadow feedback correlation failed: {exc}")
 
+
+# ---------------------------------------------------------------------------
+# Phase 49: Controlled Canary Deployment & Safety Gate Endpoints
+# ---------------------------------------------------------------------------
+
+@router.get("/api/monitoring/canary/status")
+def canary_monitoring_status(request: Request):
+    """
+    Returns current Canary deployment status, stage, percentages, active model,
+    candidate model, and artifact integrity.
+    """
+    session = _require_session(request)
+    try:
+        from backend.app.core.canary_monitor import canary_monitor
+        summary = canary_monitor.get_summary(session.user_id)
+        return {"status": "success", "canary_status": summary}
+    except Exception as exc:
+        logger.error("canary_monitoring_status error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Canary status failed: {exc}")
+
+
+@router.get("/api/monitoring/canary/metrics")
+def canary_monitoring_metrics(request: Request):
+    """
+    Returns side-by-side metric comparison between Control (priority-v4.1)
+    and Canary (priority-v5.1).
+    """
+    session = _require_session(request)
+    try:
+        from backend.app.core.canary_monitor import canary_monitor
+        metrics = canary_monitor.get_metrics_comparison(session.user_id)
+        return {"status": "success", "canary_metrics": metrics}
+    except Exception as exc:
+        logger.error("canary_monitoring_metrics error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Canary metrics failed: {exc}")
+
+
+@router.get("/api/monitoring/canary/safety")
+def canary_monitoring_safety(request: Request):
+    """
+    Returns safety-critical category retention and audit of sensitive messages
+    (OTP, MFA, password reset, security alert).
+    """
+    session = _require_session(request)
+    try:
+        from backend.app.core.canary_monitor import canary_monitor
+        safety = canary_monitor.get_safety_audit()
+        return {"status": "success", "canary_safety": safety}
+    except Exception as exc:
+        logger.error("canary_monitoring_safety error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Canary safety audit failed: {exc}")
+
+
+@router.get("/api/monitoring/canary/feedback")
+def canary_monitoring_feedback(request: Request):
+    """
+    Compares user feedback and corrections between Control (v4.1) and Canary (v5.1).
+    """
+    session = _require_session(request)
+    try:
+        from backend.app.core.canary_monitor import canary_monitor
+        fb = canary_monitor.get_feedback_comparison()
+        return {"status": "success", "canary_feedback": fb}
+    except Exception as exc:
+        logger.error("canary_monitoring_feedback error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Canary feedback failed: {exc}")
+
+
+@router.get("/api/monitoring/canary/gates")
+def canary_monitoring_gates(request: Request):
+    """
+    Evaluates all 13 Phase 49 Promotion Gates deterministically.
+    """
+    session = _require_session(request)
+    try:
+        from backend.app.core.canary_monitor import canary_monitor
+        gates = canary_monitor.evaluate_safety_gates()
+        return {"status": "success", "safety_gates": gates}
+    except Exception as exc:
+        logger.error("canary_monitoring_gates error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Safety gate evaluation failed: {exc}")
+
+
+@router.post("/api/monitoring/canary/stage")
+def set_canary_stage(request: Request, stage: int):
+    """
+    Admin control to set the active canary stage (0=0%, 1=5%, 2=10%, 3=25%, 4=50%).
+    Requires active session. Does not allow auto-promotion to 100%.
+    """
+    session = _require_session(request)
+    try:
+        from backend.app.ml.canary_router import canary_router
+        result = canary_router.set_stage(stage)
+        return {"status": "success", "canary_status": result}
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except Exception as exc:
+        logger.error("set_canary_stage error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Setting canary stage failed: {exc}")
+
+
+@router.post("/api/monitoring/canary/rollback")
+def rollback_canary(request: Request):
+    """
+    Admin emergency rollback: sets canary percentage to 0% and routes 100% of traffic
+    back to active production model (priority-v4.1).
+    """
+    session = _require_session(request)
+    try:
+        from backend.app.ml.canary_router import canary_router
+        result = canary_router.rollback()
+        return {"status": "success", "message": "Emergency rollback executed", "canary_status": result}
+    except Exception as exc:
+        logger.error("rollback_canary error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Rollback failed: {exc}")
+
+

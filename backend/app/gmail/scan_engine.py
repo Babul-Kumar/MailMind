@@ -456,11 +456,15 @@ class MailboxScanJob:
                 return dict(self.state)
 
             # STAGE 2: CACHE COMPARISON
+            from backend.app.ml.canary_router import canary_router
+            pipeline, route_info = canary_router.get_pipeline_for_user(self.user_id)
+            active_ver = route_info["model_version"]
+            canary_group = route_info["canary_group"]
+
             if self.force_rescan:
                 cached_ids = set()
                 to_analyze_ids = [mid for mid in discovered_ids if mid not in resumed_processed]
             else:
-                active_ver = model_registry.get_active_version()
                 cached_ids = user_email_cache.get_all_cached_ids(self.user_id, active_model_version=active_ver)
                 to_analyze_ids = [mid for mid in discovered_ids if mid not in cached_ids and mid not in resumed_processed]
 
@@ -477,7 +481,6 @@ class MailboxScanJob:
             )
 
             # STAGE 3: BATCH METADATA & ML INFERENCE
-            pipeline = load_model()
             batch_size = self.batch_size
             total_to_analyze = len(to_analyze_ids)
 
@@ -520,6 +523,8 @@ class MailboxScanJob:
                     if valid_parsed:
                         predictions = predict_batch(valid_parsed, pipeline=pipeline)
                         for orig, pred in zip(valid_parsed, predictions):
+                            pred["model_version"] = active_ver
+                            pred["canary_group"] = canary_group
                             if "content_hash" in orig:
                                 pred["content_hash"] = orig["content_hash"]
                             if "internal_date" in orig:

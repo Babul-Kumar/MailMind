@@ -1,0 +1,50 @@
+{
+  "stages": [
+    {
+      "stage": 0,
+      "target_percentage": 0,
+      "sample_users": 1000,
+      "users_in_canary": 0,
+      "users_in_control": 1000,
+      "actual_percentage": 0.0,
+      "verified": true
+    },
+    {
+      "stage": 1,
+      "target_percentage": 5,
+      "sample_users": 1000,
+      "users_in_canary": 46,
+      "users_in_control": 954,
+      "actual_percentage": 4.6,
+      "verified": true
+    },
+    {
+      "stage": 2,
+      "target_percentage": 10,
+      "sample_users": 1000,
+      "users_in_canary": 104,
+      "users_in_control": 896,
+      "actual_percentage": 10.4,
+      "verified": true
+    },
+    {
+      "stage": 3,
+      "target_percentage": 25,
+      "sample_users": 1000,
+      "users_in_canary": 237,
+      "users_in_control": 763,
+      "actual_percentage": 23.7,
+      "verified": true
+    },
+    {
+      "stage": 4,
+      "target_percentage": 50,
+      "sample_users": 1000,
+      "users_in_canary": 496,
+      "users_in_control": 504,
+      "actual_percentage": 49.6,
+      "verified": true
+    }
+  ],
+  "rollback_test": "PASSED"
+}
