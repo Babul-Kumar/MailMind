@@ -528,6 +528,12 @@ class MailboxScanJob:
                                 pred["thread_id"] = orig["thread_id"]
                         user_email_cache.store_batch(self.user_id, predictions)
 
+                        # Phase 48: Non-blocking candidate shadow inference hook (failsafe)
+                        try:
+                            from backend.app.ml.shadow_engine import shadow_engine
+                            shadow_engine.shadow_batch_async(self.user_id, valid_parsed, predictions)
+                        except Exception as shadow_exc:
+                            logger.warning("Shadow inference dispatch failed: %s", shadow_exc)
 
                         with self._lock:
                             self.state["newly_analyzed"] += len(predictions)

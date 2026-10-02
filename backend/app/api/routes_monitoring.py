@@ -166,3 +166,117 @@ def monitoring_v5_readiness(request: Request):
         return {"status": "success", "v5_readiness": readiness}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"V5 readiness check failed: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Phase 48: Candidate Shadow Monitoring Endpoints (Session-Gated, User-Scoped)
+# ---------------------------------------------------------------------------
+from backend.app.core.shadow_monitor import shadow_monitor
+
+
+@router.get("/api/monitoring/shadow/summary")
+def shadow_monitoring_summary(request: Request):
+    """
+    Returns summary statistics for candidate shadow inference:
+    total shadowed, agreement/divergence rates, critical P1 downgrades,
+    action/deadline differences, and median/P95 latency.
+    """
+    session = _require_session(request)
+    try:
+        summary = shadow_monitor.get_summary(session.user_id)
+        return {"status": "success", "shadow_summary": summary}
+    except Exception as exc:
+        logger.error("shadow_monitoring_summary error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Shadow summary failed: {exc}")
+
+
+@router.get("/api/monitoring/shadow/distribution")
+def shadow_monitoring_distribution(request: Request):
+    """
+    Returns class distributions (P1/P2/P3/P4) comparing active production
+    versus shadow candidate model for the authenticated user.
+    """
+    session = _require_session(request)
+    try:
+        dist = shadow_monitor.get_distribution(session.user_id)
+        return {"status": "success", "shadow_distribution": dist}
+    except Exception as exc:
+        logger.error("shadow_monitoring_distribution error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Shadow distribution failed: {exc}")
+
+
+@router.get("/api/monitoring/shadow/divergence")
+def shadow_monitoring_divergence(request: Request, limit: int = 100):
+    """
+    Returns top diverged prediction records (priority changed, action changed,
+    or deadline changed) without raw email body or credentials.
+    """
+    session = _require_session(request)
+    try:
+        records = shadow_monitor.get_divergence_records(session.user_id, limit=limit)
+        return {"status": "success", "divergence_count": len(records), "records": records}
+    except Exception as exc:
+        logger.error("shadow_monitoring_divergence error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Shadow divergence failed: {exc}")
+
+
+@router.get("/api/monitoring/shadow/safety")
+def shadow_monitoring_safety(request: Request):
+    """
+    Performs deterministic safety audit across high-risk categories (OTP, MFA,
+    account compromise, security alerts, password resets, payment failures, etc.)
+    and reports any critical P1 downgrades.
+    """
+    session = _require_session(request)
+    try:
+        safety = shadow_monitor.get_safety_audit(session.user_id)
+        return {"status": "success", "shadow_safety": safety}
+    except Exception as exc:
+        logger.error("shadow_monitoring_safety error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Shadow safety failed: {exc}")
+
+
+@router.get("/api/monitoring/shadow/performance")
+def shadow_monitoring_performance(request: Request):
+    """
+    Returns latency comparison (active median/P95 vs shadow median/P95)
+    and overhead measurements.
+    """
+    session = _require_session(request)
+    try:
+        perf = shadow_monitor.get_performance(session.user_id)
+        return {"status": "success", "shadow_performance": perf}
+    except Exception as exc:
+        logger.error("shadow_monitoring_performance error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Shadow performance failed: {exc}")
+
+
+@router.get("/api/monitoring/shadow/transitions")
+def shadow_monitoring_transitions(request: Request):
+    """
+    Returns the complete 4x4 active -> shadow priority transition matrix
+    and highlights notable escalation and de-escalation patterns.
+    """
+    session = _require_session(request)
+    try:
+        transitions = shadow_monitor.get_transitions(session.user_id)
+        return {"status": "success", "shadow_transitions": transitions}
+    except Exception as exc:
+        logger.error("shadow_monitoring_transitions error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Shadow transitions failed: {exc}")
+
+
+@router.get("/api/monitoring/shadow/feedback-correlation")
+def shadow_monitoring_feedback_correlation(request: Request):
+    """
+    Correlates user corrections on active model with candidate shadow predictions
+    to evaluate observational agreement with human feedback.
+    """
+    session = _require_session(request)
+    try:
+        corr = shadow_monitor.get_feedback_correlation(session.user_id)
+        return {"status": "success", "feedback_correlation": corr}
+    except Exception as exc:
+        logger.error("shadow_monitoring_feedback_correlation error: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Shadow feedback correlation failed: {exc}")
+

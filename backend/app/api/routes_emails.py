@@ -283,6 +283,13 @@ def get_classified_emails(
                 except Exception:
                     pass  # observability must never break production
 
+        # Phase 48: Non-blocking candidate shadow inference hook (failsafe)
+        try:
+            from backend.app.ml.shadow_engine import shadow_engine
+            shadow_engine.shadow_batch_async(user_id, missing_ordered, predicted_missing)
+        except Exception:
+            pass
+
     # 4. Assemble in original Gmail list order
     all_emails = []
     for mid in target_ids:
@@ -434,6 +441,14 @@ def get_email_detail(request: Request, email_id: str):
     pipeline = load_model()
     classified = predict_email(full_email, pipeline=pipeline)
     user_email_cache.set(user_id, email_id, classified)
+
+    # Phase 48: Non-blocking candidate shadow inference hook (failsafe)
+    try:
+        from backend.app.ml.shadow_engine import shadow_engine
+        shadow_engine.shadow_batch_async(user_id, [full_email], [classified])
+    except Exception:
+        pass
+
     return {"status": "success", "email": classified}
 
 

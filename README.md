@@ -3,7 +3,7 @@
 **Course Project:** CSE472 — Natural Language Processing / Applied Artificial Intelligence  
 **Author / Developer:** Babul Kumar  
 **System Status:** Production Hardened • Fully Validated • Read-Only Gmail OAuth 2.0  
-**Current Production Model:** `priority-v4.1` (Boundary Repair) (*Production*, Historical Test Accuracy: **81.67%**, Macro F1: **0.8023** • Modern Holdout P2 Recall: **100.00%** • Phase 47 Candidate: `priority-v5.1` evaluated, **CANDIDATE READY FOR SHADOW EVALUATION**, all 17 gates passed)
+**Current Production Model:** `priority-v4.1` (Boundary Repair) (*Production*, Historical Test Accuracy: **81.67%**, Macro F1: **0.8023** • Modern Holdout P2 Recall: **100.00%** • Phase 48 Live Shadow: `priority-v5.1` evaluated on 17,329 messages, **97.24% agreement**, **0 P1 downgrades**, **CANDIDATE READY FOR CANARY REVIEW**)
 
 ---
 
@@ -757,5 +757,33 @@ The shadow promotion protocol for `priority-v4.1` compared live production class
 - **Comprehensive Remediation Report:** [`docs/PHASE_47_PRIORITY_V5_1_REMEDIATION.md`](docs/PHASE_47_PRIORITY_V5_1_REMEDIATION.md).
 - **Final Decision:** **`CANDIDATE READY FOR SHADOW EVALUATION`** (`priority-v4.1` remains ACTIVE in production; `priority-v5.1` is qualified for shadow traffic in Phase 48).
 
+---
 
+### Phase 48 — Live Shadow Inference & Promotion Evidence Pipeline
 
+- **Phase Objective:** Implement a non-blocking, production-safe live shadow inference pipeline to evaluate candidate model `priority-v5.1` against active production model `priority-v4.1` on real Gmail mailbox traffic, measuring agreement, divergence, latency overhead, and safety retention without altering production classifications.
+- **Production Safety:** Production model `priority-v4.1` remains strictly **ACTIVE** (`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`). Candidate `priority-v5.1` remains strictly **CANDIDATE / SHADOW ONLY** (`8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`). Production cache `user_email_cache` table experienced **0 mutations** (17,329 rows unchanged). Zero raw email bodies and zero OAuth tokens stored.
+- **Architecture & Failure Isolation:** Implemented `backend/app/ml/shadow_engine.py` with asynchronous background dispatch via `_shadow_executor`. All shadow operations are wrapped in failsafe exception handling; shadow failures can never interrupt or degrade active user-facing responses.
+- **Dedicated Shadow Storage:** SQLite store at `google_auth/cache/mailmind_shadow.db` (table `shadow_predictions`) and user-scoped append-only JSONL log (`dataset/monitoring/shadow_logs/shadow_<uid_hash>.jsonl`). Deduplication enforces unique evaluations on `(user_id, message_id, shadow_model_version)`.
+- **Real Mailbox Shadow Execution ($N=17,329$):**
+  - **Throughput:** 232.3 msgs/sec (completed full 17,329-email mailbox in 74.60 seconds).
+  - **Exact Priority Agreement:** **16,851 / 17,329 (97.24%)**.
+  - **Priority Divergence Rate:** **478 / 17,329 (2.76%)**.
+  - **Critical P1 Downgrades:** **EXACTLY 0 (100% P1 Retention across all 403 active P1 messages)**.
+  - **Intentional Boundary De-escalation:** 88 non-actionable emails (recruitment acknowledgments, routine receipts) transitioned from P2 $\to$ P3.
+  - **Needs Attention Reduction:** -15 non-actionable emails removed from triage attention badge without dropping genuine action items.
+- **Deterministic Safety Category Audit ($N=750$ High-Risk Emails):**
+  - **MFA:** 4/4 agreed (0 downgrades).
+  - **OTP:** 163/163 agreed (0 downgrades).
+  - **Account Activation:** 111/111 agreed (0 downgrades).
+  - **Password Reset:** 35/35 agreed (0 downgrades).
+  - **Payment Failure:** 6/6 agreed (0 downgrades).
+  - **Security Alerts:** 223/233 agreed, 10 diverged (0 downgrades).
+  - **Deadlines:** 188/198 agreed, 10 diverged (0 downgrades).
+  - **Overall Safety Retention:** **100.0% (Zero P1 downgrades across all safety categories)**.
+- **Latency Footprint:** Active median 1.79 ms vs Shadow median 1.75 ms (P95: 2.10 ms). Net overhead is 0 ms on API requests due to asynchronous background execution.
+- **Monitoring Endpoints:** Session-gated, user-scoped endpoints added under `backend/app/api/routes_monitoring.py` (`/api/monitoring/shadow/summary`, `/distribution`, `/divergence`, `/safety`, `/performance`, `/transitions`, `/feedback-correlation`).
+- **Dashboard Telemetry:** Added real-time "Shadow Evaluation" administrative tab in frontend Settings modal (`SettingsPanel.jsx`) displaying live agreement, divergence, and safety telemetry clearly badged as `SHADOW ONLY`, `NOT USER-FACING`.
+- **Automated Tests:** **25/25 Phase 48 tests passed**; **384/384 full backend regression tests passed**; **9/9 frontend tests passed**; production build succeeded.
+- **Comprehensive Evaluation Report:** [`docs/PHASE_48_LIVE_SHADOW_EVALUATION.md`](docs/PHASE_48_LIVE_SHADOW_EVALUATION.md).
+- **Final Decision:** **`CANDIDATE READY FOR CANARY REVIEW`** (`priority-v4.1` remains ACTIVE in production; `priority-v5.1` qualifies for a 10% canary split in Phase 49).

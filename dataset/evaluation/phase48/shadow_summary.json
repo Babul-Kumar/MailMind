@@ -1,0 +1,21 @@
+{
+  "active_model_version": "priority-v4.1",
+  "shadow_model_version": "priority-v5.1",
+  "total_shadowed": 17329,
+  "agreement_count": 16851,
+  "divergence_count": 478,
+  "total_diverged": 478,
+  "agreement_rate_pct": 97.24,
+  "divergence_rate_pct": 2.76,
+  "critical_p1_downgrades": 0,
+  "p2_to_p3_count": 88,
+  "p3_to_p2_count": 16,
+  "action_differences": 0,
+  "deadline_differences": 0,
+  "needs_attention_differences": 15,
+  "latency_active_median_ms": 1.79,
+  "latency_shadow_median_ms": 1.75,
+  "latency_shadow_p95_ms": 2.1,
+  "status": "active_shadow_monitoring",
+  "is_promoted": false
+}

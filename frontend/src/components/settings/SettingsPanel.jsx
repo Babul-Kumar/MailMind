@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { Sliders, Inbox as InboxIcon, Cpu, Shield, RefreshCw, Layers, Database } from 'lucide-react';
+import { Sliders, Inbox as InboxIcon, Cpu, Shield, RefreshCw, Layers, Database, Activity, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export function SettingsPanel({
   isOpen,
@@ -25,6 +25,28 @@ export function SettingsPanel({
   const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
   const [scanScope, setScanScope] = useState('mailbox');
 
+  const [shadowData, setShadowData] = useState(null);
+  const [isShadowLoading, setIsShadowLoading] = useState(false);
+  const [shadowError, setShadowError] = useState(null);
+
+  useEffect(() => {
+    if (activeTab === 'shadow' && !shadowData && !isShadowLoading) {
+      setIsShadowLoading(true);
+      fetch('/api/monitoring/shadow/summary')
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          if (data.status === 'success') {
+            setShadowData(data.shadow_summary);
+          }
+        })
+        .catch((err) => setShadowError(err.message))
+        .finally(() => setIsShadowLoading(false));
+    }
+  }, [activeTab, shadowData, isShadowLoading]);
+
   const handleApply = () => {
     if (onChangePageSize) onChangePageSize(Number(selectedPageSize));
     if (onUpdateQuery) onUpdateQuery(localQuery);
@@ -35,6 +57,7 @@ export function SettingsPanel({
     { id: 'general', label: 'General', icon: Sliders },
     { id: 'mailbox', label: 'Complete Mailbox', icon: InboxIcon },
     { id: 'model', label: 'AI & Model', icon: Cpu },
+    { id: 'shadow', label: 'Shadow Evaluation', icon: Activity },
     { id: 'privacy', label: 'Privacy', icon: Shield },
   ];
 
@@ -363,7 +386,154 @@ export function SettingsPanel({
               </div>
               <div><strong>Lifecycle Governance:</strong> The active production model is strictly immutable during live inference. New models are trained offline on versioned datasets (e.g. dataset-v2), evaluated against holdouts, and promoted explicitly with instant rollback capability.</div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-divider)', paddingTop: '0.5rem' }}>
-                Registry: <code>dataset/models/registry.json</code> &bull; Active: <code>priority-v2</code> &bull; Rollback: <code>priority-v1</code>
+                Registry: <code>dataset/models/registry.json</code> &bull; Active: <code>priority-v4.1</code> &bull; Candidate: <code>priority-v5.1</code>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SHADOW EVALUATION (Phase 48) */}
+          {activeTab === 'shadow' && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.85rem',
+                backgroundColor: 'var(--bg-card)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '0.82rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              {/* Header Badges */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <Activity size={16} color="var(--accent)" />
+                  <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.88rem' }}>
+                    Live Shadow Inference Pipeline
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '4px', backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 700 }}>
+                    SHADOW ONLY
+                  </span>
+                  <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '4px', backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', fontWeight: 700 }}>
+                    NOT USER-FACING
+                  </span>
+                  <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '4px', backgroundColor: 'var(--bg-surface-hover)', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    PRODUCTION: v4.1
+                  </span>
+                </div>
+              </div>
+
+              {/* Models Comparison Banner */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.65rem 0.85rem',
+                  backgroundColor: 'var(--bg-input)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Active Production Model
+                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.92rem' }}>
+                    {shadowData?.active_model_version || 'priority-v4.1'}
+                  </div>
+                </div>
+                <ArrowRight size={16} color="var(--text-muted)" />
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Candidate Shadow Model
+                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '0.92rem' }}>
+                    {shadowData?.shadow_model_version || 'priority-v5.1'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Loading / Error States */}
+              {isShadowLoading && (
+                <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
+                  Loading real-time shadow metrics...
+                </div>
+              )}
+
+              {shadowError && (
+                <div style={{ color: '#ef4444', padding: '0.5rem', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderRadius: '4px' }}>
+                  Failed to load shadow metrics: {shadowError}
+                </div>
+              )}
+
+              {/* Key Metrics Grid */}
+              {shadowData && !isShadowLoading && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Emails Shadowed</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        {shadowData.total_shadowed?.toLocaleString() || 0}
+                      </div>
+                    </div>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Agreement Rate</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#10b981' }}>
+                        {shadowData.agreement_rate_pct}%
+                      </div>
+                    </div>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Divergence Rate</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f59e0b' }}>
+                        {shadowData.divergence_rate_pct}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Safety & Transition Metrics */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                    <div style={{ padding: '0.5rem', backgroundColor: shadowData.critical_p1_downgrades === 0 ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-sm)', border: `1px solid ${shadowData.critical_p1_downgrades === 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.4)'}` }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Critical P1 Downgrades</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: shadowData.critical_p1_downgrades === 0 ? '#10b981' : '#ef4444' }}>
+                        {shadowData.critical_p1_downgrades} {shadowData.critical_p1_downgrades === 0 ? '✓ (Safe)' : '⚠ (Requires Audit)'}
+                      </div>
+                    </div>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>P2 → P3 De-escalations</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        {shadowData.p2_to_p3_count?.toLocaleString() || 0}
+                      </div>
+                    </div>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>P3 → P2 Escalations</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        {shadowData.p3_to_p2_count?.toLocaleString() || 0}
+                      </div>
+                    </div>
+                    <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-sm)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Needs Attention Diffs</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        {shadowData.needs_attention_differences?.toLocaleString() || 0}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Latency Footprint */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.45rem 0.65rem', backgroundColor: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-sm)', fontSize: '0.74rem' }}>
+                    <span>Active Median: <strong>{shadowData.latency_active_median_ms} ms</strong></span>
+                    <span>Shadow Median: <strong>{shadowData.latency_shadow_median_ms} ms</strong></span>
+                    <span>Shadow P95: <strong>{shadowData.latency_shadow_p95_ms} ms</strong></span>
+                  </div>
+                </>
+              )}
+
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-divider)', paddingTop: '0.4rem' }}>
+                Note: Candidate model runs in read-only observation mode. User-facing priority, actions, and dashboard UI remain strictly driven by production model priority-v4.1.
               </div>
             </div>
           )}

@@ -1,0 +1,14 @@
+{
+  "total_samples": 17329,
+  "active_latency_ms": {
+    "median": 1.79,
+    "p95": 2.3,
+    "mean": 1.86
+  },
+  "shadow_latency_ms": {
+    "median": 1.75,
+    "p95": 2.1,
+    "mean": 1.8
+  },
+  "overhead_median_ms": 0.0
+}
