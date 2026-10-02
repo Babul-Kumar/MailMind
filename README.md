@@ -688,3 +688,22 @@ The shadow promotion protocol for `priority-v4.1` compared live production class
 
 ---
 
+### Phase 45 — Dataset-v5 Training Readiness & Provenance Audit
+
+- **Audit Status:** Complete — 13/13 Readiness Gates Passed.
+- **Audited Dataset:** `dataset-v5` (`train.csv`, `validation.csv`, `metadata.json`, `adjudication_queue.json`, `contrastive_pairs.json`).
+- **Physical Lines vs Logical Records:** 78,711 training lines = 1,869 logical records; 16,328 validation lines = 429 logical records (multiline RFC 4180 parsing from Enron base). Total: 2,298 discrete examples.
+- **Label Provenance:** 100% of rows trace to known origins: 2,287 inherited from v4.1 (99.52%), 10 human-authored contrastive boundary pairs (0.43%), 1 synthesized from accepted feedback `fb_adj_001` (0.04%).
+- **Leakage Integrity:** 0 cross-split duplicates, 0 holdout violations across 650 holdout examples in all 6 frozen holdout sets (`test.csv`, `modern_holdout.csv`, `newsletter_holdout.csv`, `social_holdout.csv`, `dataset-v4/test.csv`, `dataset-v4.1/test.csv`).
+- **Thread Integrity:** 0 thread ID leakage. 0 Phase 44 cross-split subject overlap. 30 inherited baseline subject overlaps (historical Enron newsletters/alerts).
+- **Label Transitions:** 0 accidental relabelings (100% of inherited rows retained prior label).
+- **Domain Distribution:** 10 domains audited. Operational P2 verified across 9/10 modern domains.
+- **Contrastive Grounding:** All 5 pairs verified grounded in action, deadline, urgency, and consequence.
+- **Model Preservation:** Zero model training executed. Production `priority-v4.1` remains active.
+- **Automated Tests:** 319 passed, 0 failed (14 new Phase 45 tests added).
+- **Audit Report:** [`docs/PHASE_45_DATASET_V5_TRAINING_READINESS.md`](docs/PHASE_45_DATASET_V5_TRAINING_READINESS.md).
+- **Final Decision:** **`READY FOR OFFLINE TRAINING`**.
+
+---
+
+
