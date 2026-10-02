@@ -1,0 +1,79 @@
+{
+  "dataset_version": "dataset-v5.0",
+  "created_at": "2026-10-02T15:16:04.189513+00:00",
+  "base_dataset": "dataset-v4.1",
+  "phase": "Phase 44 \u2014 Feedback Adjudication & Dataset-v5 Construction",
+  "description": "Dataset-v5 candidate constructed from dataset-v4.1 base, 5 human-adjudicated production feedback examples (1 ACCEPT, 2 INSUFFICIENT_CONTEXT, 2 REJECT), and 10 human-authored contrastive boundary pairs. No model training performed. Holdouts unchanged.",
+  "new_examples": {
+    "from_feedback_accepted": 1,
+    "from_feedback_synthesized": 1,
+    "contrastive_pairs": 10,
+    "total_new_train": 9,
+    "total_new_val": 2
+  },
+  "adjudication": {
+    "total_unique_feedback": 5,
+    "ACCEPT": 1,
+    "REJECT": 2,
+    "INSUFFICIENT_CONTEXT": 2,
+    "DUPLICATE": 0,
+    "AMBIGUOUS": 0,
+    "raw_records": 108,
+    "deduplicated_to": 5,
+    "repetition_note": "103 of 108 raw records are duplicates of 3 unique messages from UI retry loops."
+  },
+  "leakage_audit": {
+    "holdouts_checked": [
+      "dataset/processed/test.csv",
+      "dataset-v3/modern_holdout.csv",
+      "dataset-v4/newsletter_holdout.csv",
+      "dataset-v4/social_holdout.csv",
+      "dataset-v4/test.csv",
+      "dataset-v4.1/test.csv"
+    ],
+    "holdout_hash_pool_size": 590,
+    "leakage_violations": 0,
+    "result": "CLEAN"
+  },
+  "privacy": {
+    "contains_oauth_tokens": false,
+    "contains_session_cookies": false,
+    "contains_credentials": false,
+    "user_ids_retained": "Stable anonymised IDs only (user_test_fb, user_a_uid_101, user_b_uid_202, phase43_test_user)",
+    "raw_email_bodies_stored": false,
+    "note": "No raw personal email content stored. Feedback references message_ids only."
+  },
+  "counts": {
+    "train": 1869,
+    "validation": 429
+  },
+  "train_class_distribution": {
+    "P4": 521,
+    "P3": 543,
+    "P2": 735,
+    "P1": 70
+  },
+  "val_class_distribution": {
+    "P3": 135,
+    "P2": 164,
+    "P4": 119,
+    "P1": 11
+  },
+  "sha256": {
+    "train": "21842e2eb39d4dd56c5b47c3e9c718e95a31ab1e5961ea64583157acf1048ace",
+    "validation": "8bfaf2dea08d0065bbb15ab5d493464d9ae8359e135a6f03df717136ae2bb603"
+  },
+  "quality_gates": {
+    "GATE_1_all_accepted_human_adjudicated": true,
+    "GATE_2_ambiguous_excluded": true,
+    "GATE_3_duplicates_controlled": true,
+    "GATE_4_zero_holdout_leakage": true,
+    "GATE_5_priority_action_deadline_separate": true,
+    "GATE_6_no_credentials": true,
+    "GATE_7_provenance_exists": true,
+    "GATE_8_distribution_documented": true,
+    "GATE_9_reviewer_agreement_documented": true,
+    "GATE_10_holdouts_unchanged": true
+  },
+  "readiness": "READY_FOR_OFFLINE_CANDIDATE_TRAINING"
+}

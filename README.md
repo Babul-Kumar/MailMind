@@ -3,7 +3,7 @@
 **Course Project:** CSE472 — Natural Language Processing / Applied Artificial Intelligence  
 **Author / Developer:** Babul Kumar  
 **System Status:** Production Hardened • Fully Validated • Read-Only Gmail OAuth 2.0  
-**Current Production Model:** `priority-v3` (OTP & Time-Sensitive Verification) (*Strictly Frozen*, Historical Test Accuracy: **80.67%**, Macro F1: **0.7943** • Modern Holdout Accuracy: **80.00%**, P1 Recall: **93.62%**)
+**Current Production Model:** `priority-v4.1` (Boundary Repair) (*Production*, Historical Test Accuracy: **80.67%**, Macro F1: **0.7943** • Modern Holdout Accuracy: **80.00%**, P1 Recall: **93.62%** • Dataset-v5 Candidate: **READY**)
 
 ---
 
@@ -309,7 +309,7 @@ Fetches and classifies live emails from Gmail.
 
 ## 13. Automated Test Suite & Verification
 
-The project includes **31 automated tests** across three dedicated test suites:
+The project includes **305 automated tests** across multiple test suites:
 
 ```bash
 # Run the complete test suite
@@ -545,8 +545,10 @@ MailMind maintains an immutable, versioned model registry (`dataset/models/regis
 | Model ID | Architecture | Dataset Version | SHA-256 Checksum | Status |
 |---|---|---|---|:---:|
 | `priority-v1` | TF-IDF + Logistic Baseline | `dataset-v1` | `040496611b8a15247b6b00330f531670dedca34772c923439ddefec445c55a6e` | Retired |
-| `priority-v2` | Modern Gmail + Negations | `dataset-v2` | `be52c2dbfe28001a66b134d1125dfa8d117bbe64206590d71bde9f7029f3cd75` | Standby (Rollback) |
-| **`priority-v3`** | **OTP & Time-Sensitive Verification** | **`dataset-v3`** | **`fa69e6a5cfafb8b24c5941dbb8fb08a208addfc4f39e38fa47df0a7cd7040b56`** | **Active Production** |
+| `priority-v2` | Modern Gmail + Negations | `dataset-v2` | `be52c2dbfe28001a66b134d1125dfa8d117bbe64206590d71bde9f7029f3cd75` | Retired |
+| `priority-v3` | OTP & Time-Sensitive Verification | `dataset-v3` | `fa69e6a5cfafb8b24c5941dbb8fb08a208addfc4f39e38fa47df0a7cd7040b56` | Retired |
+| `priority-v4` | Newsletters & Social Disambiguation | `dataset-v4` | `cf814f01534910aac67d2db2b72b8a410c876d37d29bf56da8422205807307fc` | Candidate |
+| **`priority-v4.1`** | **Boundary Repair** | **`dataset-v4.1`** | **`09fe269f19ad6afb38e71b56f8c6ee7a386e59605c62c892478400bc09d5cbd0`** | **Production** |
 
 ### 20.3 Modern Email Holdout Evaluation (Disjoint $N=120$)
 To prevent test leakage and sender memorization, a dedicated evaluation set was created (`dataset-v3/modern_holdout.csv`, $N=120$, 10 balanced samples across 12 distinct categories) with **0% overlap** with training and historical test sets.
@@ -600,4 +602,89 @@ Validated against a live, authenticated Gmail account (`babulkumar0220@gmail.com
 - **Backend Test Suite:** **226 passed, 0 failed in 29.79s** across 12 test modules.
 - **Frontend Unit Tests:** **7 passed, 0 failed** in Node.js test runner.
 - **Frontend Production Build:** Vite v5.4.21 compiled in **5.91s** with zero bundle errors.
+
+---
+
+## 21. Phases 41–44: Production Promotion, Observation & Feedback Adjudication
+
+### 21.1 Phase 41 — Shadow Promotion Audit (`priority-v4.1`)
+
+The shadow promotion protocol for `priority-v4.1` compared live production classifications against `priority-v3` across 50 real Gmail messages:
+- **Net upgrade rate:** 24% (12/50 messages received meaningful priority corrections).
+- **No regressions** on P1 security/authentication recall.
+- Newsletters and social bulk downgraded from P2→P4 where appropriate.
+- Boundary repair confirmed for academic deadlines, invoices, recruitment challenges, infrastructure warnings.
+
+### 21.2 Phase 42 — Production Promotion
+
+`priority-v4.1` was promoted to **active production** on `2026-10-02T14:23:34Z`.
+- Registry updated: `active_model = priority-v4.1`.
+- Promotion artifact signed and snapshotted.
+- Full regression suite: **305 tests, 0 failures**.
+
+### 21.3 Phase 43 — Production Observation & User Feedback
+
+`priority-v4.1` was observed under real production traffic for 48 hours.
+- Feedback endpoint (`POST /api/feedback`) verified operational.
+- Multi-user isolation confirmed: user A cannot access user B's feedback, cache, or session.
+- Production observation documented: `docs/PHASE_43_PRODUCTION_OBSERVATION.md`.
+
+### 21.4 Phase 44 — Feedback Adjudication & Dataset-v5 Construction
+
+#### Feedback Audit Summary
+
+| Metric | Value |
+|--------|-------|
+| Raw feedback records | 108 |
+| Unique users | 4 |
+| Unique (user, message) pairs | 5 |
+| UI retry duplicates | 103 |
+| Records with model_version | 40 |
+| Records without model_version | 68 |
+
+#### Human Adjudication Results
+
+| Example | Status | Reason |
+|---------|--------|--------|
+| `fb_adj_001` | **ACCEPT** | P4→P2 with registration deadline. Well-supported by annotation policy. |
+| `fb_adj_002` | INSUFFICIENT_CONTEXT | Terse reason only. No email content. |
+| `fb_adj_003` | INSUFFICIENT_CONTEXT | Terse reason only. No email content. |
+| `fb_adj_004` | REJECT | Phase 43 synthetic test artifact. |
+| `fb_adj_005` | REJECT | Phase 43 synthetic test artifact. |
+
+#### Dataset-v5 Construction
+
+| Component | Train | Validation |
+|-----------|-------|------------|
+| `dataset-v4.1` base | 78,702 | 16,326 |
+| Contrastive pairs (5 pairs) | 8 | 2 |
+| Synthesized feedback example | 1 | 0 |
+| **Total** | **78,711** | **16,328** |
+
+- **Quality gates:** 10/10 passed.
+- **Leakage violations:** 0 (590 holdout hashes checked).
+- **Readiness:** `READY_FOR_OFFLINE_CANDIDATE_TRAINING`.
+- **Active model unchanged:** `priority-v4.1` remains in production.
+- **No model training performed in Phase 44.**
+
+#### Dataset-v5 Files
+
+| File | Description |
+|------|-------------|
+| `dataset-v5/train.csv` | Base + contrastive + synthesized training split |
+| `dataset-v5/validation.csv` | Validation split with 2 new contrastive examples |
+| `dataset-v5/adjudication_queue.json` | Full adjudication records for all 5 unique pairs |
+| `dataset-v5/contrastive_pairs.json` | 10 human-authored boundary contrastive examples |
+| `dataset-v5/metadata.json` | Dataset provenance, SHA-256 hashes, quality gates |
+| `docs/PHASE_44_FEEDBACK_AUDIT.md` | Full raw feedback inventory & structural analysis |
+| `docs/PHASE_44_FEEDBACK_ADJUDICATION_DATASET_V5.md` | Complete adjudication report & construction log |
+
+#### Conditions Before Phase 45 Training
+
+1. Accumulate ≥ 50 genuine diverse feedback examples (current: 1 accepted).
+2. Verify synthesized example `fb_synth_001` against actual email content.
+3. Resolve structural issues: idempotency, schema enforcement in feedback endpoint.
+4. Ensure no future test artifacts contaminate production feedback corpus.
+
+---
 
