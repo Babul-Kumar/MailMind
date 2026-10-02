@@ -486,12 +486,18 @@ def submit_feedback(request: Request, submission: FeedbackSubmission):
 
 @router.get("/api/feedback")
 def list_feedback(request: Request):
-    """Lists recent feedback submissions for monitoring and error review."""
+    """
+    Lists recent feedback submissions for the authenticated user only.
+    Phase 52 fix: user_id is now always passed to enforce isolation.
+    A user may never see another user's feedback records.
+    """
     session = get_session_from_request(request)
     if not session:
         raise HTTPException(
             status_code=401,
             detail="Authentication required to view feedback."
         )
-    records = feedback_manager.list_feedback()
+    # Phase 52 fix: always scope by session.user_id — never expose all records
+    records = feedback_manager.list_feedback(user_id=session.user_id)
     return {"status": "success", "total_records": len(records), "records": records}
+

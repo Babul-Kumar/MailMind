@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { Sliders, Inbox as InboxIcon, Cpu, Shield, RefreshCw, Layers, Database, Activity, CheckCircle2, AlertTriangle, ArrowRight, HeartPulse } from 'lucide-react';
+import { Sliders, Inbox as InboxIcon, Cpu, Shield, RefreshCw, Layers, Database, Activity, CheckCircle2, AlertTriangle, ArrowRight, HeartPulse, MessageSquare } from 'lucide-react';
 import { SystemHealthPanel } from './SystemHealthPanel';
+import { FeedbackReviewPanel } from './FeedbackReviewPanel';
 
 export function SettingsPanel({
   isOpen,
@@ -81,6 +82,7 @@ export function SettingsPanel({
     { id: 'shadow', label: 'Shadow Evaluation', icon: Activity },
     { id: 'canary', label: 'Canary Deployment', icon: Layers },
     { id: 'health', label: 'System Health', icon: HeartPulse },
+    { id: 'feedback-review', label: 'Feedback Review', icon: MessageSquare },
     { id: 'privacy', label: 'Privacy', icon: Shield },
   ];
 
@@ -709,6 +711,11 @@ export function SettingsPanel({
           {/* TAB: SYSTEM HEALTH (Phase 51 Monitoring) */}
           {activeTab === 'health' && (
             <SystemHealthPanel />
+          )}
+
+          {/* TAB: FEEDBACK REVIEW (Phase 52 Adjudication Dashboard) */}
+          {activeTab === 'feedback-review' && (
+            <FeedbackReviewPanel />
           )}
         </div>
 

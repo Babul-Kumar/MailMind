@@ -1,0 +1,24 @@
+{
+  "candidate_count": 0,
+  "leaked_message_ids": [],
+  "leakage_count": 0,
+  "leakage_details": [],
+  "internal_duplicate_count": 0,
+  "internal_duplicates": [],
+  "frozen_file_shas": {
+    "test.csv": "6841cd44901fa56242bf3752257e991fd7ff474ed7e0f7a5d2b7065a0827c138",
+    "train.csv": "59c8b8d3c2c2bfc57323016512cd1526d4cf2b5e1a9dd4c3c3318a4f6a751a84",
+    "v5.1_train.csv": "5091382b832922c2d7f6f1ba6db0f4e9f3735cb7ecbd7cfb388acf30cec59923",
+    "v5.1_validation.csv": "b1a0f66772f3eef3186f1af5c4288c982a1110eff777e4d7dd9b766ff5374847",
+    "v5.1_boundary_holdout.csv": "a9562ffa0254b3db49bf20f1f3170e2ac5614c9407512d86e412cc9063b1b7aa"
+  },
+  "frozen_files_checked": [
+    "test.csv",
+    "train.csv",
+    "v5.1_train.csv",
+    "v5.1_validation.csv",
+    "v5.1_boundary_holdout.csv"
+  ],
+  "leakage_free": true,
+  "audit_timestamp": "2026-10-02T22:16:44Z"
+}

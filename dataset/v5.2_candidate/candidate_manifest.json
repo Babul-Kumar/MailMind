@@ -1,0 +1,54 @@
+{
+  "dataset_version": "dataset-v5.2-candidate",
+  "candidate_status": "CANDIDATE \u2014 NOT TRAINED \u2014 NOT PRODUCTION",
+  "parent_dataset": "dataset-v5.1",
+  "created_at": "2026-10-02T22:16:44Z",
+  "phase": "Phase 52 \u2014 Controlled Feedback Adjudication",
+  "source_model_versions": [],
+  "adjudicated_examples_accepted": 0,
+  "leaked_examples_removed": 0,
+  "class_distribution": {
+    "P1": 0,
+    "P2": 0,
+    "P3": 0,
+    "P4": 0
+  },
+  "v51_baseline_distribution": {
+    "P1": 70,
+    "P2": 735,
+    "P3": 552,
+    "P4": 523
+  },
+  "files": {
+    "train_candidate.csv": {
+      "sha256": "b3200c4ef779c09ab08f304ceda26f675ce8585fc86c5612e9826b8108ae2c8d",
+      "rows": 0
+    },
+    "provenance.csv": {
+      "sha256": "dc48371da71d03b94edd2423e43d47fb879c8e2c036f4dca64e601006f0e8307",
+      "rows": 0
+    }
+  },
+  "leakage_audit": {
+    "leakage_free": true,
+    "leaked_count": 0,
+    "frozen_file_shas": {
+      "test.csv": "6841cd44901fa56242bf3752257e991fd7ff474ed7e0f7a5d2b7065a0827c138",
+      "train.csv": "59c8b8d3c2c2bfc57323016512cd1526d4cf2b5e1a9dd4c3c3318a4f6a751a84",
+      "v5.1_train.csv": "5091382b832922c2d7f6f1ba6db0f4e9f3735cb7ecbd7cfb388acf30cec59923",
+      "v5.1_validation.csv": "b1a0f66772f3eef3186f1af5c4288c982a1110eff777e4d7dd9b766ff5374847",
+      "v5.1_boundary_holdout.csv": "a9562ffa0254b3db49bf20f1f3170e2ac5614c9407512d86e412cc9063b1b7aa"
+    }
+  },
+  "provenance_counts": {
+    "HUMAN_PRODUCTION_FEEDBACK_ADJUDICATED": 0
+  },
+  "governance": {
+    "training_occurred": false,
+    "promotion_occurred": false,
+    "fabricated_data": false,
+    "human_adjudication_required": true,
+    "automatic_acceptance_forbidden": true
+  },
+  "readiness_gate": "EVIDENCE COLLECTING \u2014 insufficient adjudicated production feedback."
+}
