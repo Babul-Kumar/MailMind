@@ -148,6 +148,7 @@ export function useEmails(isAuthenticated = false) {
   }, [isAuthenticated]);
 
   // Polling loop for active background scans
+  const lastRefreshedCount = useRef(0);
   useEffect(() => {
     if (!isAuthenticated) {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
@@ -168,6 +169,12 @@ export function useEmails(isAuthenticated = false) {
             clearInterval(pollTimerRef.current);
             pollTimerRef.current = null;
             loadData();
+          } else if (latest.status === 'ANALYZING' && latest.analyzed) {
+            // As batches complete and are committed to cache, refresh list periodically
+            if (latest.analyzed - lastRefreshedCount.current >= 50) {
+              lastRefreshedCount.current = latest.analyzed;
+              loadData();
+            }
           }
         }
       }, 1500);
@@ -238,7 +245,14 @@ export function useEmails(isAuthenticated = false) {
   // Initial load on authentication
   useEffect(() => {
     if (isAuthenticated) {
-      loadData();
+      loadData().then(() => {
+        // If scan status is idle and mailbox has not been scanned yet, trigger complete scan
+        checkScanStatus().then((status) => {
+          if (!status || status.status === 'NOT_STARTED' || (status.status === 'COMPLETE' && status.total === 0)) {
+            triggerScan({ scope: 'mailbox', mode: 'incremental' });
+          }
+        });
+      });
     } else {
       setEmails([]);
       setStats(null);
@@ -248,7 +262,7 @@ export function useEmails(isAuthenticated = false) {
       setScanStatus(null);
       setIsScanning(false);
     }
-  }, [isAuthenticated, loadData]);
+  }, [isAuthenticated, loadData, checkScanStatus, triggerScan]);
 
   const isInitialLoading = isLoading && emails.length === 0;
   const isRefreshing = isLoading && emails.length > 0;

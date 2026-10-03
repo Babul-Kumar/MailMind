@@ -66,7 +66,7 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
               margin: 0,
             }}
           >
-            Connect your Gmail account to prioritize emails, detect urgent deadlines, and organize your inbox with ML intelligence.
+            Connect your Gmail account to automatically prioritize your email, identify action items, and surface important deadlines.
           </p>
         </div>
 
@@ -148,11 +148,11 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Shield size={14} color="#22c55e" />
-            <span><strong>Read-Only Access</strong>: MailMind can never send, delete, or modify your emails.</span>
+            <span><strong>Read-Only Access</strong>: MailMind cannot send, delete, or modify your emails.</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Lock size={14} color="var(--accent)" />
-            <span><strong>Private Session</strong>: Your credentials and mailbox are strictly isolated to your session.</span>
+            <span><strong>Private &amp; Local</strong>: Email classification runs locally on MailMind's backend NLP model.</span>
           </div>
         </div>
       </div>

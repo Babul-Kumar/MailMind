@@ -88,6 +88,7 @@ export function AppShell({
         onRescan={emailsHook.rescan}
         onCancelScan={emailsHook.cancelScan}
         profile={emailsHook.profile}
+        auth={auth}
         theme={theme}
         onToggleTheme={onToggleTheme}
         density={density}

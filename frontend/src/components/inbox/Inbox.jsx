@@ -213,7 +213,7 @@ export function Inbox({
                 fontWeight: 600,
               }}
             >
-              {totalCount.toLocaleString()} email{totalCount === 1 ? '' : 's'}
+              {totalCount.toLocaleString()} {totalCount === 1 ? 'email' : 'emails'} analyzed
             </span>
             {totalCount > 0 && (
               <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>

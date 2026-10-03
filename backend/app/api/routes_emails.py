@@ -220,123 +220,52 @@ def get_classified_emails(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to fetch and process emails: {str(e)}")
 
-    # 1. Fetch message IDs from Gmail (synchronous fetch for recent window / incremental)
-    t_list_start = time.perf_counter()
-    target_ids: List[str] = []
-    page_token = None
-    try:
-        while len(target_ids) < max_emails:
-            batch_limit = min(50, max_emails - len(target_ids))
-            res = list_message_ids(service=service, max_results=batch_limit, query=query, page_token=page_token)
-            messages = res.get("messages", [])
-            if not messages:
-                break
-            for m in messages:
-                if len(target_ids) >= max_emails:
-                    break
-                target_ids.append(m.get("id"))
-            page_token = res.get("nextPageToken")
-            if not page_token:
-                break
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to list message IDs: {str(e)}")
-    t_list_ms = (time.perf_counter() - t_list_start) * 1000
-
-    # 2. Check User-Scoped Cache using Canary Router
-    t_cache_start = time.perf_counter()
+    # Check User-Scoped Cache using Canary Router
     from backend.app.ml.canary_router import canary_router
     pipeline, route_info = canary_router.get_pipeline_for_user(user_id)
     user_model_version = route_info["model_version"]
     canary_group = route_info["canary_group"]
 
-    cached_map, missing_ids = user_email_cache.get_batch(
-        user_id=user_id,
-        message_ids=target_ids,
-        active_model_version=user_model_version
-    )
-    t_cache_ms = (time.perf_counter() - t_cache_start) * 1000
-
-    # 3. Fetch missing emails concurrently (if any)
-    t_fetch_ms = 0.0
-    t_infer_ms = 0.0
-    newly_classified: Dict[str, Dict[str, Any]] = {}
-    if missing_ids:
-        t_fetch_start = time.perf_counter()
-        raw_missing: Dict[str, Dict[str, Any]] = {}
-        with ThreadPoolExecutor(max_workers=min(10, len(missing_ids))) as executor:
-            future_to_id = {
-                executor.submit(_fetch_single_message_safe, service, mid): mid
-                for mid in missing_ids
-            }
-            for future in as_completed(future_to_id):
-                mid = future_to_id[future]
-                parsed = future.result()
-                if parsed:
-                    raw_missing[mid] = parsed
-        t_fetch_ms = (time.perf_counter() - t_fetch_start) * 1000
-
-        # Predict missing messages using fast vectorized batch inference with routed pipeline
-        t_infer_start = time.perf_counter()
-        missing_ordered = [raw_missing[mid] for mid in missing_ids if mid in raw_missing]
-        predicted_missing = predict_batch(missing_ordered, pipeline=pipeline)
-        t_infer_ms = (time.perf_counter() - t_infer_start) * 1000
-
-        for pred in predicted_missing:
-            mid = pred.get("email_id")
-            if mid:
-                pred["model_version"] = user_model_version
-                pred["canary_group"] = canary_group
-                user_email_cache.set(user_id, mid, pred)
-                newly_classified[mid] = pred
-                # Phase 43/49: fire-and-forget prediction log (no raw body, no credentials)
-                try:
-                    log_prediction(
-                        user_id=user_id,
-                        message_id=mid,
-                        thread_id=pred.get("thread_id"),
-                        model_version=user_model_version,
-                        predicted_priority=pred.get("final_priority") or pred.get("predicted_priority", "P4"),
-                        confidence=pred.get("confidence", 0.0),
-                        action_required=bool(pred.get("action_required")),
-                        deadline_detected=bool(pred.get("deadline_detected")),
-                        deadline_status=pred.get("deadline_status"),
-                        topic=pred.get("topic"),
-                        needs_attention=bool(pred.get("needs_attention")),
-                        refinement_applied=bool(pred.get("refinement_applied")),
-                        canary_group=canary_group,
-                    )
-                except Exception:
-                    pass  # observability must never break production
-
-        # Phase 48: Non-blocking candidate shadow inference hook (failsafe)
-        try:
-            from backend.app.ml.shadow_engine import shadow_engine
-            shadow_engine.shadow_batch_async(user_id, missing_ordered, predicted_missing)
-        except Exception:
-            pass
-
-    # 4. Assemble in original Gmail list order
-    all_emails = []
-    for mid in target_ids:
-        if mid in cached_map:
-            all_emails.append(cached_map[mid])
-        elif mid in newly_classified:
-            all_emails.append(newly_classified[mid])
-
-    # Check if user has an extensive analyzed mailbox in persistent cache
-    # If the user has more emails in cache and specifically requests pagination or filtering:
     stats_db = user_email_cache.get_mailbox_stats(user_id, model_version=user_model_version)
     total_cached = stats_db.get("total_analyzed", 0)
-
     has_explicit_max = "max_emails" in request.query_params
+
+    # Auto-initiate complete background mailbox discovery if mailbox cache is empty
+    if not has_explicit_max and total_cached == 0 and not scan_manager.is_scanning(user_id):
+        try:
+            scan_manager.start_scan(
+                user_id=user_id,
+                service=service,
+                scope=scan_scope,
+                mode="incremental",
+                query=query
+            )
+            logger.info("Automatically initiated complete mailbox discovery scan for user: %s", user_id_hash)
+        except Exception as scan_err:
+            logger.warning("Could not auto-start background scan for %s: %s", user_id_hash, scan_err)
+
+    # 1. If user already has cached emails and didn't explicitly request max_emails, serve directly from cache
+    t_list_start = time.perf_counter()
+    t_list_ms = 0.0
+    t_cache_start = time.perf_counter()
+    t_cache_ms = 0.0
+    t_fetch_ms = 0.0
+    t_infer_ms = 0.0
+    cached_map: Dict[str, Dict[str, Any]] = {}
+    missing_ids: List[str] = []
+    target_ids: List[str] = []
+    all_emails: List[Dict[str, Any]] = []
+
     has_explicit_page = "page" in request.query_params
     has_explicit_priority = "priority" in request.query_params and priority != "ALL"
     has_explicit_action = "action_required" in request.query_params
     has_explicit_query = bool(query and query.strip())
 
-    use_display_pagination = has_explicit_page or has_explicit_priority or has_explicit_action or has_explicit_query or (not has_explicit_max and total_cached > len(all_emails))
+    use_display_pagination = (not has_explicit_max and total_cached > 0) or has_explicit_page or has_explicit_priority or has_explicit_action or has_explicit_query
 
-    if use_display_pagination:
+    if not has_explicit_max and total_cached > 0:
+        # Instant serve from complete analyzed mailbox cache
+        t_cache_start = time.perf_counter()
         emails_display, total_matching = user_email_cache.query_emails(
             user_id=user_id,
             priority=priority,
@@ -346,13 +275,124 @@ def get_classified_emails(
             action_required=action_required,
             model_version=user_model_version
         )
+        t_cache_ms = (time.perf_counter() - t_cache_start) * 1000
         total_analyzed = total_matching
         stats = stats_db
         display_list = emails_display
     else:
-        # Default behavior: use all_emails from the fetched sample
-        counts = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
-        total_conf = 0.0
+        # Synchronous fetch for initial preview or test harness with explicit max_emails
+        t_list_start = time.perf_counter()
+        page_token = None
+        try:
+            while len(target_ids) < max_emails:
+                batch_limit = min(50, max_emails - len(target_ids))
+                res = list_message_ids(service=service, max_results=batch_limit, query=query, page_token=page_token)
+                messages = res.get("messages", [])
+                if not messages:
+                    break
+                for m in messages:
+                    if len(target_ids) >= max_emails:
+                        break
+                    target_ids.append(m.get("id"))
+                page_token = res.get("nextPageToken")
+                if not page_token:
+                    break
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Failed to list message IDs: {str(e)}")
+        t_list_ms = (time.perf_counter() - t_list_start) * 1000
+
+        # Check User-Scoped Cache
+        t_cache_start = time.perf_counter()
+        cached_map, missing_ids = user_email_cache.get_batch(
+            user_id=user_id,
+            message_ids=target_ids,
+            active_model_version=user_model_version
+        )
+        t_cache_ms = (time.perf_counter() - t_cache_start) * 1000
+
+        # Fetch missing emails concurrently (if any)
+        newly_classified: Dict[str, Dict[str, Any]] = {}
+        if missing_ids:
+            t_fetch_start = time.perf_counter()
+            raw_missing: Dict[str, Dict[str, Any]] = {}
+            with ThreadPoolExecutor(max_workers=min(10, len(missing_ids))) as executor:
+                future_to_id = {
+                    executor.submit(_fetch_single_message_safe, service, mid): mid
+                    for mid in missing_ids
+                }
+                for future in as_completed(future_to_id):
+                    mid = future_to_id[future]
+                    parsed = future.result()
+                    if parsed:
+                        raw_missing[mid] = parsed
+            t_fetch_ms = (time.perf_counter() - t_fetch_start) * 1000
+
+            # Predict missing messages using fast vectorized batch inference with routed pipeline
+            t_infer_start = time.perf_counter()
+            missing_ordered = [raw_missing[mid] for mid in missing_ids if mid in raw_missing]
+            predicted_missing = predict_batch(missing_ordered, pipeline=pipeline)
+            t_infer_ms = (time.perf_counter() - t_infer_start) * 1000
+
+            for pred in predicted_missing:
+                mid = pred.get("email_id")
+                if mid:
+                    pred["model_version"] = user_model_version
+                    pred["canary_group"] = canary_group
+                    user_email_cache.set(user_id, mid, pred)
+                    newly_classified[mid] = pred
+                    try:
+                        log_prediction(
+                            user_id=user_id,
+                            message_id=mid,
+                            thread_id=pred.get("thread_id"),
+                            model_version=user_model_version,
+                            predicted_priority=pred.get("final_priority") or pred.get("predicted_priority", "P4"),
+                            confidence=pred.get("confidence", 0.0),
+                            action_required=bool(pred.get("action_required")),
+                            deadline_detected=bool(pred.get("deadline_detected")),
+                            deadline_status=pred.get("deadline_status"),
+                            topic=pred.get("topic"),
+                            needs_attention=bool(pred.get("needs_attention")),
+                            refinement_applied=bool(pred.get("refinement_applied")),
+                            canary_group=canary_group,
+                        )
+                    except Exception:
+                        pass
+
+            try:
+                from backend.app.ml.shadow_engine import shadow_engine
+                shadow_engine.shadow_batch_async(user_id, missing_ordered, predicted_missing)
+            except Exception:
+                pass
+
+        # Assemble in original Gmail list order
+        for mid in target_ids:
+            if mid in cached_map:
+                all_emails.append(cached_map[mid])
+            elif mid in newly_classified:
+                all_emails.append(newly_classified[mid])
+
+        # Refresh stats after caching
+        stats_db = user_email_cache.get_mailbox_stats(user_id, model_version=user_model_version)
+        total_cached = stats_db.get("total_analyzed", 0)
+
+        if use_display_pagination and total_cached > len(all_emails):
+            emails_display, total_matching = user_email_cache.query_emails(
+                user_id=user_id,
+                priority=priority,
+                search=query,
+                page=page,
+                page_size=page_size,
+                action_required=action_required,
+                model_version=user_model_version
+            )
+            total_analyzed = total_matching
+            stats = stats_db
+            display_list = emails_display
+        else:
+            # Default behavior for explicit max_emails or initial fetch
+            counts = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
+            total_conf = 0.0
         refined_count = 0
 
         for p in all_emails:

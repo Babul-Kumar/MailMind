@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { Sliders, Inbox as InboxIcon, Cpu, Shield, RefreshCw, Layers, Database, Activity, CheckCircle2, AlertTriangle, ArrowRight, HeartPulse, MessageSquare } from 'lucide-react';
+import {
+  Sliders,
+  Inbox as InboxIcon,
+  Cpu,
+  Shield,
+  RefreshCw,
+  Layers,
+  Database,
+  Activity,
+  HeartPulse,
+  MessageSquare,
+  User,
+  Sparkles,
+  LogOut,
+  RefreshCcw,
+  ShieldCheck,
+} from 'lucide-react';
 import { SystemHealthPanel } from './SystemHealthPanel';
 import { FeedbackReviewPanel } from './FeedbackReviewPanel';
 
@@ -17,6 +33,7 @@ export function SettingsPanel({
   onRescan,
   onCancelScan,
   profile,
+  auth,
   theme,
   onToggleTheme,
   density = 'comfortable',
@@ -26,6 +43,14 @@ export function SettingsPanel({
   const [localQuery, setLocalQuery] = useState(gmailQuery);
   const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
   const [scanScope, setScanScope] = useState('mailbox');
+
+  const [isDevMode, setIsDevMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const q = window.location.search;
+      return q.includes('dev=true') || q.includes('admin=true');
+    }
+    return false;
+  });
 
   const [shadowData, setShadowData] = useState(null);
   const [isShadowLoading, setIsShadowLoading] = useState(false);
@@ -75,16 +100,30 @@ export function SettingsPanel({
     onClose();
   };
 
-  const tabs = [
+  const baseTabs = [
     { id: 'general', label: 'General', icon: Sliders },
-    { id: 'mailbox', label: 'Complete Mailbox', icon: InboxIcon },
+    { id: 'mailbox', label: 'Mailbox', icon: InboxIcon },
+    { id: 'privacy', label: 'Privacy', icon: Shield },
+    { id: 'account', label: 'Account', icon: User },
+    { id: 'about', label: 'About', icon: Sparkles },
+  ];
+
+  const devTabs = [
     { id: 'model', label: 'AI & Model', icon: Cpu },
     { id: 'shadow', label: 'Shadow Evaluation', icon: Activity },
     { id: 'canary', label: 'Canary Deployment', icon: Layers },
     { id: 'health', label: 'System Health', icon: HeartPulse },
     { id: 'feedback-review', label: 'Feedback Review', icon: MessageSquare },
-    { id: 'privacy', label: 'Privacy', icon: Shield },
   ];
+
+  const tabs = isDevMode ? [...baseTabs, ...devTabs] : baseTabs;
+
+  // If active tab belongs to dev tabs and dev mode is turned off, reset to general
+  useEffect(() => {
+    if (!isDevMode && devTabs.some((t) => t.id === activeTab)) {
+      setActiveTab('general');
+    }
+  }, [isDevMode, activeTab]);
 
   const isScanningActive = scanStatus && ['QUEUED', 'SCANNING', 'ANALYZING', 'FINALIZING'].includes(scanStatus.status);
 
@@ -679,12 +718,12 @@ export function SettingsPanel({
             </div>
           )}
 
-          {/* TAB 6: PRIVACY */}
+          {/* TAB 3: PRIVACY */}
           {activeTab === 'privacy' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ padding: '0.85rem', backgroundColor: 'var(--bg-input)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ padding: '0.85rem', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Authenticated Gmail Account
+                  Connected Gmail Account
                 </div>
                 <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '0.2rem' }}>
                   {profile?.email_address
@@ -696,14 +735,100 @@ export function SettingsPanel({
                         const visible = local.length > 6 ? local.slice(0, Math.min(local.length, 10)) : local.slice(0, Math.max(2, Math.floor(local.length / 2)));
                         return `${visible}••••${domain}`;
                       })()
-                    : 'Loading profile...'}
+                    : (auth?.user?.email || 'Connected')}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                <div><strong>OAuth Scope:</strong> <code>https://www.googleapis.com/auth/gmail.readonly</code></div>
-                <div><strong>Permissions:</strong> Zero send, compose, delete, or modify permissions. The app can only inspect messages to organize them for you.</div>
-                <div><strong>Local Processing:</strong> All feature extraction, priority classification, and deadline parsing happen locally on your machine. No email content is sent to external cloud APIs.</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <div>
+                  <strong style={{ color: 'var(--text-main)' }}>Read-Only Gmail Access</strong>
+                  <p style={{ margin: '0.2rem 0 0' }}>MailMind requests strictly read-only permission (<code>gmail.readonly</code>). The application cannot send emails, delete messages, or modify your mailbox.</p>
+                </div>
+                <div>
+                  <strong style={{ color: 'var(--text-main)' }}>Local Custom NLP Processing</strong>
+                  <p style={{ margin: '0.2rem 0 0' }}>Email classification runs locally on the MailMind backend using custom-trained NLP models. Email content is never transmitted to external generative AI services or third parties.</p>
+                </div>
+                <div>
+                  <strong style={{ color: 'var(--text-main)' }}>Multi-User Session Isolation</strong>
+                  <p style={{ margin: '0.2rem 0 0' }}>All cached messages, metadata, and predictions are strictly isolated to your authenticated session. Other users on this system can never view your mailbox.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: ACCOUNT */}
+          {activeTab === 'account' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <User size={18} color="var(--accent)" />
+                  <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>Connected Google Account</span>
+                </div>
+                <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  {auth?.user?.email || profile?.email_address ? (
+                    <div>Currently signed in as: <strong style={{ color: 'var(--text-main)' }}>{auth?.user?.email || profile?.email_address}</strong></div>
+                  ) : (
+                    <div>No account connected.</div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: '#22c55e', marginTop: '0.35rem' }}>
+                    <ShieldCheck size={13} />
+                    <span>Read-Only Session Active</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      onClose();
+                      auth?.switchAccount?.();
+                    }}
+                  >
+                    <RefreshCcw size={14} />
+                    <span>Switch Account</span>
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      onClose();
+                      auth?.logout?.();
+                    }}
+                  >
+                    <LogOut size={14} />
+                    <span>Disconnect Gmail</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: ABOUT */}
+          {activeTab === 'about' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: 'var(--bg-card)', padding: '1.2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Sparkles size={18} color="var(--accent)" />
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>About MailMind</span>
+              </div>
+              <p style={{ margin: 0, lineHeight: 1.5 }}>
+                MailMind uses a custom-trained NLP classification engine to automatically prioritize emails, identify action items, and surface important deadlines.
+              </p>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-divider)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Version 5.4.1 (Production Release)</span>
+                <button
+                  type="button"
+                  onClick={() => setIsDevMode(!isDevMode)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: isDevMode ? 'var(--accent)' : 'var(--text-muted)',
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {isDevMode ? 'Hide Developer Tools' : 'Developer & ML Diagnostics'}
+                </button>
               </div>
             </div>
           )}
