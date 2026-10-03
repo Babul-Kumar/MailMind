@@ -10,6 +10,7 @@ google_auth/*.json
 # Environment variables & secrets
 .env
 .env.*
+!.env.example
 
 # Python environment & cache
 .venv/
