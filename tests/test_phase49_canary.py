@@ -72,6 +72,19 @@ class TestPhase49Canary:
     def setup_class(cls):
         # Save registry state for clean teardown restoration
         cls._saved_registry = model_registry.get_registry()
+        from backend.app.ml.canary_router import CONFIG_PATH
+        cls._saved_canary_config = None
+        if os.path.exists(CONFIG_PATH):
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                cls._saved_canary_config = f.read()
+
+        from backend.app.core.prediction_log import _log_path_for_user
+        test_log = _log_path_for_user("audit_user_p49")
+        cls._saved_audit_log = None
+        if os.path.exists(test_log):
+            with open(test_log, "r", encoding="utf-8") as f:
+                cls._saved_audit_log = f.read()
+
         if cls._saved_registry.get("active_model") != "priority-v4.1":
             temp_reg = dict(cls._saved_registry)
             temp_reg["active_model"] = "priority-v4.1"
@@ -87,6 +100,22 @@ class TestPhase49Canary:
         canary_router.rollback()
         # Restore saved registry
         model_registry._save_registry(cls._saved_registry)
+        # Restore saved canary config
+        if cls._saved_canary_config is not None:
+            from backend.app.ml.canary_router import CONFIG_PATH
+            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                f.write(cls._saved_canary_config)
+        # Restore or clean up test prediction logs
+        from backend.app.core.prediction_log import _log_path_for_user
+        test_log = _log_path_for_user("audit_user_p49")
+        if cls._saved_audit_log is not None:
+            with open(test_log, "w", encoding="utf-8") as f:
+                f.write(cls._saved_audit_log)
+        elif os.path.exists(test_log):
+            try:
+                os.remove(test_log)
+            except Exception:
+                pass
         from backend.app.ml.predictor import invalidate_cached_pipeline
         invalidate_cached_pipeline()
 

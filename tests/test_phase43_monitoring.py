@@ -64,12 +64,31 @@ class TestPhase43Monitoring(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        import backend.app.core.feedback as fb_mod
+        cls._orig_feedback_file = fb_mod.FEEDBACK_FILE
+        cls._saved_feedback = None
+        if os.path.exists(fb_mod.FEEDBACK_FILE):
+            with open(fb_mod.FEEDBACK_FILE, "r", encoding="utf-8") as f:
+                cls._saved_feedback = f.read()
+
         cls.client = _make_client_with_session(
             "phase43_test_user", "monitor@mailmind.local"
         )
         cls.client_b = _make_client_with_session(
             "phase43_user_b", "userb@mailmind.local"
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        import backend.app.core.feedback as fb_mod
+        if cls._saved_feedback is not None:
+            with open(fb_mod.FEEDBACK_FILE, "w", encoding="utf-8") as f:
+                f.write(cls._saved_feedback)
+        elif os.path.exists(fb_mod.FEEDBACK_FILE):
+            try:
+                os.remove(fb_mod.FEEDBACK_FILE)
+            except Exception:
+                pass
 
     # -----------------------------------------------------------------------
     # Test 1 — Registry: priority-v4.1 active, priority-v3 rollback-ready
@@ -449,52 +468,57 @@ class TestPredictionLog(unittest.TestCase):
 
     def test_prediction_log_write_read(self):
         """log_prediction must write a record readable by read_prediction_log."""
-        test_uid = f"pred_log_test_{int(time.time())}"
-        log_prediction(
-            user_id=test_uid,
-            message_id="msg_pred_001",
-            thread_id="thread_001",
-            model_version="priority-v4.1",
-            predicted_priority="P2",
-            confidence=0.81,
-            action_required=True,
-            deadline_detected=False,
-            deadline_status="NONE",
-            topic="work",
-            needs_attention=False,
-            refinement_applied=False,
-        )
-        records = read_prediction_log(test_uid)
-        self.assertEqual(len(records), 1)
-        rec = records[0]
-        self.assertEqual(rec["message_id"], "msg_pred_001")
-        self.assertEqual(rec["model_version"], "priority-v4.1")
-        self.assertEqual(rec["predicted_priority"], "P2")
-        self.assertAlmostEqual(rec["confidence"], 0.81, places=2)
-        self.assertTrue(rec["action_required"])
-        # No raw content fields
-        for forbidden in ("subject", "body", "sender", "access_token", "refresh_token"):
-            self.assertNotIn(forbidden, rec,
-                             f"'{forbidden}' must not appear in prediction log record")
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with patch("backend.app.core.prediction_log.PREDICTION_LOG_DIR", tmp_dir):
+                test_uid = f"pred_log_test_{int(time.time())}"
+                log_prediction(
+                    user_id=test_uid,
+                    message_id="msg_pred_001",
+                    thread_id="thread_001",
+                    model_version="priority-v4.1",
+                    predicted_priority="P2",
+                    confidence=0.81,
+                    action_required=True,
+                    deadline_detected=False,
+                    deadline_status="NONE",
+                    topic="work",
+                    needs_attention=False,
+                    refinement_applied=False,
+                )
+                records = read_prediction_log(test_uid)
+                self.assertEqual(len(records), 1)
+                rec = records[0]
+                self.assertEqual(rec["message_id"], "msg_pred_001")
+                self.assertEqual(rec["model_version"], "priority-v4.1")
+                self.assertEqual(rec["predicted_priority"], "P2")
+                self.assertAlmostEqual(rec["confidence"], 0.81, places=2)
+                self.assertTrue(rec["action_required"])
+                # No raw content fields
+                for forbidden in ("subject", "body", "sender", "access_token", "refresh_token"):
+                    self.assertNotIn(forbidden, rec,
+                                     f"'{forbidden}' must not appear in prediction log record")
 
     def test_prediction_log_no_crash_on_bad_input(self):
         """log_prediction must never raise — errors are silently swallowed."""
-        # Should not raise even with empty user_id
-        try:
-            log_prediction(
-                user_id="",
-                message_id="",
-                thread_id=None,
-                model_version="priority-v4.1",
-                predicted_priority="P4",
-                confidence=0.5,
-                action_required=False,
-                deadline_detected=False,
-                deadline_status=None,
-                topic=None,
-            )
-        except Exception as e:
-            self.fail(f"log_prediction raised unexpectedly: {e}")
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with patch("backend.app.core.prediction_log.PREDICTION_LOG_DIR", tmp_dir):
+                try:
+                    log_prediction(
+                        user_id="",
+                        message_id="",
+                        thread_id=None,
+                        model_version="priority-v4.1",
+                        predicted_priority="P4",
+                        confidence=0.5,
+                        action_required=False,
+                        deadline_detected=False,
+                        deadline_status=None,
+                        topic=None,
+                    )
+                except Exception as e:
+                    self.fail(f"log_prediction raised unexpectedly: {e}")
 
 
 if __name__ == "__main__":

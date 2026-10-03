@@ -62,6 +62,9 @@ class SessionManager:
 
     def _persist_session(self, session: SessionData):
         """Persists session to disk so active users aren't logged out on restart."""
+        if not self._is_safe_session_id(session.session_id):
+            print(f"[SessionManager Warning] Refusing to persist invalid session ID: {session.session_id}")
+            return
         try:
             fpath = os.path.join(SESSIONS_DIR, f"{session.session_id}.json")
             with open(fpath, "w", encoding="utf-8") as f:
@@ -112,9 +115,12 @@ class SessionManager:
             return False
         if not re.match(r"^[A-Za-z0-9_\-~]{16,128}$", session_id):
             return False
-        target_path = os.path.abspath(os.path.join(SESSIONS_DIR, f"{session_id}.json"))
-        sessions_base = os.path.abspath(SESSIONS_DIR)
-        return target_path.startswith(sessions_base + os.sep)
+        target_path = os.path.realpath(os.path.abspath(os.path.join(SESSIONS_DIR, f"{session_id}.json")))
+        sessions_base = os.path.realpath(os.path.abspath(SESSIONS_DIR))
+        try:
+            return os.path.commonpath([sessions_base, target_path]) == sessions_base and target_path.startswith(sessions_base + os.sep)
+        except ValueError:
+            return False
 
     def get_session(self, session_id: Optional[str]) -> Optional[SessionData]:
         """Retrieves an active, unexpired session by ID."""

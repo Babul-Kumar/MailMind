@@ -214,6 +214,19 @@ class TestAuthenticationAndSecurity:
         assert res.status_code == 400
         assert "Invalid or expired OAuth state" in res.json()["detail"]
 
+    def test_test_session_endpoint_disabled_in_prod(self):
+        """Verifies test-session endpoint returns 403 Forbidden in production unless explicitly allowed."""
+        with patch.dict(os.environ, {"ENVIRONMENT": "production"}):
+            if "ALLOW_TEST_ENDPOINTS" in os.environ:
+                del os.environ["ALLOW_TEST_ENDPOINTS"]
+            res = client.post("/api/auth/test-session?email=prod_test@example.com")
+            assert res.status_code == 403
+            assert "disabled in production" in res.json()["detail"]
+
+        with patch.dict(os.environ, {"ENVIRONMENT": "production", "ALLOW_TEST_ENDPOINTS": "false"}):
+            res = client.post("/api/auth/test-session?email=prod_test@example.com")
+            assert res.status_code == 403
+
 
 # ==============================================================================
 # 3. MULTI-USER ISOLATION AUDIT
@@ -650,4 +663,49 @@ class TestPerformanceBenchmarks:
         assert len(cached_map) == 50
         assert len(missing_ids) == 0
         assert dur_ms < 25.0, f"Cache get_batch took too long: {dur_ms:.2f}ms"
+
+
+# ==============================================================================
+# 11. FRONTEND RESPONSIVE UI & ACCESSIBILITY AUDIT
+# ==============================================================================
+
+class TestFrontendResponsiveAndAccessibilityAudit:
+    def test_responsive_css_and_viewport_rules(self):
+        """Verifies that index.css defines mobile drawer, backdrop, and hamburger rules."""
+        css_path = os.path.join("frontend", "src", "styles", "index.css")
+        assert os.path.exists(css_path)
+        with open(css_path, "r", encoding="utf-8") as f:
+            css_content = f.read()
+
+        # Check mobile-menu-btn rules
+        assert ".mobile-menu-btn" in css_content
+        assert "@media (max-width: 768px)" in css_content
+        assert ".sidebar-container" in css_content
+        assert ".sidebar-container.mobile-open" in css_content
+        assert ".sidebar-backdrop" in css_content
+
+    def test_topbar_and_appshell_components_wired(self):
+        """Verifies TopBar and AppShell have mobile toggle and backdrop hooks properly wired."""
+        topbar_path = os.path.join("frontend", "src", "components", "layout", "TopBar.jsx")
+        with open(topbar_path, "r", encoding="utf-8") as f:
+            topbar_content = f.read()
+
+        assert "mobile-menu-btn" in topbar_content
+        assert "onToggleMobileMenu" in topbar_content
+        assert "zIndex: 1300" in topbar_content
+
+        appshell_path = os.path.join("frontend", "src", "components", "layout", "AppShell.jsx")
+        with open(appshell_path, "r", encoding="utf-8") as f:
+            appshell_content = f.read()
+
+        assert "sidebar-backdrop" in appshell_content
+        assert "isSidebarOpenMobile" in appshell_content
+        assert "onCloseMobile" in appshell_content
+
+        sidebar_path = os.path.join("frontend", "src", "components", "layout", "Sidebar.jsx")
+        with open(sidebar_path, "r", encoding="utf-8") as f:
+            sidebar_content = f.read()
+
+        assert "mobile-open" in sidebar_content
+        assert "mobile-sidebar-close-btn" in sidebar_content
 

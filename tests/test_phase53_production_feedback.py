@@ -482,11 +482,20 @@ def test_22_empty_state_behavior(isolated_feedback):
 # ---------------------------------------------------------------------------
 # 23. v5.2 readiness state (EVIDENCE COLLECTING)
 # ---------------------------------------------------------------------------
-def test_23_v52_readiness_evidence_collecting():
-    from backend.app.core.dataset_v52 import dataset_v52_builder
-    result = dataset_v52_builder.build()
-    assert result["readiness"]["state"] == "EVIDENCE COLLECTING"
-    assert "Insufficient adjudicated production feedback" in result["readiness"]["reason"]
+def test_23_v52_readiness_evidence_collecting(tmp_path):
+    from backend.app.core.dataset_v52 import DatasetV52Builder
+    from unittest.mock import patch
+    with patch("backend.app.core.dataset_v52.CANDIDATE_DIR", str(tmp_path)), \
+         patch("backend.app.core.dataset_v52.TRAIN_CANDIDATE_CSV", str(tmp_path / "train_candidate.csv")), \
+         patch("backend.app.core.dataset_v52.PROVENANCE_CSV", str(tmp_path / "provenance.csv")), \
+         patch("backend.app.core.dataset_v52.ADJUDICATION_LOG", str(tmp_path / "adjudication_log.jsonl")), \
+         patch("backend.app.core.dataset_v52.CANDIDATE_MANIFEST", str(tmp_path / "candidate_manifest.json")), \
+         patch("backend.app.core.dataset_v52.LEAKAGE_AUDIT_JSON", str(tmp_path / "leakage_audit.json")), \
+         patch("backend.app.core.dataset_v52.DATASET_CARD", str(tmp_path / "dataset_card.md")):
+        builder = DatasetV52Builder()
+        result = builder.build()
+        assert result["readiness"]["state"] == "EVIDENCE COLLECTING"
+        assert "Insufficient adjudicated production feedback" in result["readiness"]["reason"]
 
 
 # ---------------------------------------------------------------------------

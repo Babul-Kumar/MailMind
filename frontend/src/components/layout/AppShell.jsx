@@ -56,6 +56,14 @@ export function AppShell({
           onCloseMobile={() => setIsSidebarOpenMobile(false)}
         />
 
+        {isSidebarOpenMobile && (
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setIsSidebarOpenMobile(false)}
+            aria-label="Close navigation backdrop"
+          />
+        )}
+
         <main
           style={{
             flex: 1,

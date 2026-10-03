@@ -56,7 +56,7 @@ export function TopBar({
         gap: '1rem',
         position: 'sticky',
         top: 0,
-        zIndex: 50,
+        zIndex: 1300,
       }}
     >
       {/* Brand & Mobile Hamburger */}

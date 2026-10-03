@@ -249,3 +249,27 @@ input, select {
   }
 }
 
+/* Sidebar Backdrop Overlay */
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-backdrop {
+    display: block !important;
+    position: fixed !important;
+    top: 57px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.45) !important;
+    backdrop-filter: blur(2px);
+    z-index: 1100 !important;
+  }
+
+  .mobile-sidebar-close-btn:hover {
+    background-color: var(--bg-surface-hover) !important;
+    color: var(--text-main) !important;
+  }
+}
+

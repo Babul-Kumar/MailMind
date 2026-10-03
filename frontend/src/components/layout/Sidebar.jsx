@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Zap } from 'lucide-react';
+import { Mail, Zap, X } from 'lucide-react';
 
 export function Sidebar({
   activeFilter,
@@ -61,6 +61,29 @@ export function Sidebar({
         overflowY: 'auto',
       }}
     >
+      {isOpenMobile && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0.5rem 0.65rem', borderBottom: '1px solid var(--border-subtle)', marginBottom: '0.75rem' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>Navigation</span>
+          <button
+            onClick={onCloseMobile}
+            aria-label="Close navigation menu"
+            className="mobile-sidebar-close-btn"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '0.25rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'var(--radius-sm)',
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
         {/* Mailbox Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

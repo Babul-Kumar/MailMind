@@ -74,6 +74,11 @@ async def start_scan(
                 force_rescan = bool(body["force_rescan"])
     except Exception:
         pass
+
+    scope = "label" if str(scope).strip().lower() == "label" else "mailbox"
+    mode = "full" if str(mode).strip().lower() == "full" else "incremental"
+    query = str(query).strip()[:200] if query and str(query).strip() else None
+
     session = get_session_from_request(request)
     if not session:
         raise HTTPException(

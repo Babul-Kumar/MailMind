@@ -222,13 +222,14 @@ def auth_callback(
         )
 
         response = RedirectResponse(url="/", status_code=302)
+        is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
             value=new_session.session_id,
             max_age=SESSION_DURATION_SECONDS,
             httponly=True,
             samesite="lax",
-            secure=False,  # Set to True in production HTTPS
+            secure=is_production,
             path="/"
         )
         response.delete_cookie(key="mailmind_oauth_verifier", path="/")
@@ -288,7 +289,7 @@ def create_test_session(
     Disabled in production unless ALLOW_TEST_ENDPOINTS=true.
     """
     is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-    allow_test = os.getenv("ALLOW_TEST_ENDPOINTS", "true").lower() in ("true", "1", "yes")
+    allow_test = os.getenv("ALLOW_TEST_ENDPOINTS", "false" if is_production else "true").lower() in ("true", "1", "yes")
     if is_production and not allow_test:
         raise HTTPException(
             status_code=403,
