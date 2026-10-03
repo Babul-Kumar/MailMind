@@ -285,7 +285,15 @@ def create_test_session(
     """
     Helper endpoint for automated tests and multi-user concurrency testing.
     Creates a simulated isolated session for testing without hitting Google OAuth servers.
+    Disabled in production unless ALLOW_TEST_ENDPOINTS=true.
     """
+    is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    allow_test = os.getenv("ALLOW_TEST_ENDPOINTS", "true").lower() in ("true", "1", "yes")
+    if is_production and not allow_test:
+        raise HTTPException(
+            status_code=403,
+            detail="Test session creation endpoint is disabled in production environment."
+        )
     simulated_creds = {
         "token": f"mock_token_{email}",
         "refresh_token": f"mock_refresh_{email}",

@@ -189,3 +189,63 @@ input, select {
     font-size: 0.82rem !important;
   }
 }
+
+/* Mobile Hamburger Menu Button */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  min-width: 36px;
+  min-height: 36px;
+  background: transparent;
+  border: none;
+}
+
+.mobile-menu-btn:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-main);
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+
+  .desktop-status-label {
+    display: none !important;
+  }
+
+  .desktop-sync-status {
+    display: none !important;
+  }
+
+  .sidebar-container {
+    position: fixed !important;
+    top: 57px;
+    bottom: 0;
+    left: 0;
+    z-index: 1200;
+    width: 260px !important;
+    height: calc(100% - 57px) !important;
+    background-color: var(--bg-surface) !important;
+    box-shadow: var(--shadow-drawer) !important;
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+  }
+
+  .sidebar-container.mobile-open {
+    transform: translateX(0) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar-header {
+    padding: 0.5rem 0.75rem !important;
+    gap: 0.5rem !important;
+  }
+}
+

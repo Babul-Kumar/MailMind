@@ -48,7 +48,7 @@ def get_scan_status(request: Request):
 
 
 @router.post("/api/scan/start")
-def start_scan(
+async def start_scan(
     request: Request,
     scope: str = Query(default="mailbox", description="Scan scope: 'mailbox' or 'label'"),
     mode: str = Query(default="incremental", description="Scan mode: 'incremental' or 'full'"),
@@ -60,6 +60,20 @@ def start_scan(
     Asynchronously discovers all accessible Gmail message IDs, checks cache,
     and classifies uncached/changed messages in manageable batches.
     """
+    # Check if parameters were provided via JSON body (e.g. from frontend api client)
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            if "scope" in body and body["scope"]:
+                scope = str(body["scope"])
+            if "mode" in body and body["mode"]:
+                mode = str(body["mode"])
+            if "query" in body and body["query"] is not None:
+                query = str(body["query"])[:200]
+            if "force_rescan" in body:
+                force_rescan = bool(body["force_rescan"])
+    except Exception:
+        pass
     session = get_session_from_request(request)
     if not session:
         raise HTTPException(
@@ -495,8 +509,10 @@ def submit_feedback(request: Request, submission: FeedbackSubmission):
 
     # Server-side prediction resolution from cache where present (Phase 53-D)
     try:
-        from backend.app.core.cache import email_cache
-        cached = email_cache.get(user_id, submission.message_id)
+        from backend.app.core.cache import user_email_cache
+        cached = user_email_cache.get(user_id, submission.message_id, model_version=active_model)
+        if not cached:
+            cached = user_email_cache.get(user_id, submission.message_id)
         if cached:
             submission.predicted_priority = cached.get("predicted_priority") or cached.get("final_priority") or submission.predicted_priority
             if cached.get("confidence") is not None:
@@ -511,8 +527,8 @@ def submit_feedback(request: Request, submission: FeedbackSubmission):
                 submission.thread_id = cached.get("thread_id")
             if cached.get("action_required") is not None:
                 submission.predicted_action_required = bool(cached.get("action_required"))
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning(f"Could not resolve cached prediction for message {submission.message_id}: {exc}")
 
     record = feedback_manager.record_feedback(
         submission,

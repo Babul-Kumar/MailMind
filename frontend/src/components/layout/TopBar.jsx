@@ -45,6 +45,7 @@ export function TopBar({
 
   return (
     <header
+      className="topbar-header"
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -62,7 +63,6 @@ export function TopBar({
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <button
           onClick={onToggleMobileMenu}
-          style={{ display: 'none', color: 'var(--text-secondary)' }}
           className="mobile-menu-btn"
           aria-label="Toggle navigation menu"
         >

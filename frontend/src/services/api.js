@@ -84,7 +84,13 @@ export async function fetchScanStatus() {
 }
 
 export async function startScan({ scope = 'mailbox', mode = 'incremental', query = '', forceRescan = false } = {}) {
-  const res = await fetch('/api/scan/start', {
+  const params = new URLSearchParams();
+  if (scope) params.append('scope', scope);
+  if (mode) params.append('mode', mode);
+  if (query) params.append('query', query);
+  if (forceRescan) params.append('force_rescan', 'true');
+
+  const res = await fetch(`/api/scan/start?${params.toString()}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

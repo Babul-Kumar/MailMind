@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import json
 import secrets
@@ -104,9 +105,20 @@ class SessionManager:
         self._persist_session(session)
         return session
 
+    @staticmethod
+    def _is_safe_session_id(session_id: Optional[str]) -> bool:
+        """Validates that a session_id contains only URL-safe characters and stays within SESSIONS_DIR."""
+        if not session_id or not isinstance(session_id, str):
+            return False
+        if not re.match(r"^[A-Za-z0-9_\-~]{16,128}$", session_id):
+            return False
+        target_path = os.path.abspath(os.path.join(SESSIONS_DIR, f"{session_id}.json"))
+        sessions_base = os.path.abspath(SESSIONS_DIR)
+        return target_path.startswith(sessions_base + os.sep)
+
     def get_session(self, session_id: Optional[str]) -> Optional[SessionData]:
         """Retrieves an active, unexpired session by ID."""
-        if not session_id:
+        if not self._is_safe_session_id(session_id):
             return None
         session = self._sessions.get(session_id)
         if not session:
@@ -131,7 +143,7 @@ class SessionManager:
 
     def delete_session(self, session_id: Optional[str]) -> bool:
         """Deletes and invalidates an active session."""
-        if not session_id:
+        if not self._is_safe_session_id(session_id):
             return False
         self._sessions.pop(session_id, None)
         fpath = os.path.join(SESSIONS_DIR, f"{session_id}.json")

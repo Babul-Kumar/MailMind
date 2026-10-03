@@ -511,12 +511,14 @@ class UserEmailCache:
             where_clauses.append("model_version = ?")
             params.append(model_version)
 
-        if priority and priority != "ALL":
-            if priority == "NEEDS_ATTENTION":
-                where_clauses.append("needs_attention = 1")
-            elif priority in ("P1", "P2", "P3", "P4"):
-                where_clauses.append("predicted_priority = ?")
-                params.append(priority)
+        if priority and priority.strip():
+            p_norm = priority.upper().strip()
+            if p_norm != "ALL":
+                if p_norm == "NEEDS_ATTENTION":
+                    where_clauses.append("needs_attention = 1")
+                elif p_norm in ("P1", "P2", "P3", "P4"):
+                    where_clauses.append("predicted_priority = ?")
+                    params.append(p_norm)
 
         if action_required is True:
             where_clauses.append("action_required = 1")
@@ -667,3 +669,4 @@ class UserEmailCache:
 
 # Global persistent user-scoped cache instance
 user_email_cache = UserEmailCache()
+email_cache = user_email_cache  # Backward-compatible alias

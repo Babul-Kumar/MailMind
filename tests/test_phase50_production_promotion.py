@@ -71,11 +71,19 @@ class TestPhase50ProductionPromotion:
     @classmethod
     def setup_class(cls):
         # Ensure active model is priority-v5.1 for the duration of tests
+        cls._pre_test_registry = model_registry.get_registry()
         invalidate_cached_pipeline()
         reg = model_registry.get_registry()
         if reg.get("active_model") != "priority-v5.1":
             model_registry.promote_to_production("priority-v5.1")
             invalidate_cached_pipeline()
+
+    @classmethod
+    def teardown_class(cls):
+        # Restore pre-test registry exactly so tests leave no mutation on disk
+        if hasattr(cls, "_pre_test_registry") and cls._pre_test_registry:
+            model_registry._save_registry(cls._pre_test_registry)
+        invalidate_cached_pipeline()
 
     # 1. Pre-promotion registry
     def test_01_pre_promotion_registry(self):
