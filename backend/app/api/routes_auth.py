@@ -251,14 +251,15 @@ def auth_login(
 
     if code_verifier:
         is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-        is_secure = is_production or request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+        cookie_samesite = os.getenv("COOKIE_SAMESITE", "none" if is_production else "lax").lower()
+        cookie_secure = is_production or cookie_samesite == "none" or request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
         res.set_cookie(
             key="mailmind_oauth_verifier",
             value=f"{state}:{code_verifier}",
             max_age=600,
             httponly=True,
-            samesite="lax",
-            secure=is_secure,
+            samesite=cookie_samesite,
+            secure=cookie_secure,
             path="/"
         )
     return res
@@ -275,8 +276,10 @@ def auth_callback(
     Handles Google OAuth redirect, exchanges auth code for user credentials with PKCE verifier,
     extracts user identity, creates an isolated session, and sets the secure HttpOnly cookie.
     """
+    frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
     if error:
-        return RedirectResponse(f"/?auth_error={error}")
+        err_url = f"{frontend_url}/?auth_error={error}" if frontend_url else f"/?auth_error={error}"
+        return RedirectResponse(err_url, status_code=302)
 
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing OAuth code or state parameter.")
@@ -318,22 +321,32 @@ def auth_callback(
             credentials=credentials
         )
 
-        response = RedirectResponse(url="/", status_code=302)
+        target_url = f"{frontend_url}/" if frontend_url else "/"
+        response = RedirectResponse(url=target_url, status_code=302)
         is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+        cookie_samesite = os.getenv("COOKIE_SAMESITE", "none" if is_production else "lax").lower()
+        cookie_secure = is_production or cookie_samesite == "none"
+
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
             value=new_session.session_id,
             max_age=SESSION_DURATION_SECONDS,
             httponly=True,
-            samesite="lax",
-            secure=is_production,
+            samesite=cookie_samesite,
+            secure=cookie_secure,
             path="/"
         )
-        response.delete_cookie(key="mailmind_oauth_verifier", path="/")
+        response.delete_cookie(
+            key="mailmind_oauth_verifier",
+            path="/",
+            samesite=cookie_samesite,
+            secure=cookie_secure
+        )
         return response
     except Exception as e:
         print(f"[OAuth Callback Error] {e}")
-        return RedirectResponse(f"/?auth_error={str(e)}")
+        err_url = f"{frontend_url}/?auth_error={str(e)}" if frontend_url else f"/?auth_error={str(e)}"
+        return RedirectResponse(err_url, status_code=302)
 
 
 @router.get("/status")
@@ -370,8 +383,17 @@ def auth_logout(request: Request, response: Response):
     if session:
         session_manager.delete_session(session.session_id)
 
+    is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    cookie_samesite = os.getenv("COOKIE_SAMESITE", "none" if is_production else "lax").lower()
+    cookie_secure = is_production or cookie_samesite == "none"
+
     res = JSONResponse(content={"status": "logged_out", "message": "Disconnected successfully"})
-    res.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
+    res.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+        samesite=cookie_samesite,
+        secure=cookie_secure
+    )
     return res
 
 
@@ -406,6 +428,9 @@ def create_test_session(
         credentials=simulated_creds
     )
 
+    cookie_samesite = os.getenv("COOKIE_SAMESITE", "none" if is_production else "lax").lower()
+    cookie_secure = is_production or cookie_samesite == "none"
+
     res = JSONResponse(content={
         "status": "success",
         "session_id": session.session_id,
@@ -418,8 +443,8 @@ def create_test_session(
         value=session.session_id,
         max_age=SESSION_DURATION_SECONDS,
         httponly=True,
-        samesite="lax",
-        secure=False,
+        samesite=cookie_samesite,
+        secure=cookie_secure,
         path="/"
     )
     return res

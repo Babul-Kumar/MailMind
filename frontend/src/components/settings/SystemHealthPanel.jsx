@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '../../services/api';
 
 /* ─── Status badge ─── */
 function StatusBadge({ severity }) {
@@ -102,7 +103,7 @@ export function SystemHealthPanel() {
   const fetchData = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetch('/api/monitoring/phase51/summary')
+    apiFetch('/api/monitoring/phase51/summary')
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then((json) => { if (json.status === 'success') setData(json.phase51); else throw new Error('Failed'); })
       .catch((e) => setError(e.message))

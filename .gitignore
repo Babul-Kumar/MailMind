@@ -11,6 +11,11 @@ google_auth/*.json
 .env
 .env.*
 !.env.example
+frontend/.env
+frontend/.env.*
+frontend/.env.local
+frontend/.env.*.local
+!frontend/.env.example
 
 # Python environment & cache
 .venv/

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { SystemHealthPanel } from './SystemHealthPanel';
 import { FeedbackReviewPanel } from './FeedbackReviewPanel';
+import { apiFetch } from '../../services/api';
 
 export function SettingsPanel({
   isOpen,
@@ -65,7 +66,7 @@ export function SettingsPanel({
   useEffect(() => {
     if (activeTab === 'shadow' && !shadowData && !isShadowLoading) {
       setIsShadowLoading(true);
-      fetch('/api/monitoring/shadow/summary')
+      apiFetch('/api/monitoring/shadow/summary')
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
@@ -80,9 +81,9 @@ export function SettingsPanel({
     } else if (activeTab === 'canary' && !canaryData && !isCanaryLoading) {
       setIsCanaryLoading(true);
       Promise.all([
-        fetch('/api/monitoring/canary/status').then((r) => r.json()).catch(() => null),
-        fetch('/api/monitoring/canary/metrics').then((r) => r.json()).catch(() => null),
-        fetch('/api/monitoring/canary/gates').then((r) => r.json()).catch(() => null),
+        apiFetch('/api/monitoring/canary/status').then((r) => r.json()).catch(() => null),
+        apiFetch('/api/monitoring/canary/metrics').then((r) => r.json()).catch(() => null),
+        apiFetch('/api/monitoring/canary/gates').then((r) => r.json()).catch(() => null),
       ])
         .then(([statusRes, metricsRes, gatesRes]) => {
           if (statusRes && statusRes.status === 'success') setCanaryData(statusRes.canary_status);

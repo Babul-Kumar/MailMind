@@ -4,6 +4,7 @@ import {
   Shield, Activity, Calendar, Database, Loader, RefreshCw,
   ChevronDown, ChevronRight, Info, Layers, Tag
 } from 'lucide-react';
+import { apiFetch } from '../../services/api';
 
 /* -------------------------------------------------------------------------
  * FeedbackReviewPanel — Phase 53 Production Feedback Review Dashboard
@@ -258,16 +259,16 @@ export function FeedbackReviewPanel() {
         v52Res,
         queueRes,
       ] = await Promise.all([
-        fetch('/api/adjudication/v51-metrics').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/model-separation').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/quality-metrics').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/p2-p3-boundary').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/safety-feedback').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/deadline-feedback').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/cases').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/accepted').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/v52-candidate').then(r => r.json()).catch(() => null),
-        fetch('/api/adjudication/queue').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/v51-metrics').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/model-separation').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/quality-metrics').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/p2-p3-boundary').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/safety-feedback').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/deadline-feedback').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/cases').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/accepted').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/v52-candidate').then(r => r.json()).catch(() => null),
+        apiFetch('/api/adjudication/queue').then(r => r.json()).catch(() => null),
       ]);
 
       if (v51Res?.status === 'success') setV51Metrics(v51Res.v51_metrics);

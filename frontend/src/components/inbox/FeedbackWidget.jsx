@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, Loader, Check, AlertCircle, HelpCircle, ThumbsUp } from 'lucide-react';
+import { submitFeedback } from '../../services/api';
 
 /* -------------------------------------------------------------------------
  * FeedbackWidget — Phase 53 Production Feedback UX
@@ -100,21 +101,12 @@ export function FeedbackWidget({
         thread_id: threadId || null,
       };
 
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        setResult('success');
-        setTimeout(() => {
-          handleReset();
-          setResult(null);
-        }, 1200);
-      } else {
-        setResult('error');
-      }
+      await submitFeedback(body);
+      setResult('success');
+      setTimeout(() => {
+        handleReset();
+        setResult(null);
+      }, 1200);
     } catch {
       setResult('error');
     } finally {
@@ -143,21 +135,12 @@ export function FeedbackWidget({
         thread_id: threadId || null,
       };
 
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        setResult('success');
-        setTimeout(() => {
-          handleReset();
-          setResult(null);
-        }, 1400);
-      } else {
-        setResult('error');
-      }
+      await submitFeedback(body);
+      setResult('success');
+      setTimeout(() => {
+        handleReset();
+        setResult(null);
+      }, 1400);
     } catch {
       setResult('error');
     } finally {

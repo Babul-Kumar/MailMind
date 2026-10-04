@@ -43,9 +43,16 @@ _DEFAULT_ORIGINS: List[str] = [
     "http://localhost:5173",
 ]
 
-# Support production custom domains via ALLOWED_ORIGINS or BASE_URL
+# Frontend application URL (Vercel deployment URL)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+
+# Support production custom domains via ALLOWED_ORIGINS, FRONTEND_URL, or BASE_URL
 _extra_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 _extra_origins = [o.strip() for o in _extra_origins_env.split(",") if o.strip()]
+
+if FRONTEND_URL and FRONTEND_URL not in _extra_origins:
+    _extra_origins.append(FRONTEND_URL)
+
 _base_url_env = os.getenv("BASE_URL", "").strip().rstrip("/")
 if _base_url_env and _base_url_env not in _extra_origins:
     _extra_origins.append(_base_url_env)
