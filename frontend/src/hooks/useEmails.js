@@ -149,6 +149,13 @@ export function useEmails(isAuthenticated = false) {
 
   // Polling loop for active background scans
   const lastRefreshedCount = useRef(0);
+  const loadDataRef = useRef(loadData);
+  useEffect(() => {
+    loadDataRef.current = loadData;
+  });
+
+  const initialLoadedRef = useRef(false);
+
   useEffect(() => {
     if (!isAuthenticated) {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
@@ -168,12 +175,12 @@ export function useEmails(isAuthenticated = false) {
             // Scan finished or stopped — refresh email view
             clearInterval(pollTimerRef.current);
             pollTimerRef.current = null;
-            loadData();
+            loadDataRef.current();
           } else if (latest.status === 'ANALYZING' && latest.analyzed) {
             // As batches complete and are committed to cache, refresh list periodically
             if (latest.analyzed - lastRefreshedCount.current >= 50) {
               lastRefreshedCount.current = latest.analyzed;
-              loadData();
+              loadDataRef.current();
             }
           }
         }
@@ -190,7 +197,7 @@ export function useEmails(isAuthenticated = false) {
         pollTimerRef.current = null;
       }
     };
-  }, [isAuthenticated, isScanning, checkScanStatus, loadData]);
+  }, [isAuthenticated, isScanning, checkScanStatus]);
 
   // Trigger Complete Scan (Incremental by default, or full discovery)
   const triggerScan = useCallback(async ({ scope = 'mailbox', mode = 'incremental', forceRescan = false } = {}) => {
@@ -242,18 +249,21 @@ export function useEmails(isAuthenticated = false) {
     }
   }, []);
 
-  // Initial load on authentication
+  // Initial load once upon authentication
   useEffect(() => {
     if (isAuthenticated) {
-      loadData().then(() => {
-        // If scan status is idle and mailbox has not been scanned yet, trigger complete scan
-        checkScanStatus().then((status) => {
-          if (!status || status.status === 'NOT_STARTED' || (status.status === 'COMPLETE' && status.total === 0)) {
-            triggerScan({ scope: 'mailbox', mode: 'incremental' });
-          }
+      if (!initialLoadedRef.current) {
+        initialLoadedRef.current = true;
+        loadDataRef.current().then(() => {
+          checkScanStatus().then((status) => {
+            if (!status || status.status === 'NOT_STARTED' || (status.status === 'COMPLETE' && status.total === 0)) {
+              triggerScan({ scope: 'mailbox', mode: 'incremental' });
+            }
+          });
         });
-      });
+      }
     } else {
+      initialLoadedRef.current = false;
       setEmails([]);
       setStats(null);
       setProfile(null);
@@ -262,7 +272,14 @@ export function useEmails(isAuthenticated = false) {
       setScanStatus(null);
       setIsScanning(false);
     }
-  }, [isAuthenticated, loadData, checkScanStatus, triggerScan]);
+  }, [isAuthenticated, checkScanStatus, triggerScan]);
+
+  // Subsequent data fetch when query, page, or filters change
+  useEffect(() => {
+    if (isAuthenticated && initialLoadedRef.current) {
+      loadDataRef.current();
+    }
+  }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery]);
 
   const isInitialLoading = isLoading && emails.length === 0;
   const isRefreshing = isLoading && emails.length > 0;

@@ -2,11 +2,11 @@ import React from 'react';
 import { Zap } from 'lucide-react';
 import { isNeedsAttention } from '../../utils/priority';
 
-export function PrioritySummary({ emails = [], stats = null, onSelectFilter }) {
+function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter }) {
   const totalAnalyzed = stats?.total_analyzed ?? emails.length;
   if (!totalAnalyzed) return null;
 
-  const count = stats?.needs_attention_count ?? emails.filter(isNeedsAttention).length;
+  const count = stats?.needs_attention_count ?? (emails.length > 0 ? emails.filter(isNeedsAttention).length : 0);
   const counts = stats?.counts || { P1: 0, P2: 0, P3: 0, P4: 0 };
 
   return (
@@ -195,3 +195,6 @@ export function PrioritySummary({ emails = [], stats = null, onSelectFilter }) {
     </div>
   );
 }
+
+export const PrioritySummary = React.memo(PrioritySummaryComponent);
+

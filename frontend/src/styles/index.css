@@ -342,7 +342,6 @@ input, select {
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.45) !important;
-    backdrop-filter: blur(2px);
     z-index: 1100 !important;
   }
 

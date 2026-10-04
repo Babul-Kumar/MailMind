@@ -45,33 +45,35 @@ export function useSearch(emails, options = {}) {
       }
     }
 
-    // Sorting
-    list.sort((a, b) => {
-      if (sortBy === 'priority_desc') {
-        const rankA = PRIORITY_CONFIG[a.predicted_priority]?.rank || 0;
-        const rankB = PRIORITY_CONFIG[b.predicted_priority]?.rank || 0;
-        return rankB - rankA;
-      }
-      if (sortBy === 'deadline_asc') {
-        const hasA = a.deadline_detected ? 1 : 0;
-        const hasB = b.deadline_detected ? 1 : 0;
-        if (hasA !== hasB) return hasB - hasA;
-        if (a.deadline_datetime && b.deadline_datetime) {
-          return new Date(a.deadline_datetime).getTime() - new Date(b.deadline_datetime).getTime();
+    // Sorting: skip client-side sort if backend already returned date_desc order
+    if (sortBy !== 'date_desc' || !options.serverFiltered) {
+      list.sort((a, b) => {
+        if (sortBy === 'priority_desc') {
+          const rankA = PRIORITY_CONFIG[a.predicted_priority]?.rank || 0;
+          const rankB = PRIORITY_CONFIG[b.predicted_priority]?.rank || 0;
+          return rankB - rankA;
+        }
+        if (sortBy === 'deadline_asc') {
+          const hasA = a.deadline_detected ? 1 : 0;
+          const hasB = b.deadline_detected ? 1 : 0;
+          if (hasA !== hasB) return hasB - hasA;
+          if (a.deadline_datetime && b.deadline_datetime) {
+            return new Date(a.deadline_datetime).getTime() - new Date(b.deadline_datetime).getTime();
+          }
+          return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+        }
+        if (sortBy === 'sender_asc') {
+          return (a.sender || '').localeCompare(b.sender || '');
+        }
+        if (sortBy === 'confidence_desc') {
+          return (b.confidence || 0) - (a.confidence || 0);
+        }
+        if (sortBy === 'date_asc') {
+          return new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
         }
         return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
-      }
-      if (sortBy === 'sender_asc') {
-        return (a.sender || '').localeCompare(b.sender || '');
-      }
-      if (sortBy === 'confidence_desc') {
-        return (b.confidence || 0) - (a.confidence || 0);
-      }
-      if (sortBy === 'date_asc') {
-        return new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
-      }
-      return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
-    });
+      });
+    }
 
     return list;
   }, [emails, activeFilter, searchQuery, focusMode, sortBy, options.serverFiltered]);

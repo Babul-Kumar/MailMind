@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { EmailRow } from './EmailRow';
 import { SkeletonList } from '../common/Skeleton';
 import { EmptyState } from '../common/EmptyState';
 
-export function EmailList({
+function EmailListComponent({
   emails = [],
   selectedEmailId,
   onSelectEmail,
@@ -13,8 +13,15 @@ export function EmailList({
   emptyType = 'inbox',
   onRefresh,
 }) {
+  const handleSelectEmail = useCallback(
+    (email) => {
+      onSelectEmail?.(email);
+    },
+    [onSelectEmail]
+  );
+
   if (isInitialLoading || (isLoading && emails.length === 0)) {
-    return <SkeletonList count={6} />;
+    return <SkeletonList count={8} />;
   }
 
   if (emails.length === 0) {
@@ -46,19 +53,25 @@ export function EmailList({
         border: '1px solid var(--border-subtle)',
         overflow: 'hidden',
         boxShadow: 'var(--shadow-sm)',
-        opacity: isRefreshing ? 0.72 : 1,
-        transition: 'opacity 0.2s ease',
+        opacity: isRefreshing ? 0.7 : 1,
+        transition: 'opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
         pointerEvents: isRefreshing ? 'none' : 'auto',
       }}
     >
-      {emails.map((email) => (
-        <EmailRow
-          key={email.email_id}
-          email={email}
-          isSelected={email.email_id === selectedEmailId}
-          onClick={() => onSelectEmail(email)}
-        />
-      ))}
+      {emails.map((email) => {
+        const rowId = email.message_id || email.email_id;
+        return (
+          <EmailRow
+            key={rowId}
+            email={email}
+            isSelected={rowId === selectedEmailId || email.email_id === selectedEmailId}
+            onClick={handleSelectEmail}
+          />
+        );
+      })}
     </div>
   );
 }
+
+export const EmailList = React.memo(EmailListComponent);
+

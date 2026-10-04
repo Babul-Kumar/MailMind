@@ -1,7 +1,7 @@
 import React from 'react';
 import { Mail, Zap, X } from 'lucide-react';
 
-export function Sidebar({
+function SidebarComponent({
   activeFilter,
   onSelectFilter,
   focusMode,
@@ -176,3 +176,6 @@ export function Sidebar({
     </aside>
   );
 }
+
+export const Sidebar = React.memo(SidebarComponent);
+

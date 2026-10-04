@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { PriorityBadge } from '../priority/PriorityBadge';
 import { formatEmailDate, cleanSenderName, extractSnippet, getDeadlineState } from '../../utils/formatting';
 
 function EmailRowComponent({ email, isSelected, onClick }) {
-  const senderDisplay = cleanSenderName(email.sender);
-  const dateDisplay = formatEmailDate(email.date);
-  const snippet = extractSnippet(email.body, email.subject);
+  const senderDisplay = useMemo(() => cleanSenderName(email.sender), [email.sender]);
+  const dateDisplay = useMemo(() => formatEmailDate(email.date), [email.date]);
+  const snippet = useMemo(() => extractSnippet(email.body, email.subject), [email.body, email.subject]);
   const priority = email.final_priority || email.predicted_priority;
   const actionRequired = Boolean(email.action_required);
-  const deadlineState = getDeadlineState(email);
+  const deadlineState = useMemo(() => getDeadlineState(email), [email.deadline_status, email.deadline_datetime, email.date]);
 
   const isOtpOrVerification = Boolean(
     email.action_reason === 'Immediate verification required' ||
@@ -70,12 +70,16 @@ function EmailRowComponent({ email, isSelected, onClick }) {
   const isP4 = priority === 'P4';
   const hasActionLine = Boolean(deadlineState || actionRequired);
 
+  const handleClick = useCallback(() => {
+    onClick?.(email);
+  }, [onClick, email]);
+
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
-          onClick();
+          handleClick();
         }
       }}
       role="button"
@@ -109,7 +113,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
       {/* Subject + Snippet Preview + Action Status */}
       <div
         className="email-row-col-main"
-        style={{ display: 'flex', flexDirection: 'column', gap: hasActionLine ? '0.2rem' : '0', overflow: 'hidden' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: hasActionLine ? '0.2rem' : '0', overflow: 'hidden', minWidth: 0 }}
       >
         <div
           className="email-row-subject-line"
@@ -121,6 +125,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             fontSize: '0.85rem',
+            minWidth: 0,
           }}
         >
           <span

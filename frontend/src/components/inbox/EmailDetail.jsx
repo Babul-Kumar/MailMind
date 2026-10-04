@@ -25,14 +25,13 @@ export function EmailDetail({ email, onClose }) {
 
   return (
     <>
-      {/* Overlay — subtle dark overlay, low blur so inbox remains crisp & recognizable */}
+      {/* Overlay — clean dark overlay, zero blur for 60fps GPU acceleration */}
       <div
         className="animate-backdrop-in"
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          backdropFilter: 'blur(1px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.42)',
           zIndex: 1500,
         }}
         onClick={onClose}
@@ -41,7 +40,9 @@ export function EmailDetail({ email, onClose }) {
 
       {/* Detail Drawer */}
       <aside
-        className="email-detail-drawer"
+        className="email-detail email-detail-drawer"
+        role="dialog"
+        aria-modal="true"
         style={{
           position: 'fixed',
           top: 0,

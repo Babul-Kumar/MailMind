@@ -1,0 +1,20 @@
+{
+  "initialRender": 8807,
+  "filterNeedsAttention": 708,
+  "filterP1": 286.9,
+  "filterP2": 281.3,
+  "filterP3": 281.4,
+  "filterP4": 293.2,
+  "filterAllMail": 295.2,
+  "searchTyping": 446.7,
+  "searchClearing": 444.6,
+  "sortChange": 245.1,
+  "paginationNext": 379.2,
+  "focusMode": 288.6,
+  "drawerOpen": 338.8,
+  "drawerClose": 274.5,
+  "syncAction": 14.8,
+  "settingsOpen": 304.5,
+  "settingsTabSwitch": 241.7,
+  "themeSwitch": 322.5
+}

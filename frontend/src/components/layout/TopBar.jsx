@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, RefreshCw, Sun, Moon, Settings, Menu, Check, User, LogOut, RefreshCcw, ShieldCheck } from 'lucide-react';
+import { RefreshCw, Sun, Moon, Settings, Menu, Check, User, LogOut, RefreshCcw, ShieldCheck, Sparkles } from 'lucide-react';
 import { SearchBar } from '../inbox/SearchBar';
 import { AIProcessingState } from '../ai/AIProcessingState';
+import { MailMindLogo } from '../brand/MailMindLogo';
 
-export function TopBar({
+function TopBarComponent({
   searchQuery,
   onSearchChange,
   matchCount,
@@ -69,26 +70,13 @@ export function TopBar({
           <Menu size={20} />
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'var(--accent)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-            }}
-          >
-            <Sparkles size={16} />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <MailMindLogo size={28} isScanning={isScanning} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="topbar-brand-title" style={{ fontSize: '1.02rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               MailMind
             </span>
-            <span className="topbar-brand-sub" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>AI-powered inbox</span>
+            <span className="topbar-brand-sub topbar-brand-subtitle" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Intelligent inbox</span>
           </div>
         </div>
       </div>
@@ -441,3 +429,6 @@ export function TopBar({
     </header>
   );
 }
+
+export const TopBar = React.memo(TopBarComponent);
+

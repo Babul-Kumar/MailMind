@@ -1,23 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useEmails } from './hooks/useEmails';
 import { useSearch } from './hooks/useSearch';
 import { AppShell } from './components/layout/AppShell';
 import { Inbox } from './components/inbox/Inbox';
 import { ConnectAccountHero } from './components/auth/ConnectAccountHero';
+import { MailboxLoadingState } from './components/common/MailboxLoadingState';
 
 export function App() {
   const auth = useAuth();
   const emailsHook = useEmails(auth.isAuthenticated);
-  const searchHook = useSearch(emailsHook.emails, {
-    activeFilter: emailsHook.activeFilter,
-    setActiveFilter: emailsHook.setActiveFilter,
-    actionFilter: emailsHook.actionFilter,
-    setActionFilter: emailsHook.setActionFilter,
-    searchQuery: emailsHook.searchQuery,
-    setSearchQuery: emailsHook.setSearchQuery,
-    serverFiltered: true,
-  });
+
+  const searchOptions = useMemo(
+    () => ({
+      activeFilter: emailsHook.activeFilter,
+      setActiveFilter: emailsHook.setActiveFilter,
+      actionFilter: emailsHook.actionFilter,
+      setActionFilter: emailsHook.setActionFilter,
+      searchQuery: emailsHook.searchQuery,
+      setSearchQuery: emailsHook.setSearchQuery,
+      serverFiltered: true,
+    }),
+    [
+      emailsHook.activeFilter,
+      emailsHook.setActiveFilter,
+      emailsHook.actionFilter,
+      emailsHook.setActionFilter,
+      emailsHook.searchQuery,
+      emailsHook.setSearchQuery,
+    ]
+  );
+
+  const searchHook = useSearch(emailsHook.emails, searchOptions);
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('mailmind_theme') || 'dark';
@@ -37,38 +51,42 @@ export function App() {
     localStorage.setItem('mailmind_density', density);
   }, [density]);
 
-  const handleToggleTheme = () => {
+  const handleToggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  }, []);
 
-  const handleToggleDensity = () => {
+  const handleToggleDensity = useCallback(() => {
     setDensity((prev) => (prev === 'comfortable' ? 'compact' : 'comfortable'));
-  };
+  }, []);
 
   // Safe Account Switching: Clears all mailbox state, selected emails, search and temporary filters
-  const handleSwitchAccount = async () => {
+  const handleSwitchAccount = useCallback(async () => {
     emailsHook.setSearchQuery('');
     emailsHook.setActiveFilter('ALL');
     emailsHook.setActionFilter('ALL');
     searchHook.setFocusMode(false);
     await auth.switchAccount();
-  };
+  }, [emailsHook, searchHook, auth]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     emailsHook.setSearchQuery('');
     emailsHook.setActiveFilter('ALL');
     emailsHook.setActionFilter('ALL');
     searchHook.setFocusMode(false);
     await auth.logout();
-  };
+  }, [emailsHook, searchHook, auth]);
 
-  const authWrapper = {
-    ...auth,
-    switchAccount: handleSwitchAccount,
-    logout: handleLogout,
-  };
+  const authWrapper = useMemo(
+    () => ({
+      ...auth,
+      switchAccount: handleSwitchAccount,
+      logout: handleLogout,
+    }),
+    [auth, handleSwitchAccount, handleLogout]
+  );
 
   const showConnectHero = !auth.isLoading && !auth.isAuthenticated && emailsHook.emails.length === 0;
+  const showInitialLoading = auth.isAuthenticated && emailsHook.emails.length === 0 && emailsHook.isScanning;
 
   return (
     <AppShell
@@ -87,6 +105,8 @@ export function App() {
           isLoading={auth.isLoading}
           error={auth.error || emailsHook.error}
         />
+      ) : showInitialLoading ? (
+        <MailboxLoadingState scanStatus={emailsHook.scanStatus} stepText={emailsHook.loadingStep} />
       ) : (
         <Inbox
           emails={searchHook.filteredEmails}

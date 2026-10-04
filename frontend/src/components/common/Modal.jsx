@@ -20,7 +20,6 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '540px' }) 
         position: 'fixed',
         inset: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.65)',
-        backdropFilter: 'blur(4px)',
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',

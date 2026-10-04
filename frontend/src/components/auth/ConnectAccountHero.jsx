@@ -1,5 +1,6 @@
 import React from 'react';
-import { Shield, Sparkles, Lock, ArrowRight } from 'lucide-react';
+import { Shield, Lock, ArrowRight } from 'lucide-react';
+import { MailMindLogo } from '../brand/MailMindLogo';
 
 export function ConnectAccountHero({ onLogin, isLoading, error }) {
   return (
@@ -32,18 +33,18 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
         {/* Brand Icon */}
         <div
           style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--accent)',
+            width: '64px',
+            height: '64px',
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
-            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.2)',
           }}
         >
-          <Sparkles size={28} />
+          <MailMindLogo size={38} />
         </div>
 
         <div>
