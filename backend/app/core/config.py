@@ -4,8 +4,18 @@ from typing import List
 # Base repository root directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-# Data and session persistence directory (supports Render Persistent Disk mount e.g. /var/data)
-DATA_DIR = os.getenv("DATA_DIR", os.path.join(BASE_DIR, "google_auth"))
+# Data and session persistence directory (supports Render Persistent Disk or Render Free /tmp/mailmind-data)
+_raw_data_dir = os.getenv("DATA_DIR", os.path.join(BASE_DIR, "google_auth"))
+try:
+    os.makedirs(_raw_data_dir, exist_ok=True)
+    _test_file = os.path.join(_raw_data_dir, ".write_test")
+    with open(_test_file, "w") as _f:
+        _f.write("ok")
+    os.remove(_test_file)
+    DATA_DIR = _raw_data_dir
+except Exception:
+    DATA_DIR = "/tmp/mailmind-data"
+    os.makedirs(DATA_DIR, exist_ok=True)
 
 # Authentication and OAuth client secret path
 CREDENTIALS_FILE = (

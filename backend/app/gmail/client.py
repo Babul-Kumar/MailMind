@@ -32,6 +32,7 @@ def list_message_ids(
     max_results: int = 50,
     query: Optional[str] = None,
     page_token: Optional[str] = None,
+    http=None,
 ) -> Dict[str, Any]:
     """Lists message IDs from Gmail with optional search query and pagination."""
     kwargs = {
@@ -43,7 +44,10 @@ def list_message_ids(
     if page_token:
         kwargs["pageToken"] = page_token
 
-    return service.users().messages().list(**kwargs).execute()
+    req = service.users().messages().list(**kwargs)
+    if http is not None:
+        return req.execute(http=http)
+    return req.execute()
 
 
 def get_message(service, message_id: str, format_type: str = "full", http=None) -> Dict[str, Any]:

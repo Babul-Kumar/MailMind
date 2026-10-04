@@ -85,6 +85,11 @@ async def start_scan(
             status_code=401,
             detail="Authentication required. Please connect your Gmail account."
         )
+
+    # If scan is already running for user, return active scan status immediately
+    if scan_manager.is_scanning(session.user_id):
+        return scan_manager.get_status(session.user_id)
+
     try:
         service = get_user_gmail_service(session=session)
     except PermissionError:
@@ -200,8 +205,6 @@ def get_classified_emails(
 
     try:
         service = get_user_gmail_service(session=session)
-        profile = get_profile(service)
-        user_email = profile.get("emailAddress", session.email)
     except PermissionError:
         raise HTTPException(
             status_code=401,
@@ -209,6 +212,16 @@ def get_classified_emails(
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
+
+    user_email = session.email
+    profile = {"emailAddress": session.email, "messagesTotal": 0, "threadsTotal": 0}
+    try:
+        fetched_profile = get_profile(service)
+        if isinstance(fetched_profile, dict):
+            profile = fetched_profile
+            user_email = profile.get("emailAddress", session.email)
+    except Exception as prof_err:
+        logger.warning("Could not refresh profile for user %s: %s", user_id_hash, prof_err)
 
     # Allow tests that mock or patch fetch_emails directly to simulate exceptions or custom fetching
     from unittest.mock import Mock
@@ -298,7 +311,10 @@ def get_classified_emails(
                 if not page_token:
                     break
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Failed to list message IDs: {str(e)}")
+            if has_explicit_max:
+                raise HTTPException(status_code=502, detail=f"Failed to list message IDs: {str(e)}")
+            logger.warning("Error during initial preview listing for %s: %s", user_id_hash, e)
+            target_ids = []
         t_list_ms = (time.perf_counter() - t_list_start) * 1000
 
         # Check User-Scoped Cache
@@ -393,41 +409,41 @@ def get_classified_emails(
             # Default behavior for explicit max_emails or initial fetch
             counts = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
             total_conf = 0.0
-        refined_count = 0
+            refined_count = 0
 
-        for p in all_emails:
-            cls = p.get("predicted_priority", "P4")
-            counts[cls] = counts.get(cls, 0) + 1
-            total_conf += p.get("confidence", 0.0)
-            if p.get("refinement_applied"):
-                refined_count += 1
+            for p in all_emails:
+                cls = p.get("predicted_priority", "P4")
+                counts[cls] = counts.get(cls, 0) + 1
+                total_conf += p.get("confidence", 0.0)
+                if p.get("refinement_applied"):
+                    refined_count += 1
 
-        total_analyzed = len(all_emails)
-        avg_confidence = round((total_conf / total_analyzed), 4) if total_analyzed > 0 else 0.0
-        refinement_rate = round((refined_count / total_analyzed * 100), 1) if total_analyzed > 0 else 0.0
+            total_analyzed = len(all_emails)
+            avg_confidence = round((total_conf / total_analyzed), 4) if total_analyzed > 0 else 0.0
+            refinement_rate = round((refined_count / total_analyzed * 100), 1) if total_analyzed > 0 else 0.0
 
-        percentages = {
-            cls: round((cnt / total_analyzed * 100), 1) if total_analyzed > 0 else 0.0
-            for cls, cnt in counts.items()
-        }
+            percentages = {
+                cls: round((cnt / total_analyzed * 100), 1) if total_analyzed > 0 else 0.0
+                for cls, cnt in counts.items()
+            }
 
-        t_total_ms = (time.perf_counter() - t_req_start) * 1000
-        stats = {
-            "total_analyzed": total_analyzed,
-            "refined_count": refined_count,
-            "refinement_rate": refinement_rate,
-            "counts": counts,
-            "percentages": percentages,
-            "average_confidence": avg_confidence,
-            "highest_priority_count": counts.get("P1", 0),
-            "last_synced": datetime.now(timezone.utc).isoformat(),
-            "query_applied": query or "None (Recent Inbox)",
-            "cache_hit_count": len(cached_map),
-            "cache_miss_count": len(missing_ids),
-            "fetch_latency_ms": round(t_total_ms, 1),
-        }
-        display_list = all_emails
-        total_matching = len(all_emails)
+            t_total_ms = (time.perf_counter() - t_req_start) * 1000
+            stats = {
+                "total_analyzed": total_analyzed,
+                "refined_count": refined_count,
+                "refinement_rate": refinement_rate,
+                "counts": counts,
+                "percentages": percentages,
+                "average_confidence": avg_confidence,
+                "highest_priority_count": counts.get("P1", 0),
+                "last_synced": datetime.now(timezone.utc).isoformat(),
+                "query_applied": query or "None (Recent Inbox)",
+                "cache_hit_count": len(cached_map),
+                "cache_miss_count": len(missing_ids),
+                "fetch_latency_ms": round(t_total_ms, 1),
+            }
+            display_list = all_emails
+            total_matching = len(all_emails)
 
     t_total_ms = (time.perf_counter() - t_req_start) * 1000
     timing_breakdown = {

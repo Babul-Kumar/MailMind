@@ -761,6 +761,15 @@ class ScanManager:
 
             def _worker():
                 try:
+                    # Isolate worker thread service from request threads to avoid httplib2 socket collisions
+                    creds = getattr(getattr(job.service, "_http", None), "credentials", None)
+                    if creds:
+                        try:
+                            from googleapiclient.discovery import build
+                            job.service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+                        except Exception as build_err:
+                            logger.warning(f"Could not build isolated worker service: {build_err}")
+
                     final_state = job.execute()
                     with self._lock:
                         self._jobs[user_id] = final_state

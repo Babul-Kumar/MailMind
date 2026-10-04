@@ -24,7 +24,7 @@ services:
       - key: SESSION_SECRET
         generateValue: true
       - key: DATA_DIR
-        value: /var/data
+        value: /tmp/mailmind-data
     disk:
       name: mailmind-data
       mountPath: /var/data
