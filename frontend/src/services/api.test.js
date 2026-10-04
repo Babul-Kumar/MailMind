@@ -51,3 +51,30 @@ test('3. apiFetch merges json body and content-type header', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test('4. fetchAuthExchange posts handoff code to /api/auth/exchange', async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedOptions = null;
+  let capturedUrl = null;
+
+  globalThis.fetch = async (url, options) => {
+    capturedUrl = url;
+    capturedOptions = options;
+    return {
+      ok: true,
+      json: async () => ({ status: 'success', authenticated: true, user: { email: 'user@test.com' } })
+    };
+  };
+
+  try {
+    const { fetchAuthExchange } = await import('./api.js');
+    const res = await fetchAuthExchange('sample_handoff_token_123');
+    assert.equal(capturedOptions?.method, 'POST');
+    assert.equal(capturedOptions?.credentials, 'include');
+    assert.ok(capturedUrl.endsWith('/api/auth/exchange'));
+    assert.deepEqual(JSON.parse(capturedOptions?.body), { handoff: 'sample_handoff_token_123' });
+    assert.equal(res.authenticated, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

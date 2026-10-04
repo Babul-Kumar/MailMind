@@ -127,6 +127,25 @@ def get_base_url(request: Request) -> str:
 
 def get_redirect_uri(request: Request) -> str:
     """Returns the canonical OAuth 2.0 callback redirect URI."""
+    explicit_uri = os.getenv("GMAIL_REDIRECT_URI", "").strip()
+    if explicit_uri:
+        return explicit_uri
+
+    render_external = os.getenv("RENDER_EXTERNAL_URL", "").strip().rstrip("/")
+    if render_external:
+        return f"{render_external}/api/auth/callback"
+
+    backend_url = os.getenv("BACKEND_URL", "").strip().rstrip("/")
+    if backend_url:
+        return f"{backend_url}/api/auth/callback"
+
+    # Avoid using frontend host (e.g. Vercel) if request was proxied
+    forwarded_host = request.headers.get("x-forwarded-host", "")
+    if forwarded_host and "vercel.app" in forwarded_host:
+        host = request.headers.get("host") or "mailmind-api-xzu8.onrender.com"
+        proto = request.headers.get("x-forwarded-proto") or "https"
+        return f"{proto}://{host}/api/auth/callback"
+
     base = get_base_url(request)
     return f"{base}/api/auth/callback"
 
@@ -355,7 +374,10 @@ def auth_callback(
             credentials=credentials
         )
 
-        target_url = f"{frontend_url}/" if frontend_url else "/"
+        # Generate short-lived (120s), single-use cryptographic handoff code
+        handoff_code = session_manager.create_handoff(new_session.session_id)
+
+        target_url = f"{frontend_url}/auth/callback?handoff={handoff_code}" if frontend_url else f"/auth/callback?handoff={handoff_code}"
         response = RedirectResponse(url=target_url, status_code=302)
         cookie_samesite, cookie_secure = get_cookie_security_flags(request)
 
@@ -374,12 +396,76 @@ def auth_callback(
             samesite=cookie_samesite,
             secure=cookie_secure
         )
-        print(f"[OAuth Callback] Successfully authenticated {mask_email(email_address)}. Session created. Cookie set (SameSite={cookie_samesite}, Secure={cookie_secure}). Redirecting to {target_url}")
+        print(f"[OAuth Callback] Successfully authenticated {mask_email(email_address)}. Session created. Redirecting to frontend handoff.")
         return response
     except Exception as e:
         print(f"[OAuth Callback Error] {e}")
         err_url = f"{frontend_url}/?auth_error={str(e)}" if frontend_url else f"/?auth_error={str(e)}"
         return RedirectResponse(err_url, status_code=302)
+
+
+@router.post("/exchange")
+@router.get("/exchange")
+async def auth_exchange(
+    request: Request,
+    handoff: Optional[str] = Query(default=None),
+):
+    """
+    Consumes a one-time OAuth handoff token and sets the same-origin session cookie.
+    Enforces strict single-use anti-replay protection.
+    Never exposes OAuth tokens to the client.
+    """
+    handoff_token = handoff
+    if not handoff_token and request.method == "POST":
+        try:
+            payload = await request.json()
+            if isinstance(payload, dict):
+                handoff_token = payload.get("handoff")
+        except Exception:
+            pass
+
+    if not handoff_token:
+        try:
+            handoff_token = request.query_params.get("handoff")
+        except Exception:
+            pass
+
+    if not handoff_token:
+        raise HTTPException(status_code=400, detail="Missing required handoff code.")
+
+    session_id = session_manager.consume_handoff(handoff_token)
+    if not session_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid, expired, or already-consumed handoff code. Please sign in again."
+        )
+
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=401, detail="Session expired or invalid.")
+
+    cookie_samesite, cookie_secure = get_cookie_security_flags(request)
+
+    res = JSONResponse(content={
+        "status": "success",
+        "authenticated": True,
+        "user": {
+            "email": session.email,
+            "masked_email": mask_email(session.email),
+            "user_id": session.user_id,
+        }
+    })
+    res.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session.session_id,
+        max_age=SESSION_DURATION_SECONDS,
+        httponly=True,
+        samesite=cookie_samesite,
+        secure=cookie_secure,
+        path="/"
+    )
+    print(f"[Auth Exchange] Successfully exchanged handoff for {mask_email(session.email)}. Session cookie set.")
+    return res
 
 
 @router.get("/status")

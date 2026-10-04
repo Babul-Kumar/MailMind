@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchAuthStatus, fetchAuthLogin, logout as apiLogout } from '../services/api';
+import { fetchAuthStatus, fetchAuthLogin, fetchAuthExchange, logout as apiLogout } from '../services/api';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -36,14 +36,47 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    // Check if error parameter in URL (e.g. from OAuth redirect failure)
+    // Check URL parameters for OAuth errors or one-time handoff codes
     const urlParams = new URLSearchParams(window.location.search);
     const authError = urlParams.get('auth_error');
+    const handoffCode = urlParams.get('handoff');
+
     if (authError) {
-      // Clean up URL without reload
-      window.history.replaceState({}, document.title, window.location.pathname);
+      window.history.replaceState({}, document.title, '/');
+      checkStatus(`OAuth authentication error: ${authError}`);
+      return;
     }
-    checkStatus(authError ? `OAuth authentication error: ${authError}` : null);
+
+    if (handoffCode) {
+      // Immediately sanitize URL to prevent handoff token leakage in history or bookmarks
+      window.history.replaceState({}, document.title, '/');
+      setIsLoading(true);
+      setError(null);
+      fetchAuthExchange(handoffCode)
+        .then((data) => {
+          if (data && data.authenticated && data.user) {
+            setUser(data.user);
+            setIsAuthenticated(true);
+            setError(null);
+          } else {
+            setUser(null);
+            setIsAuthenticated(false);
+            setError('OAuth handoff failed: Invalid session.');
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to exchange handoff code:', err);
+          setError(err.message || 'OAuth handoff exchange failed.');
+          setUser(null);
+          setIsAuthenticated(false);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+      return;
+    }
+
+    checkStatus();
   }, [checkStatus]);
 
   const login = useCallback(async () => {

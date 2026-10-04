@@ -154,6 +154,70 @@ class SessionManager:
                 pass
         return True
 
+    HANDOFF_TTL_SECONDS = 120  # 2 minutes expiration
+    HANDOFF_FILE = os.path.join(SESSIONS_DIR, "_pending_handoffs.json")
+
+    def _load_pending_handoffs(self) -> Dict[str, Dict[str, Any]]:
+        if os.path.exists(self.HANDOFF_FILE):
+            try:
+                with open(self.HANDOFF_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                return {}
+        return {}
+
+    def _save_pending_handoffs(self, handoffs: Dict[str, Dict[str, Any]]):
+        try:
+            with open(self.HANDOFF_FILE, "w", encoding="utf-8") as f:
+                json.dump(handoffs, f)
+        except Exception as e:
+            print(f"[SessionManager Warning] Failed to persist handoffs: {e}")
+
+    def create_handoff(self, session_id: str) -> str:
+        """
+        Creates a short-lived (120s), single-use cryptographic handoff code
+        mapped to an authenticated session ID. Never logs the handoff code.
+        """
+        code = secrets.token_urlsafe(32)
+        now = time.time()
+        handoffs = self._load_pending_handoffs()
+        # Prune expired handoffs
+        handoffs = {c: d for c, d in handoffs.items() if now - d.get("created_at", 0) <= self.HANDOFF_TTL_SECONDS}
+        handoffs[code] = {
+            "session_id": session_id,
+            "created_at": now,
+        }
+        self._save_pending_handoffs(handoffs)
+        return code
+
+    def consume_handoff(self, code: Optional[str]) -> Optional[str]:
+        """
+        Validates and atomically consumes a one-time handoff code.
+        Returns the session_id if valid, or None if invalid/expired/already used.
+        Enforces strict single-use anti-replay protection.
+        """
+        if not self._is_safe_session_id(code):
+            return None
+
+        now = time.time()
+        handoffs = self._load_pending_handoffs()
+        entry = handoffs.pop(code, None)
+
+        # Always persist back the deletion immediately to enforce single-use / anti-replay
+        self._save_pending_handoffs(handoffs)
+
+        if not entry:
+            return None
+
+        if now - entry.get("created_at", 0) > self.HANDOFF_TTL_SECONDS:
+            return None
+
+        session_id = entry.get("session_id")
+        if not self._is_safe_session_id(session_id):
+            return None
+
+        return session_id
+
     def get_credentials(self, session: SessionData) -> Optional[Credentials]:
         """Builds a google.oauth2.credentials.Credentials instance from session."""
         if not session or not session.credentials:

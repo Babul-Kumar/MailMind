@@ -6,35 +6,27 @@
 
 /**
  * Resolves the backend API base URL.
- * In production (Vercel): Requires VITE_API_BASE_URL. Fails explicitly if missing.
- * In development: Falls back to empty string '' (which routes through Vite proxy)
- * or local dev backend.
+ * In both production (Vercel same-origin reverse proxy) and local development (Vite dev proxy):
+ * Returns empty string '' so all API calls route through the same-origin /api reverse proxy.
+ * This ensures session cookies are strictly FIRST-PARTY and never blocked by browser tracking protections.
+ * An explicit external URL can still be configured via VITE_USE_DIRECT_API=true if needed.
  */
 export function getApiBaseUrl() {
-  const isProd = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.PROD : false;
-  const envUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_BASE_URL : undefined;
-
-  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
-    return envUrl.trim().replace(/\/+$/, '');
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_USE_DIRECT_API === 'true') {
+    const envUrl = import.meta.env.VITE_API_BASE_URL;
+    if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+      return envUrl.trim().replace(/\/+$/, '');
+    }
   }
 
-  if (isProd) {
-    throw new Error(
-      'MailMind Configuration Error: VITE_API_BASE_URL environment variable is required in production deployment. ' +
-      'Please configure VITE_API_BASE_URL in your Vercel project settings pointing to your Render backend URL.'
-    );
-  }
-
-  // Local development fallback (relative URLs use Vite dev proxy)
+  // Same-origin relative URLs (/api/*) route through Vercel or Vite reverse proxy
   return '';
 }
 
 /**
  * Exported constant base URL for convenience.
  */
-export const API_BASE_URL = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL
-  ? import.meta.env.VITE_API_BASE_URL.trim().replace(/\/+$/, '')
-  : '';
+export const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Centralized fetch wrapper ensuring:
@@ -79,6 +71,19 @@ export async function fetchAuthStatus() {
 export async function fetchAuthLogin(prompt = 'select_account') {
   const res = await apiFetch(`/api/auth/login?prompt=${encodeURIComponent(prompt)}`);
   if (!res.ok) throw new Error(`Login initiation failed: HTTP ${res.status}`);
+  return res.json();
+}
+
+export async function fetchAuthExchange(handoff) {
+  const res = await apiFetch('/api/auth/exchange', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ handoff }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Exchange failed: HTTP ${res.status}`);
+  }
   return res.json();
 }
 
