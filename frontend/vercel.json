@@ -1,15 +1,11 @@
-﻿{
+{
   "rewrites": [
     {
-      "source": "/api/:match*",
-      "destination": "https://mailmind-api-xzu8.onrender.com/api/:match*"
+      "source": "/api/:path*",
+      "destination": "https://mailmind-api-xzu8.onrender.com/api/:path*"
     },
     {
-      "source": "/auth/callback",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/((?!api/).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
