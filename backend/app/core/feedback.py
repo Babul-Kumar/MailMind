@@ -23,11 +23,15 @@ import uuid
 import logging
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
-from backend.app.core.config import BASE_DIR
+from backend.app.core.config import BASE_DIR, DATA_DIR
 
 logger = logging.getLogger("mailmind.feedback")
 
-FEEDBACK_DIR = os.path.join(BASE_DIR, "dataset", "feedback")
+FEEDBACK_DIR = os.getenv("FEEDBACK_DIR") or (
+    os.path.join(DATA_DIR, "feedback")
+    if os.getenv("DATA_DIR")
+    else os.path.join(BASE_DIR, "dataset", "feedback")
+)
 FEEDBACK_FILE = os.path.join(FEEDBACK_DIR, "feedback.jsonl")
 
 # ---------------------------------------------------------------------------

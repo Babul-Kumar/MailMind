@@ -1,0 +1,31 @@
+# ==============================================================================
+# Render Blueprint Specification for MailMind
+# Docs: https://render.com/docs/blueprint-spec
+# ==============================================================================
+
+services:
+  - type: web
+    name: mailmind
+    runtime: python
+    region: oregon
+    plan: starter # Note: Starter plan ($7/mo) supports persistent disks; free plan does not support disks.
+    buildCommand: "cd frontend && npm install && npm run build && cd .. && pip install -r requirements.txt"
+    startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips \"*\""
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: BASE_URL
+        sync: false # Set to your service URL, e.g. https://mailmind.onrender.com
+      - key: GOOGLE_CLIENT_ID
+        sync: false # From Google Cloud Console (OAuth 2.0 Web Application)
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false # From Google Cloud Console
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: mailmind-data
+      mountPath: /var/data
+      sizeGB: 1

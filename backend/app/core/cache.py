@@ -7,9 +7,9 @@ import threading
 from typing import Dict, Any, List, Optional, Tuple, Set
 from threading import RLock
 
-from backend.app.core.config import BASE_DIR
+from backend.app.core.config import BASE_DIR, DATA_DIR
 
-CACHE_DIR = os.path.join(BASE_DIR, "google_auth", "cache")
+CACHE_DIR = os.path.join(DATA_DIR, "cache")
 DB_PATH = os.path.join(CACHE_DIR, "mailmind_cache.db")
 
 

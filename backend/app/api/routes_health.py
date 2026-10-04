@@ -5,6 +5,7 @@ from backend.app.ml.predictor import load_model
 router = APIRouter(tags=["Health"])
 
 
+@router.get("/health")
 @router.get("/api/health")
 def health_check():
     """Health status check."""

@@ -7,11 +7,11 @@ from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from fastapi import Request
 from google.oauth2.credentials import Credentials
-from backend.app.core.config import BASE_DIR, GMAIL_SCOPES
+from backend.app.core.config import BASE_DIR, DATA_DIR, GMAIL_SCOPES
 
 SESSION_COOKIE_NAME = "mailmind_session"
 SESSION_DURATION_SECONDS = 7 * 24 * 3600  # 7 days
-SESSIONS_DIR = os.path.join(BASE_DIR, "google_auth", "sessions")
+SESSIONS_DIR = os.path.join(DATA_DIR, "sessions")
 
 
 @dataclass
