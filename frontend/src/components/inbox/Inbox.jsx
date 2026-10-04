@@ -84,26 +84,26 @@ export function Inbox({
   let viewTitle = 'All Mail';
   let viewDescription = '';
   if (focusMode) {
-    viewTitle = '⚡ Focus Mode';
-    viewDescription = 'Showing emails that require action or have an active deadline.';
+    viewTitle = 'Focus Mode';
+    viewDescription = 'Emails that require action or have an active deadline.';
   } else if (activeFilter === 'NEEDS_ATTENTION') {
-    viewTitle = '⚡ Needs Attention';
-    viewDescription = 'Emails requiring action or with active deadlines, independent of priority.';
+    viewTitle = 'Needs Attention';
+    viewDescription = 'Emails that need action or have an active deadline.';
   } else if (activeFilter === 'IMPORTANT') {
-    viewTitle = '⭐ Important';
-    viewDescription = 'Emails the model classified as important; not all require action.';
+    viewTitle = 'Important';
+    viewDescription = 'High-importance emails classified by the priority model.';
   } else if (activeFilter === 'P1') {
     viewTitle = 'P1 · Critical';
-    viewDescription = 'Immediate action, hard deadline, or critical operational consequence.';
+    viewDescription = 'Immediate operational urgency or critical consequence.';
   } else if (activeFilter === 'P2') {
     viewTitle = 'P2 · Important';
-    viewDescription = 'Important emails classified by the model; not all require action.';
+    viewDescription = 'Important emails classified by the priority model.';
   } else if (activeFilter === 'P3') {
     viewTitle = 'P3 · Routine';
-    viewDescription = 'Informational or routine operational correspondence.';
+    viewDescription = 'Informational or routine correspondence.';
   } else if (activeFilter === 'P4') {
     viewTitle = 'P4 · Low';
-    viewDescription = 'Promotional, bulk notifications, or low priority.';
+    viewDescription = 'Bulk notifications, updates, or low priority.';
   } else if (activeFilter === 'ALL') {
     viewTitle = 'All Mail';
     viewDescription = '';
@@ -156,30 +156,35 @@ export function Inbox({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0.75rem 1.1rem',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
-            borderRadius: 'var(--radius-lg)',
+            padding: '0.65rem 1rem',
+            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.22)',
+            borderRadius: 'var(--radius-md)',
             marginBottom: '1rem',
             color: 'var(--p2-color)',
-            fontSize: '0.84rem',
+            fontSize: '0.82rem',
             fontWeight: 500,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <Zap size={16} />
-            <span>⚡ Focus Mode: Showing emails that require action or have an active deadline.</span>
+            <Zap size={15} />
+            <span>Focus Mode · Showing emails that require action or have an active deadline.</span>
           </div>
           <button
             onClick={() => onToggleFocusMode(false)}
             style={{
               fontSize: '0.78rem',
-              textDecoration: 'underline',
               color: 'var(--p2-color)',
               fontWeight: 600,
+              padding: '0.2rem 0.55rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              cursor: 'pointer',
+              transition: 'background-color var(--transition-fast)',
             }}
           >
-            Turn off
+            Exit Focus Mode
           </button>
         </div>
       )}
@@ -303,7 +308,7 @@ export function Inbox({
             }}
           >
             <Zap size={13} />
-            <span>{focusMode ? '⚡ Focus Mode · ON' : 'Focus Mode'}</span>
+            <span>{focusMode ? 'Exit Focus Mode' : 'Focus Mode'}</span>
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -333,50 +338,6 @@ export function Inbox({
         </div>
       </div>
 
-      {/* Needs Attention Contextual Summary Card (Phase 2 & 4) */}
-      {activeFilter === 'NEEDS_ATTENTION' && !isLoading && emails.length > 0 && (() => {
-        const serviceCount = emails.filter((e) => e.action_reason === 'Service action').length;
-        const securityCount = emails.filter((e) => e.action_reason === 'Account security action').length;
-        const deadlineCount = emails.filter((e) => Boolean(e.deadline_detected)).length;
-        const otherActionCount = emails.filter(
-          (e) => e.action_required && e.action_reason !== 'Service action' && e.action_reason !== 'Account security action' && !e.deadline_detected
-        ).length;
-
-        const signals = [];
-        if (serviceCount > 0) signals.push(`${serviceCount} service action${serviceCount > 1 ? 's' : ''}`);
-        if (securityCount > 0) signals.push(`${securityCount} security alert${securityCount > 1 ? 's' : ''}`);
-        if (deadlineCount > 0) signals.push(`${deadlineCount} deadline${deadlineCount > 1 ? 's' : ''}`);
-        if (otherActionCount > 0) signals.push(`${otherActionCount} response required`);
-
-        return (
-          <div
-            style={{
-              padding: '0.85rem 1.15rem',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: '1rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.35rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.92rem', fontWeight: 700, color: 'var(--accent)' }}>
-              <Zap size={16} />
-              <span>{totalCount.toLocaleString()} email{totalCount === 1 ? '' : 's'} need attention</span>
-            </div>
-            {signals.length > 0 && (
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Signals: {signals.join(' · ')}
-              </div>
-            )}
-            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-              Needs Attention is based on action and deadline signals, independent of priority.
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Main Email Feed */}
       <div>
         <EmailList
@@ -390,14 +351,14 @@ export function Inbox({
           onRefresh={onRefresh}
         />
 
-        {/* Display Pagination Controls (Phase 32) */}
+        {/* Modern Pagination Controls */}
         {pagination && pagination.total_emails > 0 && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '1rem 0.5rem',
+              padding: '0.85rem 0.5rem',
               marginTop: '0.75rem',
               borderTop: '1px solid var(--border-subtle)',
               fontSize: '0.82rem',
@@ -419,11 +380,14 @@ export function Inbox({
               analyzed messages
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
               <button
                 onClick={() => onPageChange?.(pagination.page - 1)}
                 disabled={!pagination.has_prev || isLoading}
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
                   padding: '0.35rem 0.75rem',
                   borderRadius: 'var(--radius-sm)',
                   backgroundColor: 'var(--bg-surface)',
@@ -433,19 +397,23 @@ export function Inbox({
                   fontSize: '0.8rem',
                   fontWeight: 500,
                   opacity: !pagination.has_prev || isLoading ? 0.5 : 1,
+                  transition: 'all var(--transition-fast)',
                 }}
               >
-                Previous
+                ← Previous
               </button>
 
               <span style={{ padding: '0 0.4rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                Page {pagination.page} of {pagination.total_pages}
+                Page <strong style={{ color: 'var(--text-main)' }}>{pagination.page}</strong> of {pagination.total_pages}
               </span>
 
               <button
                 onClick={() => onPageChange?.(pagination.page + 1)}
                 disabled={!pagination.has_next || isLoading}
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
                   padding: '0.35rem 0.75rem',
                   borderRadius: 'var(--radius-sm)',
                   backgroundColor: 'var(--bg-surface)',
@@ -455,9 +423,10 @@ export function Inbox({
                   fontSize: '0.8rem',
                   fontWeight: 500,
                   opacity: !pagination.has_next || isLoading ? 0.5 : 1,
+                  transition: 'all var(--transition-fast)',
                 }}
               >
-                Next
+                Next →
               </button>
             </div>
           </div>

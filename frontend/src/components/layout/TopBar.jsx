@@ -85,10 +85,10 @@ export function TopBar({
             <Sparkles size={16} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+            <span className="topbar-brand-title" style={{ fontSize: '1.02rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               MailMind
             </span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>AI-powered inbox</span>
+            <span className="topbar-brand-sub" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>AI-powered inbox</span>
           </div>
         </div>
       </div>
@@ -319,33 +319,30 @@ export function TopBar({
           </div>
         )}
 
-        {/* Sync Status Pill */}
+        {/* Subtle Compact Sync Status */}
         {isAuthenticated && !isScanning && (stats?.total_analyzed > 0 || profile?.messages_total > 0) && (
           <div
             className="desktop-sync-status"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.28rem 0.65rem',
+              gap: '0.3rem',
+              padding: '0.24rem 0.5rem',
               borderRadius: 'var(--radius-full)',
-              backgroundColor: 'rgba(34, 197, 94, 0.08)',
-              border: '1px solid rgba(34, 197, 94, 0.22)',
+              backgroundColor: 'var(--badge-bg)',
               fontSize: '0.74rem',
-              color: '#22c55e',
-              fontWeight: 600,
+              color: 'var(--text-muted)',
+              fontWeight: 500,
               whiteSpace: 'nowrap',
             }}
-            title="Complete mailbox analyzed and cached in SQLite"
+            title={`${(stats?.total_analyzed || profile?.messages_total || 0).toLocaleString()} messages synchronized`}
           >
-            <span>✓</span>
-            <span>
-              {(stats?.total_analyzed || profile?.messages_total || 0).toLocaleString()} messages · Synced{isJustUpdated ? ' just now' : ''}
-            </span>
+            <span style={{ color: '#22c55e', fontWeight: 700 }}>✓</span>
+            <span>Synced</span>
           </div>
         )}
 
-        {/* Primary Mailbox Scan Action Button */}
+        {/* Primary Mailbox Sync Action Button */}
         <button
           onClick={() => {
             if (isScanning) {
@@ -357,24 +354,28 @@ export function TopBar({
             }
           }}
           disabled={!isAuthenticated}
+          className="topbar-sync-btn"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '0.45rem',
-            padding: '0.45rem 0.85rem',
+            padding: '0.42rem 0.85rem',
+            minWidth: '150px',
             backgroundColor: isScanning
-              ? 'rgba(239, 68, 68, 0.1)'
+              ? 'rgba(239, 68, 68, 0.08)'
               : isJustUpdated
               ? 'var(--accent-light)'
               : 'var(--accent)',
-            border: `1px solid ${isScanning ? 'rgba(239, 68, 68, 0.3)' : 'transparent'}`,
+            border: `1px solid ${isScanning ? 'rgba(239, 68, 68, 0.25)' : 'transparent'}`,
             borderRadius: 'var(--radius-md)',
             color: isScanning ? 'var(--p1-color)' : isJustUpdated ? 'var(--accent)' : '#ffffff',
-            fontSize: '0.82rem',
+            fontSize: '0.8rem',
             fontWeight: 600,
             cursor: !isAuthenticated ? 'default' : 'pointer',
             opacity: !isAuthenticated ? 0.5 : 1,
-            transition: 'all 150ms ease',
+            transition: 'all var(--transition-fast)',
+            whiteSpace: 'nowrap',
           }}
           title={isScanning ? 'Click to cancel current scan' : 'Scan for new and changed messages'}
           aria-label="Mailbox synchronization"
@@ -382,22 +383,22 @@ export function TopBar({
           {isScanning ? (
             <>
               <RefreshCw size={13} className="animate-spin" />
-              <span>Cancel Scan ({scanStatus?.progress_percent || 0}%)</span>
+              <span className="topbar-sync-text">Syncing...</span>
             </>
           ) : isJustUpdated ? (
             <>
-              <Check size={14} />
-              <span>Mailbox Synced</span>
+              <Check size={13} />
+              <span className="topbar-sync-text">Updated</span>
             </>
           ) : !scanStatus || scanStatus.total === 0 ? (
             <>
-              <Sparkles size={14} />
-              <span>Scan Complete Gmail</span>
+              <Sparkles size={13} />
+              <span className="topbar-sync-text">Scan Complete Gmail</span>
             </>
           ) : (
             <>
-              <RefreshCw size={14} />
-              <span>Sync New &amp; Changed</span>
+              <RefreshCw size={13} />
+              <span className="topbar-sync-text">Sync New &amp; Changed</span>
             </>
           )}
         </button>

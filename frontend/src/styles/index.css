@@ -98,13 +98,42 @@ input, select {
   padding: 0.75rem 1.15rem;
   border-bottom: 1px solid var(--border-divider);
   cursor: pointer;
-  transition: background-color var(--transition-fast);
+  transition: background-color var(--transition-fast), border-left-color var(--transition-fast);
   user-select: none;
+  border-left: 3px solid transparent;
+}
+
+.email-row:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.email-row.is-selected {
+  background-color: var(--bg-surface-selected);
+  border-left: 3px solid var(--accent);
+}
+
+/* P4 Quiet Visual State: reduced contrast, calmer typography */
+.email-row.p4-row {
+  opacity: 0.82;
+}
+
+.email-row.p4-row:hover {
+  opacity: 1;
+}
+
+.email-row.p4-row .email-row-subject {
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+}
+
+.email-row.p4-row .email-row-col-sender {
+  font-weight: 500 !important;
+  color: var(--text-muted) !important;
 }
 
 .email-row-col-date {
   text-align: right;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -205,9 +234,38 @@ input, select {
   border: none;
 }
 
-.mobile-menu-btn:hover {
+/* Sidebar Navigation Buttons */
+.sidebar-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.48rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: 1px solid transparent;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-nav-btn:hover {
   background-color: var(--bg-surface-hover);
   color: var(--text-main);
+}
+
+.sidebar-nav-btn.is-active {
+  background-color: var(--bg-surface-selected);
+  color: var(--text-main);
+  font-weight: 600;
+  border-color: var(--border-subtle);
+}
+
+.desktop-status-label {
+  display: inline-block;
 }
 
 @media (max-width: 768px) {
@@ -242,10 +300,31 @@ input, select {
   }
 }
 
+@media (max-width: 640px) {
+  .topbar-sync-btn {
+    min-width: auto !important;
+    padding: 0.42rem 0.55rem !important;
+  }
+
+  .topbar-sync-text {
+    display: none !important;
+  }
+}
+
 @media (max-width: 480px) {
   .topbar-header {
-    padding: 0.5rem 0.75rem !important;
-    gap: 0.5rem !important;
+    padding: 0.45rem 0.65rem !important;
+    gap: 0.4rem !important;
+  }
+
+  .topbar-brand-sub {
+    display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .topbar-brand-title {
+    display: none !important;
   }
 }
 

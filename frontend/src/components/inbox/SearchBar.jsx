@@ -11,14 +11,15 @@ export function SearchBar({ value, onChange, matchCount = null }) {
         display: 'flex',
         alignItems: 'center',
         width: '100%',
-        maxWidth: '520px',
+        maxWidth: '460px',
+        flex: '1 1 auto',
       }}
     >
       <Search
-        size={16}
+        size={15}
         style={{
           position: 'absolute',
-          left: '0.85rem',
+          left: '0.8rem',
           color: isFocused ? 'var(--accent)' : 'var(--text-muted)',
           pointerEvents: 'none',
           transition: 'color var(--transition-fast)',
@@ -26,7 +27,7 @@ export function SearchBar({ value, onChange, matchCount = null }) {
       />
       <input
         type="text"
-        placeholder="Search all analyzed mail (sender, subject, keyword)..."
+        placeholder="Search all analyzed mail..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setIsFocused(true)}
@@ -34,15 +35,15 @@ export function SearchBar({ value, onChange, matchCount = null }) {
         aria-label="Search emails"
         style={{
           width: '100%',
-          padding: '0.52rem 5.5rem 0.52rem 2.4rem',
+          padding: '0.48rem 4.5rem 0.48rem 2.2rem',
           backgroundColor: 'var(--bg-input)',
-          border: `1px solid ${isFocused ? 'var(--accent)' : 'var(--border-subtle)'}`,
-          boxShadow: isFocused ? '0 0 0 3px var(--accent-light)' : 'none',
+          border: `1px solid ${isFocused ? 'var(--border-focus)' : 'var(--border-subtle)'}`,
+          boxShadow: isFocused ? '0 0 0 2px var(--accent-light)' : 'none',
           borderRadius: 'var(--radius-md)',
           color: 'var(--text-main)',
-          fontSize: '0.85rem',
+          fontSize: '0.84rem',
           outline: 'none',
-          transition: 'all var(--transition-fast)',
+          transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)',
         }}
       />
 

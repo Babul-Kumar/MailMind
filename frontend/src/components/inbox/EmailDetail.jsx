@@ -27,11 +27,12 @@ export function EmailDetail({ email, onClose }) {
     <>
       {/* Overlay — subtle dark overlay, low blur so inbox remains crisp & recognizable */}
       <div
+        className="animate-backdrop-in"
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.25)',
-          backdropFilter: 'blur(0.5px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          backdropFilter: 'blur(1px)',
           zIndex: 1500,
         }}
         onClick={onClose}
@@ -55,7 +56,7 @@ export function EmailDetail({ email, onClose }) {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          animation: 'slideInRight 0.20s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         aria-label="Email detail drawer"
       >

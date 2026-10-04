@@ -241,7 +241,7 @@ export function FeedbackWidget({
         ) : (
           <HelpCircle size={11} />
         )}
-        <span>Wrong?</span>
+        <span>{compact ? 'Feedback' : 'Correct classification'}</span>
         {!compact && <ChevronDown size={10} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />}
       </button>
 

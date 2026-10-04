@@ -99,20 +99,7 @@ export function Sidebar({
                 key={item.key}
                 onClick={() => handleSelect(item.key)}
                 title={item.tooltip}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.52rem 0.75rem',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.84rem',
-                  fontWeight: isActive ? 600 : 500,
-                  backgroundColor: isActive ? 'var(--bg-surface-selected)' : 'transparent',
-                  color: isActive ? 'var(--text-main)' : 'var(--text-secondary)',
-                  border: `1px solid ${isActive ? 'var(--border-subtle)' : 'transparent'}`,
-                  transition: 'all var(--transition-fast)',
-                  cursor: 'pointer',
-                }}
+                className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <span style={{ color: item.color || (isActive ? 'var(--accent)' : 'var(--text-muted)'), display: 'flex' }}>
@@ -150,30 +137,19 @@ export function Sidebar({
           {priorityItems.map((item) => {
             const isActive = !focusMode && activeFilter === item.key;
             const isP1WithCount = item.key === 'P1' && item.count > 0;
+            const isP4 = item.key === 'P4';
             const formattedCount = typeof item.count === 'number' ? item.count.toLocaleString() : (item.count || '0');
             return (
               <button
                 key={item.key}
                 onClick={() => handleSelect(item.key)}
                 title={item.tooltip}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.45rem 0.75rem',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.82rem',
-                  fontWeight: isActive ? 600 : 500,
-                  backgroundColor: isActive ? 'var(--bg-surface-selected)' : 'transparent',
-                  color: isActive ? 'var(--text-main)' : 'var(--text-secondary)',
-                  border: `1px solid ${isActive ? 'var(--border-subtle)' : 'transparent'}`,
-                  transition: 'all var(--transition-fast)',
-                  cursor: 'pointer',
-                }}
+                className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
+                style={{ opacity: isP4 ? 0.85 : 1 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.dotColor }} />
-                  <span>{item.label}</span>
+                  <span style={{ color: isP4 && !isActive ? 'var(--text-muted)' : undefined }}>{item.label}</span>
                 </div>
                 <span
                   style={{
@@ -185,7 +161,7 @@ export function Sidebar({
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: isP1WithCount ? 'rgba(239, 68, 68, 0.18)' : 'var(--badge-bg)',
+                    backgroundColor: isP1WithCount ? 'rgba(244, 63, 94, 0.12)' : 'var(--badge-bg)',
                     color: isP1WithCount ? 'var(--p1-color)' : 'var(--text-muted)',
                     fontWeight: item.count > 0 ? 600 : 500,
                   }}

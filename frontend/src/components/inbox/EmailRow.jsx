@@ -1,7 +1,6 @@
 import React from 'react';
 import { PriorityBadge } from '../priority/PriorityBadge';
 import { formatEmailDate, cleanSenderName, extractSnippet, getDeadlineState } from '../../utils/formatting';
-import { FeedbackWidget } from './FeedbackWidget';
 
 function EmailRowComponent({ email, isSelected, onClick }) {
   const senderDisplay = cleanSenderName(email.sender);
@@ -68,6 +67,9 @@ function EmailRowComponent({ email, isSelected, onClick }) {
     }
   }
 
+  const isP4 = priority === 'P4';
+  const hasActionLine = Boolean(deadlineState || actionRequired);
+
   return (
     <div
       onClick={onClick}
@@ -78,12 +80,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
       }}
       role="button"
       tabIndex={0}
-      style={{
-        backgroundColor: isSelected ? 'var(--bg-surface-selected)' : 'transparent',
-        borderLeft: isSelected ? '3px solid var(--accent)' : '3px solid transparent',
-        boxShadow: 'none',
-      }}
-      className="email-row"
+      className={`email-row ${isP4 ? 'p4-row' : ''} ${isSelected ? 'is-selected' : ''}`}
     >
       {/* Priority Pill & Mobile Top Row Date */}
       <div className="email-row-col-badge">
@@ -97,9 +94,9 @@ function EmailRowComponent({ email, isSelected, onClick }) {
       <div
         className="email-row-col-sender"
         style={{
-          fontSize: '0.85rem',
-          fontWeight: 600,
-          color: 'var(--text-main)',
+          fontSize: '0.84rem',
+          fontWeight: isP4 ? 500 : 600,
+          color: isP4 ? 'var(--text-muted)' : 'var(--text-main)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -112,7 +109,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
       {/* Subject + Snippet Preview + Action Status */}
       <div
         className="email-row-col-main"
-        style={{ display: 'flex', flexDirection: 'column', gap: '0.22rem', overflow: 'hidden' }}
+        style={{ display: 'flex', flexDirection: 'column', gap: hasActionLine ? '0.2rem' : '0', overflow: 'hidden' }}
       >
         <div
           className="email-row-subject-line"
@@ -129,8 +126,8 @@ function EmailRowComponent({ email, isSelected, onClick }) {
           <span
             className="email-row-subject"
             style={{
-              fontWeight: 700,
-              color: 'var(--text-main)',
+              fontWeight: isP4 ? 500 : 600,
+              color: isP4 ? 'var(--text-secondary)' : 'var(--text-main)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -156,74 +153,57 @@ function EmailRowComponent({ email, isSelected, onClick }) {
           </span>
         </div>
 
-        {/* Action + Deadline Status line */}
-        <div
-          className="email-row-action-line"
-          style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem', fontSize: '0.72rem' }}
-        >
-          {deadlineState && deadlinePillStyle && (
-            <span
-              style={{
-                color: deadlinePillStyle.color,
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                backgroundColor: deadlinePillStyle.bg,
-                border: `1px solid ${deadlinePillStyle.border}`,
-                padding: '0.06rem 0.45rem',
-                borderRadius: 'var(--radius-xs)',
-              }}
-            >
-              <span>{deadlinePillStyle.icon}</span> {deadlineLabel}
-            </span>
-          )}
-
-          {actionRequired ? (
-            <span
-              style={{
-                color: email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'var(--p1-color)' : 'var(--accent)',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                backgroundColor: email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)',
-                border: `1px solid ${email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(99, 102, 241, 0.25)'}`,
-                padding: '0.06rem 0.45rem',
-                borderRadius: 'var(--radius-xs)',
-              }}
-            >
-              <span>●</span> {email.action_reason || 'Action required'}
-            </span>
-          ) : (
-            !deadlineState && (
-              <span style={{ color: 'var(--text-muted)', opacity: 0.55, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span>○</span> No action required
+        {/* Action + Deadline Status line (Only rendered when meaningful signals exist) */}
+        {hasActionLine && (
+          <div
+            className="email-row-action-line"
+            style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem', fontSize: '0.72rem' }}
+          >
+            {deadlineState && deadlinePillStyle && (
+              <span
+                style={{
+                  color: deadlinePillStyle.color,
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  backgroundColor: deadlinePillStyle.bg,
+                  border: `1px solid ${deadlinePillStyle.border}`,
+                  padding: '0.06rem 0.45rem',
+                  borderRadius: 'var(--radius-xs)',
+                }}
+              >
+                <span>{deadlinePillStyle.icon}</span> {deadlineLabel}
               </span>
-            )
-          )}
+            )}
 
-          <div style={{ marginLeft: 'auto' }}>
-            <FeedbackWidget
-              messageId={email.email_id || email.id}
-              currentPriority={priority}
-              confidence={email.confidence}
-              topic={email.topic}
-              threadId={email.thread_id}
-              deadlineDetected={Boolean(email.deadline_detected)}
-              actionRequired={actionRequired}
-              compact={true}
-            />
+            {actionRequired && (
+              <span
+                style={{
+                  color: email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'var(--p1-color)' : 'var(--accent)',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  backgroundColor: email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(244, 63, 94, 0.08)' : 'rgba(99, 102, 241, 0.08)',
+                  border: `1px solid ${email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(244, 63, 94, 0.22)' : 'rgba(99, 102, 241, 0.22)'}`,
+                  padding: '0.06rem 0.45rem',
+                  borderRadius: 'var(--radius-xs)',
+                }}
+              >
+                <span>●</span> {email.action_reason || 'Action required'}
+              </span>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Desktop Date — lower emphasis, visually subdued when deadline is shown */}
+      {/* Desktop Date */}
       <div
         className="email-row-col-date"
         style={{
           color: deadlineState ? 'var(--text-dim)' : 'var(--text-muted)',
-          opacity: deadlineState ? 0.45 : 0.85,
+          opacity: deadlineState ? 0.6 : 0.85,
           fontSize: '0.74rem',
         }}
       >

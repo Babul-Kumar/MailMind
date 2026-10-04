@@ -137,6 +137,9 @@ export function SettingsPanel({
             gap: '0.4rem',
             borderBottom: '1px solid var(--border-subtle)',
             paddingBottom: '0.6rem',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
           }}
           role="tablist"
         >
