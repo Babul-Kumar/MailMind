@@ -35,47 +35,41 @@ export function useAuth() {
     }
   }, []);
 
+  const exchangeHandoff = useCallback(async (handoffCode) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchAuthExchange(handoffCode);
+      if (data && data.authenticated && data.user) {
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setError(null);
+        return data;
+      } else {
+        throw new Error('Authentication response unauthenticated.');
+      }
+    } catch (err) {
+      console.error('Failed to exchange handoff code:', err);
+      setUser(null);
+      setIsAuthenticated(false);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    // Check URL parameters for OAuth errors or one-time handoff codes
-    const urlParams = new URLSearchParams(window.location.search);
-    const authError = urlParams.get('auth_error');
-    const handoffCode = urlParams.get('handoff');
-
-    if (authError) {
-      window.history.replaceState({}, document.title, '/');
-      checkStatus(`OAuth authentication error: ${authError}`);
-      return;
+    // If on callback route or handoff query exists, let AuthCallback component handle exchange
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      if (pathname.includes('/auth/callback') || search.includes('handoff=') || search.includes('auth_error=')) {
+        // Handled by AuthCallback component
+        return;
+      }
     }
 
-    if (handoffCode) {
-      // Immediately sanitize URL to prevent handoff token leakage in history or bookmarks
-      window.history.replaceState({}, document.title, '/');
-      setIsLoading(true);
-      setError(null);
-      fetchAuthExchange(handoffCode)
-        .then((data) => {
-          if (data && data.authenticated && data.user) {
-            setUser(data.user);
-            setIsAuthenticated(true);
-            setError(null);
-          } else {
-            setUser(null);
-            setIsAuthenticated(false);
-            setError('OAuth handoff failed: Invalid session.');
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to exchange handoff code:', err);
-          setError(err.message || 'OAuth handoff exchange failed.');
-          setUser(null);
-          setIsAuthenticated(false);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-      return;
-    }
-
+    // Normal mount check
     checkStatus();
   }, [checkStatus]);
 
@@ -133,5 +127,6 @@ export function useAuth() {
     switchAccount,
     logout,
     refreshStatus: checkStatus,
+    exchangeHandoff,
   };
 }

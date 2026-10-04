@@ -5,11 +5,38 @@ import { useSearch } from './hooks/useSearch';
 import { AppShell } from './components/layout/AppShell';
 import { Inbox } from './components/inbox/Inbox';
 import { ConnectAccountHero } from './components/auth/ConnectAccountHero';
+import { AuthCallback } from './components/auth/AuthCallback';
 import { MailboxLoadingState } from './components/common/MailboxLoadingState';
 
 export function App() {
   const auth = useAuth();
   const emailsHook = useEmails(auth.isAuthenticated);
+
+  const [currentPath, setCurrentPath] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      if (pathname.includes('/auth/callback') || search.includes('handoff=') || search.includes('auth_error=')) {
+        return '/auth/callback';
+      }
+      return pathname;
+    }
+    return '/';
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      if (pathname.includes('/auth/callback') || search.includes('handoff=') || search.includes('auth_error=')) {
+        setCurrentPath('/auth/callback');
+      } else {
+        setCurrentPath(pathname);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const searchOptions = useMemo(
     () => ({
@@ -99,7 +126,27 @@ export function App() {
       onToggleDensity={handleToggleDensity}
       onChangeDensity={setDensity}
     >
-      {showConnectHero ? (
+      {currentPath === '/auth/callback' ? (
+        <AuthCallback
+          exchangeHandoff={auth.exchangeHandoff}
+          onAuthenticationComplete={(userData) => {
+            if (auth.refreshStatus) {
+              auth.refreshStatus();
+            }
+          }}
+          onSuccess={(userData) => {
+            window.history.replaceState({}, document.title, '/');
+            setCurrentPath('/');
+            if (auth.refreshStatus) {
+              auth.refreshStatus();
+            }
+          }}
+          onCancel={() => {
+            window.history.replaceState({}, document.title, '/');
+            setCurrentPath('/');
+          }}
+        />
+      ) : showConnectHero ? (
         <ConnectAccountHero
           onLogin={auth.login}
           isLoading={auth.isLoading}

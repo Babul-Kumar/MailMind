@@ -17,7 +17,8 @@ from backend.app.core.session import session_manager, SESSION_COOKIE_NAME
 class TestOAuthHandoffArchitecture(unittest.TestCase):
     """
     Automated test suite verifying the one-time OAuth handoff code architecture,
-    single-use anti-replay guarantees, session isolation, and /api/auth/exchange endpoint.
+    single-use anti-replay guarantees, session isolation, /api/auth/exchange endpoint,
+    logout invalidation, account switching, and zero token leakage.
     """
 
     @classmethod
@@ -52,7 +53,6 @@ class TestOAuthHandoffArchitecture(unittest.TestCase):
     # 3. Anti-Replay: Handoff Code Is Strictly Single-Use
     def test_03_handoff_code_single_use_anti_replay(self):
         code = session_manager.create_handoff(self.session.session_id)
-        # First consumption must succeed
         first = session_manager.consume_handoff(code)
         self.assertEqual(first, self.session.session_id)
 
@@ -91,7 +91,6 @@ class TestOAuthHandoffArchitecture(unittest.TestCase):
         self.assertTrue(data.get("authenticated"))
         self.assertEqual(data.get("user", {}).get("email"), "handoff_tester@mailmind.dev")
 
-        # Verify session cookie was set
         cookie_header = res.headers.get("set-cookie", "")
         self.assertIn(SESSION_COOKIE_NAME, cookie_header)
         self.assertIn(self.session.session_id, cookie_header)
@@ -105,11 +104,9 @@ class TestOAuthHandoffArchitecture(unittest.TestCase):
     # 8. /api/auth/exchange Rejects Replayed Handoff Code
     def test_08_exchange_endpoint_replayed_code_returns_400(self):
         code = session_manager.create_handoff(self.session.session_id)
-        # First exchange succeeds
         res1 = self.client.post("/api/auth/exchange", json={"handoff": code})
         self.assertEqual(res1.status_code, 200)
 
-        # Second exchange with the same code must return 400
         res2 = self.client.post("/api/auth/exchange", json={"handoff": code})
         self.assertEqual(res2.status_code, 400)
 
@@ -126,12 +123,10 @@ class TestOAuthHandoffArchitecture(unittest.TestCase):
 
             self.assertNotEqual(code_a, code_b)
 
-            # Consume B
             res_b = self.client.post("/api/auth/exchange", json={"handoff": code_b})
             self.assertEqual(res_b.status_code, 200)
             self.assertEqual(res_b.json().get("user", {}).get("email"), "user_b@mailmind.dev")
 
-            # Consume A
             res_a = self.client.post("/api/auth/exchange", json={"handoff": code_a})
             self.assertEqual(res_a.status_code, 200)
             self.assertEqual(res_a.json().get("user", {}).get("email"), "handoff_tester@mailmind.dev")
@@ -144,6 +139,97 @@ class TestOAuthHandoffArchitecture(unittest.TestCase):
         res = self.client.get(f"/api/auth/exchange?handoff={code}")
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.json().get("authenticated"))
+
+    # 11. End-to-End: Handoff Exchange -> Authenticated Status Check
+    def test_11_end_to_end_handoff_to_authenticated_status(self):
+        code = session_manager.create_handoff(self.session.session_id)
+        res_exchange = self.client.post("/api/auth/exchange", json={"handoff": code})
+        self.assertEqual(res_exchange.status_code, 200)
+
+        res_status = self.client.get(
+            "/api/auth/status",
+            cookies={SESSION_COOKIE_NAME: self.session.session_id}
+        )
+        self.assertEqual(res_status.status_code, 200)
+        status_data = res_status.json()
+        self.assertTrue(status_data.get("authenticated"))
+        self.assertEqual(status_data.get("user", {}).get("email"), "handoff_tester@mailmind.dev")
+
+    # 12. Logout Invalidates Session and Prevents Further Access
+    def test_12_logout_invalidates_session(self):
+        code = session_manager.create_handoff(self.session.session_id)
+        res_exchange = self.client.post("/api/auth/exchange", json={"handoff": code})
+        self.assertEqual(res_exchange.status_code, 200)
+
+        res_logout = self.client.post(
+            "/api/auth/logout",
+            cookies={SESSION_COOKIE_NAME: self.session.session_id}
+        )
+        self.assertEqual(res_logout.status_code, 200)
+
+        self.assertIsNone(session_manager.get_session(self.session.session_id))
+
+        res_status = self.client.get(
+            "/api/auth/status",
+            cookies={SESSION_COOKIE_NAME: self.session.session_id}
+        )
+        self.assertEqual(res_status.status_code, 200)
+        self.assertFalse(res_status.json().get("authenticated"))
+
+        res_profile = self.client.get(
+            "/api/profile",
+            cookies={SESSION_COOKIE_NAME: self.session.session_id}
+        )
+        self.assertEqual(res_profile.status_code, 401)
+
+    # 13. Account Switching Multi-User Isolation
+    def test_13_account_switching_isolation(self):
+        user_a_session = session_manager.create_session(
+            user_id="user_a",
+            email="user_a@mailmind.dev",
+            credentials={"token": "tok_a"}
+        )
+        user_b_session = session_manager.create_session(
+            user_id="user_b",
+            email="user_b@mailmind.dev",
+            credentials={"token": "tok_b"}
+        )
+
+        try:
+            code_a = session_manager.create_handoff(user_a_session.session_id)
+            res_a = self.client.post("/api/auth/exchange", json={"handoff": code_a})
+            self.assertEqual(res_a.json().get("user", {}).get("email"), "user_a@mailmind.dev")
+
+            self.client.post("/api/auth/logout", cookies={SESSION_COOKIE_NAME: user_a_session.session_id})
+            self.assertIsNone(session_manager.get_session(user_a_session.session_id))
+
+            code_b = session_manager.create_handoff(user_b_session.session_id)
+            res_b = self.client.post("/api/auth/exchange", json={"handoff": code_b})
+            self.assertEqual(res_b.json().get("user", {}).get("email"), "user_b@mailmind.dev")
+
+            res_status_b = self.client.get(
+                "/api/auth/status",
+                cookies={SESSION_COOKIE_NAME: user_b_session.session_id}
+            )
+            self.assertEqual(res_status_b.json().get("user", {}).get("email"), "user_b@mailmind.dev")
+
+            res_status_a = self.client.get(
+                "/api/auth/status",
+                cookies={SESSION_COOKIE_NAME: user_a_session.session_id}
+            )
+            self.assertFalse(res_status_a.json().get("authenticated"))
+        finally:
+            session_manager.delete_session(user_a_session.session_id)
+            session_manager.delete_session(user_b_session.session_id)
+
+    # 14. Zero Google OAuth Tokens in Exchange Response Body
+    def test_14_zero_oauth_tokens_in_exchange_response(self):
+        code = session_manager.create_handoff(self.session.session_id)
+        res = self.client.post("/api/auth/exchange", json={"handoff": code})
+        raw_response = res.text.lower()
+
+        for forbidden in ["refresh_token", "mock_token", "mock_refresh", "client_secret", "access_token"]:
+            self.assertNotIn(forbidden, raw_response, f"Forbidden credential keyword '{forbidden}' leaked in response!")
 
 
 if __name__ == "__main__":

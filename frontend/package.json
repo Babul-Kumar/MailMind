@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node -e \"import fs from 'node:fs'; fs.copyFileSync('dist/index.html', 'dist/404.html');\"",
     "preview": "vite preview",
     "test": "node --test src/utils/formatting.test.js src/services/api.test.js"
   },
