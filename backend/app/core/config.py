@@ -29,7 +29,7 @@ FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
 # Gmail Read-Only OAuth Scope
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-# Base CORS allowed origins (Local development defaults)
+# Base CORS allowed origins (Local development defaults + Production Vercel)
 _DEFAULT_ORIGINS: List[str] = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
@@ -41,14 +41,15 @@ _DEFAULT_ORIGINS: List[str] = [
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://localhost:5173",
+    "https://mail-mind-ten-chi.vercel.app",
 ]
 
 # Frontend application URL (Vercel deployment URL)
-FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://mail-mind-ten-chi.vercel.app").strip().rstrip("/")
 
 # Support production custom domains via ALLOWED_ORIGINS, FRONTEND_URL, or BASE_URL
 _extra_origins_env = os.getenv("ALLOWED_ORIGINS", "")
-_extra_origins = [o.strip() for o in _extra_origins_env.split(",") if o.strip()]
+_extra_origins = [o.strip().rstrip("/") for o in _extra_origins_env.split(",") if o.strip()]
 
 if FRONTEND_URL and FRONTEND_URL not in _extra_origins:
     _extra_origins.append(FRONTEND_URL)

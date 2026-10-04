@@ -110,17 +110,11 @@ class SessionManager:
 
     @staticmethod
     def _is_safe_session_id(session_id: Optional[str]) -> bool:
-        """Validates that a session_id contains only URL-safe characters and stays within SESSIONS_DIR."""
+        """Validates that a session_id is a safe alphanumeric token without path traversal."""
         if not session_id or not isinstance(session_id, str):
             return False
-        if not re.match(r"^[A-Za-z0-9_\-~]{16,128}$", session_id):
-            return False
-        target_path = os.path.realpath(os.path.abspath(os.path.join(SESSIONS_DIR, f"{session_id}.json")))
-        sessions_base = os.path.realpath(os.path.abspath(SESSIONS_DIR))
-        try:
-            return os.path.commonpath([sessions_base, target_path]) == sessions_base and target_path.startswith(sessions_base + os.sep)
-        except ValueError:
-            return False
+        # Strictly URL-safe alphanumeric, underscore, hyphen, tilde (16-128 chars). No dots, no slashes.
+        return bool(re.match(r"^[A-Za-z0-9_\-~]{16,128}$", session_id))
 
     def get_session(self, session_id: Optional[str]) -> Optional[SessionData]:
         """Retrieves an active, unexpired session by ID."""

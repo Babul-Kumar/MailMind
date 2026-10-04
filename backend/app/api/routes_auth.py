@@ -131,6 +131,42 @@ def get_redirect_uri(request: Request) -> str:
     return f"{base}/api/auth/callback"
 
 
+def get_cookie_security_flags(request: Request) -> tuple[str, bool]:
+    """
+    Determines SameSite and Secure cookie flags for session management.
+    For Vercel (frontend) + Render (backend) cross-origin deployment:
+      - SameSite MUST be 'none'
+      - Secure MUST be True
+      - HttpOnly MUST be True
+      - Path MUST be '/'
+    This allows the browser to include the session cookie in cross-site fetch
+    requests from Vercel with credentials: 'include'.
+    """
+    # 1. Explicit override via COOKIE_SAMESITE environment variable
+    explicit_samesite = os.getenv("COOKIE_SAMESITE", "").strip().lower()
+    if explicit_samesite in ("none", "lax", "strict"):
+        is_secure = (explicit_samesite == "none") or (request.url.scheme == "https") or (request.headers.get("x-forwarded-proto") == "https")
+        return explicit_samesite, is_secure
+
+    # 2. Production or Render or HTTPS or Cross-Origin Frontend Detection
+    is_prod_env = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    is_render = bool(os.getenv("RENDER") == "true" or "onrender.com" in request.headers.get("host", "") or "onrender.com" in os.getenv("BASE_URL", ""))
+    is_https = bool(
+        request.url.scheme == "https"
+        or request.headers.get("x-forwarded-proto") == "https"
+        or os.getenv("BASE_URL", "").startswith("https://")
+        or os.getenv("FRONTEND_URL", "").startswith("https://")
+    )
+    frontend_url = os.getenv("FRONTEND_URL", "").strip().lower()
+    is_cross_site = bool(frontend_url and not any(loc in frontend_url for loc in ("localhost", "127.0.0.1")))
+
+    if is_prod_env or is_render or is_https or is_cross_site:
+        return "none", True
+
+    # 3. Local HTTP development fallback
+    return "lax", False
+
+
 def create_oauth_flow(
     redirect_uri: str,
     state: Optional[str] = None,
@@ -250,9 +286,7 @@ def auth_login(
         })
 
     if code_verifier:
-        is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-        cookie_samesite = os.getenv("COOKIE_SAMESITE", "none" if is_production else "lax").lower()
-        cookie_secure = is_production or cookie_samesite == "none" or request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+        cookie_samesite, cookie_secure = get_cookie_security_flags(request)
         res.set_cookie(
             key="mailmind_oauth_verifier",
             value=f"{state}:{code_verifier}",
@@ -276,7 +310,7 @@ def auth_callback(
     Handles Google OAuth redirect, exchanges auth code for user credentials with PKCE verifier,
     extracts user identity, creates an isolated session, and sets the secure HttpOnly cookie.
     """
-    frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+    frontend_url = os.getenv("FRONTEND_URL", "https://mail-mind-ten-chi.vercel.app").strip().rstrip("/")
     if error:
         err_url = f"{frontend_url}/?auth_error={error}" if frontend_url else f"/?auth_error={error}"
         return RedirectResponse(err_url, status_code=302)
@@ -323,9 +357,7 @@ def auth_callback(
 
         target_url = f"{frontend_url}/" if frontend_url else "/"
         response = RedirectResponse(url=target_url, status_code=302)
-        is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-        cookie_samesite = os.getenv("COOKIE_SAMESITE", "none" if is_production else "lax").lower()
-        cookie_secure = is_production or cookie_samesite == "none"
+        cookie_samesite, cookie_secure = get_cookie_security_flags(request)
 
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
@@ -342,6 +374,7 @@ def auth_callback(
             samesite=cookie_samesite,
             secure=cookie_secure
         )
+        print(f"[OAuth Callback] Successfully authenticated {mask_email(email_address)}. Session created. Cookie set (SameSite={cookie_samesite}, Secure={cookie_secure}). Redirecting to {target_url}")
         return response
     except Exception as e:
         print(f"[OAuth Callback Error] {e}")
@@ -355,6 +388,7 @@ def auth_status(request: Request):
     Returns current authentication status and user metadata.
     NEVER leaks tokens or secrets to the client.
     """
+    cookie_present = SESSION_COOKIE_NAME in request.cookies
     session = get_session_from_request(request)
     if session:
         return {
@@ -367,6 +401,7 @@ def auth_status(request: Request):
             }
         }
 
+    print(f"[Auth Status] Request unauthenticated. Cookie present: {cookie_present}, Origin: {request.headers.get('origin')}")
     return {
         "authenticated": False,
         "mode": "unauthenticated",
@@ -383,9 +418,7 @@ def auth_logout(request: Request, response: Response):
     if session:
         session_manager.delete_session(session.session_id)
 
-    is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
-    cookie_samesite = os.getenv("COOKIE_SAMESITE", "none" if is_production else "lax").lower()
-    cookie_secure = is_production or cookie_samesite == "none"
+    cookie_samesite, cookie_secure = get_cookie_security_flags(request)
 
     res = JSONResponse(content={"status": "logged_out", "message": "Disconnected successfully"})
     res.delete_cookie(
@@ -399,6 +432,7 @@ def auth_logout(request: Request, response: Response):
 
 @router.post("/test-session")
 def create_test_session(
+    request: Request,
     email: str = Query(..., description="Test user email"),
     response: Response = None
 ):
@@ -428,8 +462,7 @@ def create_test_session(
         credentials=simulated_creds
     )
 
-    cookie_samesite = os.getenv("COOKIE_SAMESITE", "none" if is_production else "lax").lower()
-    cookie_secure = is_production or cookie_samesite == "none"
+    cookie_samesite, cookie_secure = get_cookie_security_flags(request)
 
     res = JSONResponse(content={
         "status": "success",

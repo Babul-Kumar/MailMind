@@ -7,21 +7,27 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const checkStatus = useCallback(async () => {
+  const checkStatus = useCallback(async (initialError = null) => {
     setIsLoading(true);
-    setError(null);
+    if (!initialError) {
+      setError(null);
+    }
     try {
       const data = await fetchAuthStatus();
       if (data.authenticated && data.user) {
         setUser(data.user);
         setIsAuthenticated(true);
+        setError(null);
       } else {
         setUser(null);
         setIsAuthenticated(false);
+        if (initialError) {
+          setError(initialError);
+        }
       }
     } catch (err) {
       console.error('Failed to check auth status:', err);
-      setError(err.message || 'Authentication check failed');
+      setError(initialError || err.message || 'Authentication check failed');
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -34,11 +40,10 @@ export function useAuth() {
     const urlParams = new URLSearchParams(window.location.search);
     const authError = urlParams.get('auth_error');
     if (authError) {
-      setError(`OAuth authentication error: ${authError}`);
       // Clean up URL without reload
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-    checkStatus();
+    checkStatus(authError ? `OAuth authentication error: ${authError}` : null);
   }, [checkStatus]);
 
   const login = useCallback(async () => {
