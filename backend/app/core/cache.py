@@ -543,7 +543,7 @@ class UserEmailCache:
             SELECT data_json, thread_id
             FROM user_email_cache
             WHERE {where_sql}
-            ORDER BY internal_date {order_dir}, analyzed_at {order_dir}
+            ORDER BY internal_date {order_dir}, analyzed_at {order_dir}, message_id {order_dir}
             LIMIT ? OFFSET ?
         """
         cur = conn.execute(query_sql, params + [page_size, offset])

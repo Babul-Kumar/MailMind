@@ -1,13 +1,12 @@
 # CSE472 - AI Email Priority Classification System
-# Core Machine Learning & Data Processing
+# Core Machine Learning & Data Processing (Frozen TF-IDF + Logistic Regression)
 scikit-learn>=1.3.0
 joblib>=1.3.0
 pandas>=2.0.0
 numpy>=1.24.0
 
-# Deep Learning & Transformers (Experimentation & Benchmarking)
-torch>=2.0.0
-transformers>=4.30.0
+# HTML / MIME Email Body Parsing
+beautifulsoup4>=4.12.0
 
 # Production REST API & Server
 fastapi>=0.100.0
