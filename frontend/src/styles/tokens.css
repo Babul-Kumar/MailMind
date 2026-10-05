@@ -45,6 +45,11 @@
   --safe-right: env(safe-area-inset-right, 0px);
   --touch-target-min: 44px;
   --touch-target-comfortable: 48px;
+
+  /* Mobile Layout Spacing Tokens */
+  --mobile-page-pad: 16px;
+  --mobile-section-gap: 16px;
+  --mobile-card-pad: 14px;
 }
 
 /* Dark Theme (Default on :root) */

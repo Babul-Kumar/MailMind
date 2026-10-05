@@ -53,118 +53,53 @@ function TopBarComponent({
             onClick={onToggleMobileMenu}
             className="mobile-menu-btn"
             aria-label="Toggle navigation menu"
-            style={{ display: 'inline-flex' }}
           >
             <Menu size={22} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
             <MailMindLogo size={24} isScanning={isScanning} />
-            <span style={{ fontSize: '1.05rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-main)', lineHeight: 1 }}>
+            <span style={{ fontSize: '1.08rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--text-main)', lineHeight: 1 }}>
               MailMind
             </span>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          <AIProcessingState isLoading={isLoading} stepText={loadingStep} />
-
           {isAuthenticated ? (
             <button
               onClick={onToggleMobileMenu}
               title={userEmail ? `Connected: ${userEmail}` : 'Account options'}
               aria-label="Open account navigation"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.35rem 0.55rem',
-                borderRadius: 'var(--radius-full)',
-                backgroundColor: 'var(--bg-surface-hover)',
-                border: '1px solid var(--border-subtle)',
-                fontSize: '0.74rem',
-                color: 'var(--text-secondary)',
-                minHeight: '38px',
-                cursor: 'pointer',
-              }}
+              className="topbar-mobile-account-btn"
             >
-              <span
-                style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  backgroundColor: '#22c55e',
-                  boxShadow: '0 0 6px rgba(34, 197, 94, 0.5)',
-                }}
-              />
-              <User size={14} />
-            </button>
-          ) : authError ? (
-            <button
-              onClick={() => auth?.login?.()}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                padding: '0.35rem 0.65rem',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--p1-color)',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                minHeight: '38px',
-                cursor: 'pointer',
-              }}
-            >
-              <span>Reconnect</span>
+              <span className="topbar-status-dot online" />
+              <User size={16} />
             </button>
           ) : (
             <button
               onClick={() => auth?.login?.()}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.38rem 0.8rem',
-                backgroundColor: 'var(--accent)',
-                border: 'none',
-                borderRadius: 'var(--radius-sm)',
-                color: '#ffffff',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                minHeight: '38px',
-                cursor: 'pointer',
-              }}
+              title="Sign in with Google"
               aria-label="Sign in with Google"
+              className="topbar-mobile-account-btn"
             >
-              <span>Sign in</span>
+              <User size={16} />
             </button>
           )}
 
           <button
             onClick={onToggleTheme}
-            style={{
-              padding: '0.4rem',
-              color: 'var(--text-secondary)',
-              borderRadius: 'var(--radius-sm)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '38px',
-              minHeight: '38px',
-              cursor: 'pointer',
-            }}
+            className="topbar-mobile-theme-btn"
             title="Appearance"
             aria-label={`Appearance: switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
           >
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </div>
       </div>
 
       {/* 2. Dedicated Mobile Header: Row 2 Full-Width Search (<= 640px) */}
       <div className="topbar-mobile-row-2">
-        <SearchBar value={searchQuery} onChange={onSearchChange} matchCount={matchCount} />
+        <SearchBar value={searchQuery} onChange={onSearchChange} matchCount={matchCount} placeholder="Search analyzed mail..." />
       </div>
 
       {/* 3. Desktop Single-Row Layout (> 640px) */}

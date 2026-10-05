@@ -116,36 +116,54 @@ export function Inbox({
         <PrioritySummary emails={allEmails.length ? allEmails : emails} stats={stats} onSelectFilter={onSelectFilter} />
       )}
 
-      {/* Background Mailbox Scan Notification Banner */}
+      {/* Background Mailbox Scan Notification Card */}
       {isScanning && scanStatus && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.75rem 1.1rem',
-            backgroundColor: 'rgba(99, 102, 241, 0.08)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
-            borderRadius: 'var(--radius-lg)',
-            marginBottom: '1rem',
-            color: 'var(--accent)',
-            fontSize: '0.84rem',
-            fontWeight: 500,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--accent)' }} className="animate-pulse" />
-            <span>
-              {scanStatus.status === 'SCANNING'
-                ? `Scanning Gmail... Discovered ${scanStatus.discovered?.toLocaleString() || 0} messages so far.`
-                : scanStatus.status === 'ANALYZING'
-                ? `Analyzing complete mailbox: ${scanStatus.analyzed?.toLocaleString() || 0} / ${scanStatus.total?.toLocaleString() || 0} analyzed (${scanStatus.progress_percent}%) · ${scanStatus.cached?.toLocaleString() || 0} reused from cache.`
-                : 'Finalizing complete mailbox analysis...'}
-            </span>
+        <div className="scan-status-card">
+          <div className="scan-status-header">
+            <div className="scan-status-title-group">
+              <span className="scan-status-pulse-dot animate-pulse" />
+              <span className="scan-status-title">
+                {scanStatus.status === 'SCANNING'
+                  ? 'Scanning Gmail Mailbox'
+                  : scanStatus.status === 'ANALYZING'
+                  ? 'Analyzing Complete Mailbox'
+                  : 'Analysis Complete'}
+              </span>
+            </div>
+            {scanStatus.status === 'ANALYZING' && (
+              <span className="scan-status-counter">
+                {scanStatus.analyzed?.toLocaleString() || 0} / {scanStatus.total?.toLocaleString() || 0}
+              </span>
+            )}
           </div>
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-            You can browse cached emails while background scan continues.
-          </span>
+
+          {/* Smooth Progress Track */}
+          {scanStatus.status === 'ANALYZING' && (
+            <div className="scan-status-track">
+              <div
+                className="scan-status-fill"
+                style={{ width: `${Math.min(100, Math.max(0, scanStatus.progress_percent || 0))}%` }}
+              />
+            </div>
+          )}
+
+          <div className="scan-status-meta-line">
+            {scanStatus.status === 'ANALYZING' ? (
+              <>
+                <span>{scanStatus.progress_percent}% analyzed</span>
+                <span className="meta-dot">·</span>
+                <span>{scanStatus.cached?.toLocaleString() || 0} reused from cache</span>
+              </>
+            ) : scanStatus.status === 'SCANNING' ? (
+              <span>Discovered {scanStatus.discovered?.toLocaleString() || 0} messages so far</span>
+            ) : (
+              <span>100% analyzed · All priority classes active</span>
+            )}
+          </div>
+
+          <div className="scan-status-subnote">
+            You can browse cached emails while background analysis continues.
+          </div>
         </div>
       )}
 
@@ -194,10 +212,10 @@ export function Inbox({
         {[
           { key: 'ALL', label: 'All', count: totalCount },
           { key: 'NEEDS_ATTENTION', label: 'Needs Attention', count: stats?.needs_attention_count || 0, isAttention: true },
-          { key: 'P1', label: 'P1 Critical', count: stats?.counts?.P1 || 0, dotColor: 'var(--p1-color)' },
-          { key: 'P2', label: 'P2 Important', count: stats?.counts?.P2 || 0, dotColor: 'var(--p2-color)' },
-          { key: 'P3', label: 'P3 Routine', count: stats?.counts?.P3 || 0, dotColor: 'var(--p3-color)' },
-          { key: 'P4', label: 'P4 Low', count: stats?.counts?.P4 || 0, dotColor: 'var(--p4-color)' },
+          { key: 'P1', label: 'P1', count: stats?.counts?.P1 || 0, dotColor: 'var(--p1-color)' },
+          { key: 'P2', label: 'P2', count: stats?.counts?.P2 || 0, dotColor: 'var(--p2-color)' },
+          { key: 'P3', label: 'P3', count: stats?.counts?.P3 || 0, dotColor: 'var(--p3-color)' },
+          { key: 'P4', label: 'P4', count: stats?.counts?.P4 || 0, dotColor: 'var(--p4-color)' },
         ].map((tab) => {
           const isActive = !focusMode && activeFilter === tab.key;
           return (
@@ -212,22 +230,14 @@ export function Inbox({
               className={`mobile-priority-chip ${isActive ? 'is-active' : ''}`}
             >
               {tab.dotColor && (
-                <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: tab.dotColor, flexShrink: 0 }} />
+                <span className="mobile-chip-dot" style={{ backgroundColor: tab.dotColor }} />
               )}
               {tab.isAttention && (
-                <Zap size={13} color="var(--accent)" style={{ flexShrink: 0 }} />
+                <Zap size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
               )}
               <span>{tab.label}</span>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  padding: '0.08rem 0.4rem',
-                  borderRadius: 'var(--radius-full)',
-                  backgroundColor: isActive ? 'var(--accent-light)' : 'var(--badge-bg)',
-                  color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-                  fontWeight: tab.count > 0 ? 600 : 400,
-                }}
-              >
+              <span className="mobile-chip-separator">·</span>
+              <span className="mobile-chip-count">
                 {typeof tab.count === 'number' ? tab.count.toLocaleString() : tab.count}
               </span>
             </button>
@@ -236,142 +246,74 @@ export function Inbox({
       </div>
 
       {/* Unified View Header & Control Bar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.8rem',
-          padding: '0.4rem 0',
-          marginBottom: '0.75rem',
-        }}
-      >
-        {/* Left: View title & email count & contextual filter chips */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.01em' }}>
-              {viewTitle}
-            </h3>
-            <span
-              style={{
-                fontSize: '0.76rem',
-                color: 'var(--text-secondary)',
-                backgroundColor: 'var(--bg-surface-hover)',
-                border: '1px solid var(--border-subtle)',
-                padding: '0.15rem 0.55rem',
-                borderRadius: 'var(--radius-full)',
-                fontWeight: 600,
-              }}
-            >
-              {totalCount.toLocaleString()} {totalCount === 1 ? 'email' : 'emails'} analyzed
+      <div className="inbox-section-header">
+        {/* Top Line: View Title & Counts */}
+        <div className="inbox-header-top-line">
+          <div className="inbox-header-title-group">
+            <h2 className="inbox-view-title">{viewTitle}</h2>
+            <span className="inbox-view-count-badge">
+              {totalCount.toLocaleString()} {totalCount === 1 ? 'email' : 'emails'}
             </span>
-            {totalCount > 0 && (
-              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                Showing {startIdx}–{endIdx} of {totalCount.toLocaleString()}
-              </span>
-            )}
           </div>
-
-          {viewDescription && (
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
-              {viewDescription}
-            </p>
-          )}
-
-          {/* Secondary Action Filter for P2 */}
-          {activeFilter === 'P2' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.45rem' }}>
-              <button
-                onClick={() => onSelectActionFilter?.('ALL')}
-                style={{
-                  padding: '0.22rem 0.65rem',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.76rem',
-                  fontWeight: actionFilter === 'ALL' ? 600 : 500,
-                  backgroundColor: actionFilter === 'ALL' ? 'var(--bg-surface-selected)' : 'transparent',
-                  color: actionFilter === 'ALL' ? 'var(--text-main)' : 'var(--text-muted)',
-                  border: `1px solid ${actionFilter === 'ALL' ? 'var(--border-subtle)' : 'var(--border-subtle)'}`,
-                  cursor: 'pointer',
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                All Important ({(stats?.counts?.P2 || totalCount).toLocaleString()})
-              </button>
-              <button
-                onClick={() => onSelectActionFilter?.('ACTION_REQUIRED')}
-                style={{
-                  padding: '0.22rem 0.65rem',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.76rem',
-                  fontWeight: actionFilter === 'ACTION_REQUIRED' ? 600 : 500,
-                  backgroundColor: actionFilter === 'ACTION_REQUIRED' ? 'var(--accent-light)' : 'transparent',
-                  color: actionFilter === 'ACTION_REQUIRED' ? 'var(--accent)' : 'var(--text-muted)',
-                  border: `1px solid ${actionFilter === 'ACTION_REQUIRED' ? 'var(--accent)' : 'var(--border-subtle)'}`,
-                  cursor: 'pointer',
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                ● Action Required
-              </button>
-              <button
-                onClick={() => onSelectActionFilter?.('NO_ACTION')}
-                style={{
-                  padding: '0.22rem 0.65rem',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.76rem',
-                  fontWeight: actionFilter === 'NO_ACTION' ? 600 : 500,
-                  backgroundColor: actionFilter === 'NO_ACTION' ? 'var(--bg-surface-selected)' : 'transparent',
-                  color: actionFilter === 'NO_ACTION' ? 'var(--text-main)' : 'var(--text-muted)',
-                  border: `1px solid ${actionFilter === 'NO_ACTION' ? 'var(--border-subtle)' : 'var(--border-subtle)'}`,
-                  cursor: 'pointer',
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                ○ No Action
-              </button>
-            </div>
+          {totalCount > 0 && (
+            <span className="inbox-view-pagination-info">
+              Showing {startIdx}–{endIdx} of {totalCount.toLocaleString()}
+            </span>
           )}
         </div>
 
-        {/* Right: Focus Mode toggle & Sort Select */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {viewDescription && (
+          <p className="inbox-view-description">
+            {viewDescription}
+          </p>
+        )}
+
+        {/* Secondary Action Filter for P2 */}
+        {activeFilter === 'P2' && (
+          <div className="inbox-p2-filter-row">
+            <button
+              type="button"
+              onClick={() => onSelectActionFilter?.('ALL')}
+              className={`inbox-sub-chip ${actionFilter === 'ALL' ? 'is-active' : ''}`}
+            >
+              All Important ({(stats?.counts?.P2 || totalCount).toLocaleString()})
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectActionFilter?.('ACTION_REQUIRED')}
+              className={`inbox-sub-chip action-required ${actionFilter === 'ACTION_REQUIRED' ? 'is-active' : ''}`}
+            >
+              ● Action Required
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectActionFilter?.('NO_ACTION')}
+              className={`inbox-sub-chip ${actionFilter === 'NO_ACTION' ? 'is-active' : ''}`}
+            >
+              ○ No Action
+            </button>
+          </div>
+        )}
+
+        {/* Controls Row: Focus Mode Toggle & Sort Dropdown */}
+        <div className="inbox-controls-row">
           <button
+            type="button"
             onClick={() => onToggleFocusMode(!focusMode)}
-            title="Show only emails that require action or have a meaningful deadline."
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.28rem 0.65rem',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              backgroundColor: focusMode ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-surface)',
-              color: focusMode ? 'var(--p2-color)' : 'var(--text-secondary)',
-              border: `1px solid ${focusMode ? 'rgba(245, 158, 11, 0.3)' : 'var(--border-subtle)'}`,
-              cursor: 'pointer',
-            }}
+            className={`inbox-focus-btn ${focusMode ? 'is-active' : ''}`}
+            title="Show only emails that require action or have an active deadline."
           >
-            <Zap size={13} />
+            <Zap size={14} />
             <span>{focusMode ? 'Exit Focus Mode' : 'Focus Mode'}</span>
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Sort:</span>
+          <div className="inbox-sort-group">
+            <span className="inbox-sort-label">Sort:</span>
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.78rem',
-                padding: '0.25rem 0.55rem',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
+              className="inbox-sort-select"
+              aria-label="Sort emails"
             >
               <option value="date_desc">Newest</option>
               <option value="date_asc">Oldest</option>
