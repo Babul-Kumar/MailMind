@@ -17,8 +17,20 @@ export function AppShell({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
 
+  // Lock background body scroll when mobile drawer is open
+  React.useEffect(() => {
+    if (isSidebarOpenMobile) {
+      document.body.classList.add('mobile-drawer-open');
+    } else {
+      document.body.classList.remove('mobile-drawer-open');
+    }
+    return () => {
+      document.body.classList.remove('mobile-drawer-open');
+    };
+  }, [isSidebarOpenMobile]);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
       <TopBar
         searchQuery={searchHook.searchQuery}
         onSearchChange={searchHook.setSearchQuery}
@@ -42,7 +54,7 @@ export function AppShell({
         onToggleMobileMenu={() => setIsSidebarOpenMobile(!isSidebarOpenMobile)}
       />
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
         <Sidebar
           activeFilter={searchHook.activeFilter}
           onSelectFilter={searchHook.setActiveFilter}
@@ -51,9 +63,19 @@ export function AppShell({
           stats={emailsHook.stats}
           totalCount={emailsHook.stats?.total_analyzed || emailsHook.pagination?.total_emails || emailsHook.emails.length}
           attentionCount={emailsHook.stats?.needs_attention_count ?? searchHook.attentionCount}
-          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenSettings={() => {
+            setIsSidebarOpenMobile(false);
+            setIsSettingsOpen(true);
+          }}
           isOpenMobile={isSidebarOpenMobile}
           onCloseMobile={() => setIsSidebarOpenMobile(false)}
+          auth={auth}
+          profile={emailsHook.profile}
+          onRescan={emailsHook.rescan}
+          isScanning={emailsHook.isScanning}
+          scanStatus={emailsHook.scanStatus}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
         />
 
         {isSidebarOpenMobile && (
@@ -64,14 +86,7 @@ export function AppShell({
           />
         )}
 
-        <main
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '1.25rem 1.5rem',
-            backgroundColor: 'var(--bg-app)',
-          }}
-        >
+        <main className="app-main-content">
           {children}
         </main>
       </div>

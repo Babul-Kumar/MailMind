@@ -37,6 +37,14 @@
 
   --transition-fast: 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-normal: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Mobile Safe Area & Touch Ergonomics */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
 }
 
 /* Dark Theme (Default on :root) */

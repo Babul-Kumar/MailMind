@@ -157,7 +157,9 @@ export function SettingsPanel({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.4rem',
-                  padding: '0.4rem 0.75rem',
+                  padding: '0.5rem 0.85rem',
+                  minHeight: '38px',
+                  whiteSpace: 'nowrap',
                   borderRadius: 'var(--radius-sm)',
                   fontSize: '0.82rem',
                   fontWeight: 600,
@@ -269,11 +271,11 @@ export function SettingsPanel({
                 <label style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   Analysis Scope:
                 </label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button
                     onClick={() => setScanScope('mailbox')}
                     style={{
-                      flex: 1,
+                      flex: '1 1 200px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'flex-start',
@@ -298,7 +300,7 @@ export function SettingsPanel({
                   <button
                     onClick={() => setScanScope('label')}
                     style={{
-                      flex: 1,
+                      flex: '1 1 200px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'flex-start',

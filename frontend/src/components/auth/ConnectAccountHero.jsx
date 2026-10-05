@@ -10,64 +10,65 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '65vh',
-        padding: '2rem 1rem',
+        width: '100%',
+        padding: 'clamp(0.75rem, 3vh, 2rem) clamp(0.5rem, 2.5vw, 1rem)',
         textAlign: 'center',
       }}
     >
       <div
         style={{
-          maxWidth: '480px',
+          maxWidth: '460px',
           width: '100%',
           backgroundColor: 'var(--bg-surface)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          padding: '2.5rem 2rem',
+          padding: 'clamp(1.25rem, 3.5vw, 2.25rem) clamp(1rem, 3.5vw, 1.75rem)',
           boxShadow: 'var(--shadow-md)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '1.5rem',
+          gap: 'clamp(0.85rem, 2vh, 1.25rem)',
         }}
       >
         {/* Brand Icon */}
         <div
           style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: 'var(--radius-lg)',
+            width: '52px',
+            height: '52px',
+            borderRadius: 'var(--radius-md)',
             backgroundColor: 'var(--bg-card)',
             border: '1px solid var(--border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.2)',
+            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.18)',
           }}
         >
-          <MailMindLogo size={38} />
+          <MailMindLogo size={32} />
         </div>
 
         <div>
           <h2
             style={{
-              fontSize: '1.5rem',
+              fontSize: 'clamp(1.22rem, 4vw, 1.5rem)',
               fontWeight: 700,
               color: 'var(--text-main)',
               letterSpacing: '-0.02em',
-              margin: '0 0 0.5rem 0',
+              margin: '0 0 0.35rem 0',
+              lineHeight: 1.2,
             }}
           >
             Welcome to MailMind
           </h2>
           <p
             style={{
-              fontSize: '0.88rem',
+              fontSize: 'clamp(0.82rem, 2.8vw, 0.88rem)',
               color: 'var(--text-secondary)',
-              lineHeight: 1.5,
+              lineHeight: 1.45,
               margin: 0,
             }}
           >
-            Connect your Gmail account to automatically prioritize your email, identify action items, and surface important deadlines.
+            Connect your Gmail account to automatically prioritize your email, surface deadlines, and spot action items.
           </p>
         </div>
 
@@ -75,12 +76,12 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
           <div
             style={{
               width: '100%',
-              padding: '0.75rem 1rem',
+              padding: '0.65rem 0.85rem',
               backgroundColor: 'rgba(239, 68, 68, 0.1)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
               borderRadius: 'var(--radius-sm)',
               color: 'var(--p1-color)',
-              fontSize: '0.8rem',
+              fontSize: '0.78rem',
               textAlign: 'left',
             }}
           >
@@ -88,7 +89,7 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
           </div>
         )}
 
-        {/* Continue with Google button */}
+        {/* Continue with Google button — Primary Above-The-Fold CTA */}
         <button
           onClick={onLogin}
           disabled={isLoading}
@@ -98,12 +99,13 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
             justifyContent: 'center',
             gap: '0.75rem',
             width: '100%',
-            padding: '0.85rem 1.5rem',
+            padding: '0.75rem 1.25rem',
+            minHeight: '48px',
             backgroundColor: '#ffffff',
             color: '#1f2937',
             border: '1px solid #d1d5db',
             borderRadius: 'var(--radius-md)',
-            fontSize: '0.95rem',
+            fontSize: '0.92rem',
             fontWeight: 600,
             cursor: isLoading ? 'default' : 'pointer',
             boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
@@ -138,22 +140,22 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.5rem',
+            gap: '0.45rem',
             width: '100%',
-            paddingTop: '0.75rem',
+            paddingTop: '0.65rem',
             borderTop: '1px solid var(--border-subtle)',
-            fontSize: '0.75rem',
+            fontSize: '0.74rem',
             color: 'var(--text-muted)',
             textAlign: 'left',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Shield size={14} color="#22c55e" />
-            <span><strong>Read-Only Access</strong>: MailMind cannot send, delete, or modify your emails.</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <Shield size={14} color="#22c55e" style={{ flexShrink: 0 }} />
+            <span><strong>Read-Only Access</strong>: MailMind cannot send, delete, or modify emails.</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Lock size={14} color="var(--accent)" />
-            <span><strong>Private &amp; Local</strong>: Email classification runs locally on MailMind's backend NLP model.</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <Lock size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
+            <span><strong>Private &amp; Local</strong>: Classifications run securely on backend ML.</span>
           </div>
         </div>
       </div>

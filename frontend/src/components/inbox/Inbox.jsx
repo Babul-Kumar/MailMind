@@ -189,6 +189,52 @@ export function Inbox({
         </div>
       )}
 
+      {/* Mobile Horizontal Priority Filter Bar */}
+      <div className="mobile-priority-bar" role="tablist" aria-label="Filter by priority">
+        {[
+          { key: 'ALL', label: 'All', count: totalCount },
+          { key: 'NEEDS_ATTENTION', label: 'Needs Attention', count: stats?.needs_attention_count || 0, isAttention: true },
+          { key: 'P1', label: 'P1 Critical', count: stats?.counts?.P1 || 0, dotColor: 'var(--p1-color)' },
+          { key: 'P2', label: 'P2 Important', count: stats?.counts?.P2 || 0, dotColor: 'var(--p2-color)' },
+          { key: 'P3', label: 'P3 Routine', count: stats?.counts?.P3 || 0, dotColor: 'var(--p3-color)' },
+          { key: 'P4', label: 'P4 Low', count: stats?.counts?.P4 || 0, dotColor: 'var(--p4-color)' },
+        ].map((tab) => {
+          const isActive = !focusMode && activeFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => {
+                onToggleFocusMode(false);
+                onSelectFilter(tab.key);
+              }}
+              className={`mobile-priority-chip ${isActive ? 'is-active' : ''}`}
+            >
+              {tab.dotColor && (
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: tab.dotColor, flexShrink: 0 }} />
+              )}
+              {tab.isAttention && (
+                <Zap size={13} color="var(--accent)" style={{ flexShrink: 0 }} />
+              )}
+              <span>{tab.label}</span>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '0.08rem 0.4rem',
+                  borderRadius: 'var(--radius-full)',
+                  backgroundColor: isActive ? 'var(--accent-light)' : 'var(--badge-bg)',
+                  color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                  fontWeight: tab.count > 0 ? 600 : 400,
+                }}
+              >
+                {typeof tab.count === 'number' ? tab.count.toLocaleString() : tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Unified View Header & Control Bar */}
       <div
         style={{
@@ -197,13 +243,13 @@ export function Inbox({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '0.8rem',
-          padding: '0.5rem 0',
+          padding: '0.4rem 0',
           marginBottom: '0.75rem',
         }}
       >
         {/* Left: View title & email count & contextual filter chips */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.01em' }}>
               {viewTitle}
             </h3>
@@ -380,7 +426,7 @@ export function Inbox({
               analyzed messages
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
               <button
                 onClick={() => onPageChange?.(pagination.page - 1)}
                 disabled={!pagination.has_prev || isLoading}
@@ -388,7 +434,8 @@ export function Inbox({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  padding: '0.35rem 0.75rem',
+                  padding: '0.4rem 0.8rem',
+                  minHeight: '38px',
                   borderRadius: 'var(--radius-sm)',
                   backgroundColor: 'var(--bg-surface)',
                   border: '1px solid var(--border-subtle)',
@@ -403,7 +450,7 @@ export function Inbox({
                 ← Previous
               </button>
 
-              <span style={{ padding: '0 0.4rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+              <span style={{ padding: '0 0.4rem', color: 'var(--text-muted)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                 Page <strong style={{ color: 'var(--text-main)' }}>{pagination.page}</strong> of {pagination.total_pages}
               </span>
 
@@ -414,7 +461,8 @@ export function Inbox({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  padding: '0.35rem 0.75rem',
+                  padding: '0.4rem 0.8rem',
+                  minHeight: '38px',
                   borderRadius: 'var(--radius-sm)',
                   backgroundColor: 'var(--bg-surface)',
                   border: '1px solid var(--border-subtle)',

@@ -25,14 +25,16 @@ export function EmailDetail({ email, onClose }) {
 
   return (
     <>
-      {/* Overlay — clean dark overlay, zero blur for 60fps GPU acceleration */}
+      {/* Overlay — clean dark overlay */}
       <div
         className="animate-backdrop-in"
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.42)',
-          zIndex: 1500,
+          backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(1px)',
+          WebkitBackdropFilter: 'blur(1px)',
+          zIndex: 2099,
         }}
         onClick={onClose}
         aria-hidden="true"
@@ -49,11 +51,12 @@ export function EmailDetail({ email, onClose }) {
           right: 0,
           bottom: 0,
           height: '100%',
+          maxHeight: '100dvh',
           backgroundColor: 'var(--bg-surface)',
           color: 'var(--text-main)',
           borderLeft: '1px solid var(--border-subtle)',
           boxShadow: 'var(--shadow-drawer)',
-          zIndex: 1501,
+          zIndex: 2100,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -61,16 +64,16 @@ export function EmailDetail({ email, onClose }) {
         }}
         aria-label="Email detail drawer"
       >
-        {/* Navigation Bar: Mobile Back button / Desktop Close X (Phase 23) */}
+        {/* Navigation Bar: Mobile Back button / Desktop Close X */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0.65rem 1.25rem',
+            padding: '0.65rem 1rem',
             borderBottom: '1px solid var(--border-subtle)',
             backgroundColor: 'var(--bg-surface)',
-            minHeight: '44px',
+            minHeight: '48px',
           }}
         >
           {/* Mobile Back Control */}
@@ -80,16 +83,18 @@ export function EmailDetail({ email, onClose }) {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.45rem',
+              gap: '0.5rem',
               color: 'var(--text-secondary)',
               fontWeight: 600,
-              fontSize: '0.84rem',
-              padding: '0.4rem 0.6rem',
+              fontSize: '0.86rem',
+              padding: '0.5rem 0.75rem',
               borderRadius: 'var(--radius-sm)',
-              minHeight: '36px',
+              minHeight: '44px',
+              minWidth: '44px',
+              cursor: 'pointer',
             }}
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={18} />
             <span>Back to inbox</span>
           </button>
 
@@ -247,7 +252,7 @@ export function EmailDetail({ email, onClose }) {
             )}
           </div>
 
-          {/* 5. Open in Gmail Button (Touch friendly, stacked per Phase 10) */}
+          {/* 5. Open in Gmail Button (Touch friendly, min 44px) */}
           <a
             href={gmailUrl}
             target="_blank"
@@ -256,13 +261,13 @@ export function EmailDetail({ email, onClose }) {
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.45rem',
-              padding: '0.55rem 1rem',
-              minHeight: '40px',
+              gap: '0.5rem',
+              padding: '0.65rem 1rem',
+              minHeight: '44px',
               borderRadius: 'var(--radius-sm)',
               backgroundColor: 'var(--accent)',
               color: '#ffffff',
-              fontSize: '0.84rem',
+              fontSize: '0.88rem',
               fontWeight: 600,
               textDecoration: 'none',
               marginTop: '0.35rem',
@@ -270,19 +275,20 @@ export function EmailDetail({ email, onClose }) {
             }}
           >
             <span>Open in Gmail</span>
-            <ExternalLink size={14} />
+            <ExternalLink size={15} />
           </a>
         </div>
 
-        {/* Scrollable content body: Recipient, AI Insight, Email Content (natural height) */}
+        {/* Scrollable content body: Recipient, AI Insight, Email Content (with safe area bottom) */}
         <div
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '1.15rem 1.25rem',
+            padding: '1rem clamp(0.85rem, 3vw, 1.25rem) max(1.5rem, var(--safe-bottom))',
             display: 'flex',
             flexDirection: 'column',
             gap: '1.15rem',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {email.recipients && (

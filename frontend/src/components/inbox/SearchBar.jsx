@@ -6,17 +6,17 @@ export function SearchBar({ value, onChange, matchCount = null }) {
 
   return (
     <div
+      className="searchbar-container"
       style={{
         position: 'relative',
         display: 'flex',
         alignItems: 'center',
         width: '100%',
-        maxWidth: '460px',
         flex: '1 1 auto',
       }}
     >
       <Search
-        size={15}
+        size={16}
         style={{
           position: 'absolute',
           left: '0.8rem',
@@ -27,6 +27,7 @@ export function SearchBar({ value, onChange, matchCount = null }) {
       />
       <input
         type="text"
+        className="searchbar-input"
         placeholder="Search all analyzed mail..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -35,13 +36,11 @@ export function SearchBar({ value, onChange, matchCount = null }) {
         aria-label="Search emails"
         style={{
           width: '100%',
-          padding: '0.48rem 4.5rem 0.48rem 2.2rem',
           backgroundColor: 'var(--bg-input)',
           border: `1px solid ${isFocused ? 'var(--border-focus)' : 'var(--border-subtle)'}`,
           boxShadow: isFocused ? '0 0 0 2px var(--accent-light)' : 'none',
           borderRadius: 'var(--radius-md)',
           color: 'var(--text-main)',
-          fontSize: '0.84rem',
           outline: 'none',
           transition: 'border-color var(--transition-fast), box-shadow var(--transition-fast)',
         }}
@@ -62,11 +61,12 @@ export function SearchBar({ value, onChange, matchCount = null }) {
               fontSize: '0.7rem',
               color: 'var(--text-muted)',
               backgroundColor: 'var(--badge-bg)',
-              padding: '0.1rem 0.4rem',
+              padding: '0.12rem 0.45rem',
               borderRadius: 'var(--radius-full)',
+              fontWeight: 500,
             }}
           >
-            {matchCount} result{matchCount === 1 ? '' : 's'}
+            {matchCount}
           </span>
         )}
 
@@ -78,16 +78,18 @@ export function SearchBar({ value, onChange, matchCount = null }) {
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--text-muted)',
-              padding: '0.2rem',
+              padding: '0.35rem',
               borderRadius: 'var(--radius-full)',
               cursor: 'pointer',
               border: 'none',
               background: 'transparent',
+              minWidth: '32px',
+              minHeight: '32px',
             }}
             title="Clear search"
             aria-label="Clear search"
           >
-            <X size={14} />
+            <X size={15} />
           </button>
         )}
       </div>

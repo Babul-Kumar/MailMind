@@ -86,15 +86,34 @@ function EmailRowComponent({ email, isSelected, onClick }) {
       tabIndex={0}
       className={`email-row ${isP4 ? 'p4-row' : ''} ${isSelected ? 'is-selected' : ''}`}
     >
-      {/* Priority Pill & Mobile Top Row Date */}
-      <div className="email-row-col-badge">
-        <PriorityBadge priority={priority} showLabel={false} size="sm" />
-        <span className="email-row-mobile-date" style={{ display: 'none' }}>
+      {/* Mobile Top Row: Sender & Date on one line */}
+      <div className="email-row-mobile-top-line" style={{ display: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0, flex: 1 }}>
+          <PriorityBadge priority={priority} showLabel={false} size="sm" />
+          <span
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: isP4 ? 600 : 700,
+              color: isP4 ? 'var(--text-secondary)' : 'var(--text-main)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {senderDisplay}
+          </span>
+        </div>
+        <span className="email-row-mobile-date">
           {dateDisplay}
         </span>
       </div>
 
-      {/* Sender Name */}
+      {/* Desktop Column 1: Priority Pill */}
+      <div className="email-row-col-badge">
+        <PriorityBadge priority={priority} showLabel={false} size="sm" />
+      </div>
+
+      {/* Desktop Column 2: Sender Name */}
       <div
         className="email-row-col-sender"
         style={{

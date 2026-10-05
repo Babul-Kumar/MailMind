@@ -20,11 +20,11 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '540px' }) 
         position: 'fixed',
         inset: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.65)',
-        zIndex: 1000,
+        zIndex: 3000,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '1rem',
+        padding: 'clamp(0.5rem, 2.5vw, 1rem)',
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -44,6 +44,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '540px' }) 
           display: 'flex',
           flexDirection: 'column',
           animation: 'fadeIn 0.2s ease-out',
+          maxHeight: 'min(90dvh, 760px)',
         }}
       >
         <div
@@ -51,26 +52,33 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '540px' }) 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '1.1rem 1.4rem',
+            padding: '0.85rem clamp(0.9rem, 2.5vw, 1.4rem)',
             borderBottom: '1px solid var(--border-subtle)',
+            flexShrink: 0,
           }}
         >
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)' }}>{title}</h3>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{title}</h3>
           <button
             onClick={onClose}
             style={{
-              padding: '0.35rem',
+              minWidth: '40px',
+              minHeight: '40px',
+              padding: '0.4rem',
               color: 'var(--text-muted)',
               borderRadius: 'var(--radius-sm)',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
             }}
             aria-label="Close dialog"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
-        <div style={{ padding: '1.4rem', overflowY: 'auto', maxHeight: '80vh' }}>{children}</div>
+        <div style={{ padding: 'clamp(0.9rem, 2.5vw, 1.4rem)', overflowY: 'auto', flex: 1 }}>{children}</div>
       </div>
     </div>
   );

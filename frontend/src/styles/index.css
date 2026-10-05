@@ -9,6 +9,7 @@
 
 html, body {
   height: 100%;
+  height: 100dvh;
   width: 100%;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-app);
@@ -16,6 +17,11 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+button, [role="button"], a {
+  -webkit-tap-highlight-color: transparent;
 }
 
 button {
@@ -25,14 +31,26 @@ button {
   background: transparent;
 }
 
-input, select {
+input, select, textarea {
   font-family: inherit;
+}
+
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 #root {
   min-height: 100%;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+body.mobile-drawer-open {
+  overflow: hidden !important;
+  touch-action: none;
 }
 
 /* Custom scrollbars */
@@ -145,14 +163,25 @@ input, select {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 0.35rem !important;
-    padding: 0.85rem 1rem !important;
+    padding: 0.85rem 0.95rem !important;
+    min-height: 64px;
+    border-left-width: 3px !important;
+  }
+
+  .email-row:active {
+    background-color: var(--bg-surface-hover) !important;
+  }
+
+  .email-row-mobile-top-line {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
   }
 
   .email-row-col-badge {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+    display: none !important;
   }
 
   .email-row-col-date {
@@ -160,14 +189,21 @@ input, select {
   }
 
   .email-row-mobile-date {
-    display: block !important;
-    font-size: 0.75rem;
+    display: inline-block !important;
+    font-size: 0.74rem !important;
     color: var(--text-muted);
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
   }
 
   .email-row-col-sender {
-    font-size: 0.88rem !important;
+    font-size: 0.92rem !important;
     font-weight: 700 !important;
+    color: var(--text-main) !important;
+    max-width: 72% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 
   .email-row-subject-line {
@@ -182,18 +218,35 @@ input, select {
   }
 
   .email-row-subject {
-    font-size: 0.86rem !important;
+    font-size: 0.88rem !important;
     font-weight: 600 !important;
+    color: var(--text-main) !important;
     max-width: 100% !important;
-  }
-
-  .email-row-snippet {
-    font-size: 0.8rem !important;
+    line-height: 1.35 !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
     white-space: normal !important;
+  }
+
+  .email-row-snippet {
+    font-size: 0.8rem !important;
+    color: var(--text-muted) !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 1 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    line-height: 1.35 !important;
+  }
+
+  .email-row-mobile-chips {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 0.4rem !important;
+    margin-top: 0.2rem !important;
   }
 }
 
@@ -211,11 +264,85 @@ input, select {
 @media (max-width: 320px) {
   .email-row {
     padding: 0.65rem 0.65rem !important;
-    gap: 0.5rem !important;
+    gap: 0.45rem !important;
   }
 
   .email-row-col-sender {
-    font-size: 0.82rem !important;
+    font-size: 0.84rem !important;
+  }
+}
+
+/* Responsive Main Content Container */
+.app-main-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.25rem 1.5rem;
+  background-color: var(--bg-app);
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+  .app-main-content {
+    padding: 0.75rem 0.85rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-main-content {
+    padding: 0.5rem 0.65rem !important;
+  }
+}
+
+/* Header Architecture */
+.topbar-header {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 1300;
+  transition: padding var(--transition-fast);
+}
+
+.topbar-desktop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .topbar-header {
+    padding: max(0.5rem, var(--safe-top)) 0.85rem 0.6rem !important;
+    gap: 0.55rem !important;
+  }
+
+  .topbar-desktop-row {
+    display: none !important;
+  }
+
+  .topbar-mobile-row-1 {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .topbar-mobile-row-2 {
+    display: flex !important;
+    width: 100%;
+  }
+}
+
+@media (min-width: 641px) {
+  .topbar-mobile-row-1,
+  .topbar-mobile-row-2 {
+    display: none !important;
   }
 }
 
@@ -224,48 +351,19 @@ input, select {
   display: none;
   align-items: center;
   justify-content: center;
-  padding: 0.35rem;
+  padding: 0.4rem;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   cursor: pointer;
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   background: transparent;
   border: none;
+  transition: background-color var(--transition-fast);
 }
 
-/* Sidebar Navigation Buttons */
-.sidebar-nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.48rem 0.75rem;
-  border-radius: var(--radius-md);
-  font-size: 0.83rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background-color: transparent;
-  border: 1px solid transparent;
-  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-}
-
-.sidebar-nav-btn:hover {
+.mobile-menu-btn:active {
   background-color: var(--bg-surface-hover);
-  color: var(--text-main);
-}
-
-.sidebar-nav-btn.is-active {
-  background-color: var(--bg-surface-selected);
-  color: var(--text-main);
-  font-weight: 600;
-  border-color: var(--border-subtle);
-}
-
-.desktop-status-label {
-  display: inline-block;
 }
 
 @media (max-width: 768px) {
@@ -281,73 +379,129 @@ input, select {
     display: none !important;
   }
 
+  /* Full-Height Mobile Navigation Drawer */
   .sidebar-container {
     position: fixed !important;
-    top: 57px;
-    bottom: 0;
-    left: 0;
-    z-index: 1200;
-    width: 260px !important;
-    height: calc(100% - 57px) !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    width: min(84vw, 340px) !important;
+    max-width: 88vw !important;
+    z-index: 2000 !important;
     background-color: var(--bg-surface) !important;
-    box-shadow: var(--shadow-drawer) !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45) !important;
     transform: translateX(-100%);
-    transition: transform var(--transition-normal);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: max(1rem, var(--safe-top)) 0.85rem max(1rem, var(--safe-bottom)) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
   .sidebar-container.mobile-open {
     transform: translateX(0) !important;
   }
-}
 
-@media (max-width: 640px) {
-  .topbar-sync-btn {
-    min-width: auto !important;
-    padding: 0.42rem 0.55rem !important;
-  }
-
-  .topbar-sync-text {
-    display: none !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .topbar-header {
-    padding: 0.45rem 0.65rem !important;
-    gap: 0.4rem !important;
-  }
-
-  .topbar-brand-sub {
-    display: none !important;
+  /* Full-Screen Backdrop Overlay */
+  .sidebar-backdrop {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background-color: rgba(0, 0, 0, 0.55) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 1999 !important;
+    animation: fadeInBackdrop 0.18s ease-out forwards;
   }
 }
 
-@media (max-width: 380px) {
-  .topbar-brand-title {
-    display: none !important;
-  }
+/* Sidebar Navigation Buttons */
+.sidebar-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.85rem;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: 1px solid transparent;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
 }
 
-/* Sidebar Backdrop Overlay */
-.sidebar-backdrop {
+.sidebar-nav-btn:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-main);
+}
+
+.sidebar-nav-btn:active {
+  background-color: var(--bg-surface-hover);
+  transform: scale(0.98);
+}
+
+.sidebar-nav-btn.is-active {
+  background-color: var(--bg-surface-selected);
+  color: var(--text-main);
+  font-weight: 600;
+  border-color: var(--border-subtle);
+}
+
+/* Horizontal Priority Filter Bar on Mobile */
+.mobile-priority-bar {
+  display: none;
+  align-items: center;
+  gap: 0.45rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.35rem 0 0.65rem;
+  margin-bottom: 0.5rem;
+  scrollbar-width: none;
+}
+
+.mobile-priority-bar::-webkit-scrollbar {
   display: none;
 }
 
 @media (max-width: 768px) {
-  .sidebar-backdrop {
-    display: block !important;
-    position: fixed !important;
-    top: 57px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.45) !important;
-    z-index: 1100 !important;
+  .mobile-priority-bar {
+    display: flex !important;
   }
+}
 
-  .mobile-sidebar-close-btn:hover {
-    background-color: var(--bg-surface-hover) !important;
-    color: var(--text-main) !important;
-  }
+.mobile-priority-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.85rem;
+  min-height: 38px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.mobile-priority-chip:active {
+  transform: scale(0.96);
+}
+
+.mobile-priority-chip.is-active {
+  background-color: var(--bg-surface-selected);
+  color: var(--text-main);
+  font-weight: 600;
+  border-color: var(--accent);
 }
 
