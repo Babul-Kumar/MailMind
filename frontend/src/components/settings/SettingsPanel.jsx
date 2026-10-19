@@ -17,6 +17,7 @@ import {
   LogOut,
   RefreshCcw,
   ShieldCheck,
+  ArrowRight,
 } from 'lucide-react';
 import { SystemHealthPanel } from './SystemHealthPanel';
 import { FeedbackReviewPanel } from './FeedbackReviewPanel';

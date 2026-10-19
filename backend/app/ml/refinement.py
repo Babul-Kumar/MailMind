@@ -91,9 +91,10 @@ TX_P3_RECORD = re.compile(
 
 # --- Domain 4: Promotional & Marketing Negation ---
 PROMO_NEGATION = re.compile(
-    r"\b(\d+%\s*off|save \$\d+|flat discount|limited time offer|coupon code|promo code|"
+    r"\b(\d+%\s*(?:off|discount)|save \$\d+|flat discount|limited time offer|coupon code|promo code|"
     r"shop now|buy now|special promotion|clearance sale|exclusive deal|best prices|"
-    r"black friday|cyber monday|browse courses|explore our catalog)\b",
+    r"black friday|cyber monday|browse courses|explore our catalog|summer discounts?|discounts? available|"
+    r"discounts?|special offer|deals?)\b",
     re.IGNORECASE
 )
 
@@ -182,6 +183,36 @@ ACTION_SERVICE_PATTERNS = re.compile(
     re.IGNORECASE
 )
 
+# Domain-general actionable announcements (applicable across education, travel, government, finance, work)
+ACTION_DOCUMENT_RELEASE_PATTERNS = re.compile(
+    r"\b("
+    r"(?:hall[- ]?tickets?|admit cards?|entry pass(?:es)?|boarding pass(?:es)?|tickets?|"
+    r"tax (?:forms?|documents?)|w-?2 (?:forms?|statements?)|transcripts?|scorecards?|certificates?|diplomas?|ballots?|exam pass(?:es)?)"
+    r"\s+(?:is|are|has been|have been)?\s*(?:released|available for download|ready for download|available to download|published|issued|out now|live)|"
+    r"download (?:your )?(?:hall[- ]?ticket|admit card|ticket|pass|boarding pass|tax (?:form|document)|w-?2|certificate|transcript|scorecard|document|statement|materials?)"
+    r")\b",
+    re.IGNORECASE
+)
+
+ACTION_REGISTRATION_PATTERNS = re.compile(
+    r"\b("
+    r"(?:registration|applications?|portal|enrollment|admissions?|nominations?)\s+(?:is|are|has|have)?\s*(?:now )?(?:open|live|commenced|started|closes?|closing|ends?)|"
+    r"(?:apply|register|enroll|nominate) (?:now|today|online|before) for\b|"
+    r"complete (?:your )?(?:registration|application|enrollment)"
+    r")\b",
+    re.IGNORECASE
+)
+
+ACTION_SCHEDULING_PATTERNS = re.compile(
+    r"\b("
+    r"book (?:your )?(?:slot|appointment|exam center|exam centre|session|seat)|"
+    r"schedule (?:your )?(?:exam|appointment|interview|test|checkup)|"
+    r"select (?:your )?(?:exam centre|center|slot|date|time)"
+    r")\b",
+    re.IGNORECASE
+)
+
+
 ACTION_REQUIRED_PATTERNS = re.compile(
     r"\b(submit (?:before|by|on)|(?:submission|assignment|project|competition) deadline|due (?:date|on|by|before)|last date to submit|"
     r"action required|take action now|verify your (?:account|identity|email)|check (?:your )?account activity|"
@@ -248,13 +279,16 @@ def evaluate_action_layer(
         }
 
     # 1. Promotional marketing negation (unless critical security/compromise is present)
-    if PROMO_NEGATION.search(subject) and not re.search(r"\b(security alert|unauthorized|password reset)\b", subject, re.I):
-        return False, None, {
-            "imperative": False,
-            "operational_consequence": False,
-            "deadline_present": deadline_detected,
-            "action_type": "none"
-        }
+    if (PROMO_NEGATION.search(text) or final_priority == "P4") and not re.search(r"\b(security alert|unauthorized|password reset)\b", text, re.I):
+        if not (deadline_detected and ACTION_SUBMISSION_PATTERNS.search(text)):
+            return False, None, {
+                "imperative": False,
+                "operational_consequence": False,
+                "deadline_present": deadline_detected,
+                "action_type": "none",
+                "applicability": None,
+                "next_step": None
+            }
 
     # 2. Informational completion / non-action notices (e.g. payment received, solutions released)
     if ACTION_NOT_REQUIRED_PATTERNS.search(text) and not (
@@ -263,13 +297,18 @@ def evaluate_action_layer(
         ACTION_VERIFICATION_PATTERNS.search(text) or
         ACTION_SUBMISSION_PATTERNS.search(text) or
         ACTION_SERVICE_PATTERNS.search(text) or
-        ACTION_PAYMENT_PATTERNS.search(text)
+        ACTION_PAYMENT_PATTERNS.search(text) or
+        ACTION_DOCUMENT_RELEASE_PATTERNS.search(text) or
+        ACTION_REGISTRATION_PATTERNS.search(text) or
+        ACTION_SCHEDULING_PATTERNS.search(text)
     ):
         return False, None, {
             "imperative": False,
             "operational_consequence": False,
             "deadline_present": deadline_detected,
-            "action_type": "none"
+            "action_type": "none",
+            "applicability": None,
+            "next_step": None
         }
 
     # 3. Check for soft optional engagement
@@ -278,26 +317,49 @@ def evaluate_action_layer(
     # 4. Check for strong operational requirements
     action_type = "none"
     action_reason = None
+    applicability = None
+    next_step = None
 
     if ACTION_VERIFICATION_PATTERNS.search(text):
         action_type = "verification"
         action_reason = "Immediate verification required"
+        next_step = "Enter verification code before expiry"
     elif ACTION_SECURITY_PATTERNS.search(text):
         action_type = "security"
         action_reason = "Account security action"
+        next_step = "Review security activity and secure account"
     elif ACTION_ACTIVATION_PATTERNS.search(text):
         if not re.search(r"\b(?:stay connected to|marketing updates|marketing emails|receive our latest updates via email)\b", text, re.I):
             action_type = "activation"
             action_reason = "Account activation required"
+            next_step = "Click activation link to confirm account"
     elif ACTION_SERVICE_PATTERNS.search(text):
         action_type = "service"
         action_reason = "Service action required"
+        next_step = "Take action to prevent service deactivation"
     elif ACTION_PAYMENT_PATTERNS.search(text):
         action_type = "payment"
         action_reason = "Payment action"
+        next_step = "Review invoice and complete payment"
     elif ACTION_SUBMISSION_PATTERNS.search(text):
         action_type = "submission"
         action_reason = "Submission deadline"
+        next_step = "Submit required work or assignment"
+    elif ACTION_DOCUMENT_RELEASE_PATTERNS.search(text):
+        action_type = "document_download"
+        action_reason = "Download available document or ticket"
+        applicability = "Relevant to eligible recipients or registered candidates"
+        next_step = "Open original email and download document or ticket if registered"
+    elif ACTION_REGISTRATION_PATTERNS.search(text):
+        action_type = "registration"
+        action_reason = "Complete registration or application"
+        applicability = "Relevant to interested applicants or candidates"
+        next_step = "Review registration criteria and complete submission"
+    elif ACTION_SCHEDULING_PATTERNS.search(text):
+        action_type = "scheduling"
+        action_reason = "Schedule appointment or select slot"
+        applicability = "Relevant to attendees or candidates requiring appointment"
+        next_step = "Book appointment or choose preferred slot"
 
     # If optional engagement matched and NO strong operational requirement matched:
     if is_optional and action_type == "none":
@@ -305,7 +367,9 @@ def evaluate_action_layer(
             "imperative": True,
             "operational_consequence": False,
             "deadline_present": deadline_detected,
-            "action_type": "none"
+            "action_type": "none",
+            "applicability": None,
+            "next_step": None
         }
 
     if action_type != "none":
@@ -313,7 +377,9 @@ def evaluate_action_layer(
             "imperative": True,
             "operational_consequence": True,
             "deadline_present": deadline_detected,
-            "action_type": action_type
+            "action_type": action_type,
+            "applicability": applicability,
+            "next_step": next_step
         }
 
     # Fallback to general ACTION_REQUIRED_PATTERNS if imperative and not optional
@@ -323,14 +389,18 @@ def evaluate_action_layer(
             "imperative": True,
             "operational_consequence": True,
             "deadline_present": deadline_detected,
-            "action_type": "operational"
+            "action_type": "operational",
+            "applicability": None,
+            "next_step": "Review email and take required action"
         }
 
     return False, None, {
         "imperative": False,
         "operational_consequence": False,
         "deadline_present": deadline_detected,
-        "action_type": "none"
+        "action_type": "none",
+        "applicability": None,
+        "next_step": None
     }
 
 

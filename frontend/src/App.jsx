@@ -176,6 +176,18 @@ export function App() {
           onPageChange={emailsHook.setPage}
           scanStatus={emailsHook.scanStatus}
           isScanning={emailsHook.isScanning}
+          actionQueue={emailsHook.actionQueue}
+          actionQueueLoading={emailsHook.actionQueueLoading}
+          actionSortBy={emailsHook.actionSortBy}
+          onActionSortChange={emailsHook.setActionSortBy}
+          olderSortBy={emailsHook.olderSortBy}
+          onOlderSortChange={emailsHook.setOlderSortBy}
+          onResolve={emailsHook.resolveEmail}
+          onUnresolve={emailsHook.unresolveEmail}
+          onSnooze={emailsHook.snoozeEmail}
+          onUnsnooze={emailsHook.unsnoozeEmail}
+          recentlyResolved={emailsHook.recentlyResolved}
+          onClearRecentlyResolved={emailsHook.clearRecentlyResolved}
         />
       )}
     </AppShell>

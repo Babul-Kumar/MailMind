@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PrioritySummary } from '../priority/PrioritySummary';
 import { EmailList } from './EmailList';
 import { EmailDetail } from './EmailDetail';
+import { NeedsAttentionQueue } from './NeedsAttentionQueue';
 import { Zap } from 'lucide-react';
 
 export function Inbox({
@@ -25,6 +26,18 @@ export function Inbox({
   onPageChange,
   scanStatus,
   isScanning,
+  actionQueue,
+  actionQueueLoading,
+  actionSortBy,
+  onActionSortChange,
+  olderSortBy,
+  onOlderSortChange,
+  onResolve,
+  onUnresolve,
+  onSnooze,
+  onUnsnooze,
+  recentlyResolved,
+  onClearRecentlyResolved,
 }) {
 
   const [selectedEmail, setSelectedEmail] = useState(null);
@@ -245,8 +258,27 @@ export function Inbox({
         })}
       </div>
 
-      {/* Unified View Header & Control Bar */}
-      <div className="inbox-section-header">
+      {activeFilter === 'NEEDS_ATTENTION' ? (
+        <NeedsAttentionQueue
+          actionQueue={actionQueue}
+          isLoading={isLoading || actionQueueLoading}
+          sortBy={actionSortBy || 'urgent'}
+          onSortChange={onActionSortChange}
+          olderSortBy={olderSortBy || 'oldest'}
+          onOlderSortChange={onOlderSortChange}
+          onSelectEmail={setSelectedEmail}
+          onResolve={onResolve}
+          onUnresolve={onUnresolve}
+          onSnooze={onSnooze}
+          onUnsnooze={onUnsnooze}
+          recentlyResolved={recentlyResolved}
+          onClearRecentlyResolved={onClearRecentlyResolved}
+          onNavigateAllMail={() => onSelectFilter?.('ALL')}
+        />
+      ) : (
+        <>
+          {/* Unified View Header & Control Bar */}
+          <div className="inbox-section-header">
         {/* Top Line: View Title & Counts */}
         <div className="inbox-header-top-line">
           <div className="inbox-header-title-group">
@@ -422,11 +454,18 @@ export function Inbox({
           </div>
         )}
       </div>
-
+    </>
+  )}
 
       {/* Detail Drawer */}
       {selectedEmail && (
-        <EmailDetail email={selectedEmail} onClose={() => setSelectedEmail(null)} />
+        <EmailDetail
+          email={selectedEmail}
+          onClose={() => setSelectedEmail(null)}
+          onResolve={onResolve}
+          onUnresolve={onUnresolve}
+          onSnooze={onSnooze}
+        />
       )}
     </div>
   );

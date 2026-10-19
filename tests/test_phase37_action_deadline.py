@@ -211,7 +211,7 @@ class TestPhase37ActionAndDeadlines:
         email = {
             "email_id": "att_act_dl",
             "subject": "Assignment 3: Submission Deadline",
-            "body": "Submit assignment 3 before Oct 10, 2026 at 11:59 PM.",
+            "body": "Submit assignment 3 before Nov 10, 2026 at 11:59 PM.",
             "sender": "instructor@university.edu",
             "date": "2026-10-01T12:00:00Z"
         }

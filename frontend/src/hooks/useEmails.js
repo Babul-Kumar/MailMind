@@ -5,6 +5,11 @@ import {
   startScan,
   cancelScan,
   rescanMailbox,
+  resolveAction,
+  unresolveAction,
+  snoozeAction,
+  unsnoozeAction,
+  fetchActionQueue,
 } from '../services/api';
 
 export function useEmails(isAuthenticated = false) {
@@ -281,8 +286,166 @@ export function useEmails(isAuthenticated = false) {
     }
   }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery]);
 
+  // Smart Action Queue State
+  const [actionQueue, setActionQueue] = useState({
+    active_queue: [],
+    older_actions: [],
+    snoozed_items: [],
+    resolved_items: [],
+    counts: {
+      urgent: 0,
+      due_soon: 0,
+      other_active: 0,
+      total_active: 0,
+      older: 0,
+      snoozed: 0,
+      resolved: 0,
+    },
+  });
+  const [actionQueueLoading, setActionQueueLoading] = useState(false);
+  const [actionSortBy, setActionSortBy] = useState('urgent');
+  const [olderSortBy, setOlderSortBy] = useState('oldest');
+  const [recentlyResolved, setRecentlyResolved] = useState(null);
+
+  // Load Action Queue from backend
+  const loadActionQueue = useCallback(async (customSort, customOlderSort) => {
+    if (!isAuthenticated) return;
+    const sToUse = customSort || actionSortBy;
+    const osToUse = customOlderSort || olderSortBy;
+    setActionQueueLoading(true);
+    try {
+      const res = await fetchActionQueue({ sortBy: sToUse, olderSortBy: osToUse });
+      if (res.data) {
+        setActionQueue(res.data);
+      }
+    } catch (err) {
+      console.warn('Could not load action queue:', err);
+    } finally {
+      setActionQueueLoading(false);
+    }
+  }, [isAuthenticated, actionSortBy, olderSortBy]);
+
+  // Refresh action queue whenever activeFilter becomes 'NEEDS_ATTENTION'
+  useEffect(() => {
+    if (isAuthenticated && activeFilter === 'NEEDS_ATTENTION') {
+      loadActionQueue();
+    }
+  }, [isAuthenticated, activeFilter, loadActionQueue]);
+
+  // Mark Resolved with Optimistic Update and Undo
+  const handleResolve = useCallback(async (messageId, threadId = null, note = null) => {
+    if (!messageId) return;
+
+    // Optimistic UI update
+    setActionQueue((prev) => {
+      const itemToResolve = prev.active_queue.find((e) => (e.email_id || e.id || e.message_id) === messageId)
+        || prev.older_actions.find((e) => (e.email_id || e.id || e.message_id) === messageId);
+
+      const newActive = prev.active_queue.filter((e) => (e.email_id || e.id || e.message_id) !== messageId);
+      const newOlder = prev.older_actions.filter((e) => (e.email_id || e.id || e.message_id) !== messageId);
+      const resolvedList = itemToResolve
+        ? [{ ...itemToResolve, is_resolved: true, queue_placement: 'RESOLVED' }, ...prev.resolved_items]
+        : prev.resolved_items;
+
+      return {
+        ...prev,
+        active_queue: newActive,
+        older_actions: newOlder,
+        resolved_items: resolvedList,
+        counts: {
+          ...prev.counts,
+          total_active: Math.max(0, newActive.length),
+          older: Math.max(0, newOlder.length),
+          resolved: (prev.counts.resolved || 0) + 1,
+        },
+      };
+    });
+
+    setEmails((prev) =>
+      prev.map((e) => ((e.email_id || e.id || e.message_id) === messageId ? { ...e, is_resolved: true } : e))
+    );
+
+    // Provide undo toast
+    setRecentlyResolved({ messageId, timestamp: Date.now() });
+
+    try {
+      await resolveAction(messageId, threadId, note);
+    } catch (err) {
+      console.error('Failed to resolve action:', err);
+      setError('Could not save resolution on server. Please try again.');
+      // Revert optimistic update
+      loadActionQueue();
+    }
+  }, [loadActionQueue]);
+
+  // Undo / Unresolve
+  const handleUnresolve = useCallback(async (messageId) => {
+    if (!messageId) return;
+    setRecentlyResolved(null);
+    try {
+      await unresolveAction(messageId);
+      await loadActionQueue();
+      loadDataRef.current();
+    } catch (err) {
+      console.error('Failed to undo resolution:', err);
+      setError('Failed to undo resolution.');
+    }
+  }, [loadActionQueue]);
+
+  // Snooze Action
+  const handleSnooze = useCallback(async (messageId, snoozeUntil, threadId = null, reason = null) => {
+    if (!messageId || !snoozeUntil) return;
+
+    // Optimistic UI update
+    setActionQueue((prev) => {
+      const itemToSnooze = prev.active_queue.find((e) => (e.email_id || e.id || e.message_id) === messageId)
+        || prev.older_actions.find((e) => (e.email_id || e.id || e.message_id) === messageId);
+
+      const newActive = prev.active_queue.filter((e) => (e.email_id || e.id || e.message_id) !== messageId);
+      const newOlder = prev.older_actions.filter((e) => (e.email_id || e.id || e.message_id) !== messageId);
+      const snoozedList = itemToSnooze
+        ? [{ ...itemToSnooze, is_snoozed: true, snoozed_until: snoozeUntil, queue_placement: 'SNOOZED' }, ...prev.snoozed_items]
+        : prev.snoozed_items;
+
+      return {
+        ...prev,
+        active_queue: newActive,
+        older_actions: newOlder,
+        snoozed_items: snoozedList,
+        counts: {
+          ...prev.counts,
+          total_active: Math.max(0, newActive.length),
+          older: Math.max(0, newOlder.length),
+          snoozed: (prev.counts.snoozed || 0) + 1,
+        },
+      };
+    });
+
+    try {
+      await snoozeAction(messageId, snoozeUntil, threadId, reason);
+    } catch (err) {
+      console.error('Failed to snooze action:', err);
+      setError('Could not snooze item on server.');
+      loadActionQueue();
+    }
+  }, [loadActionQueue]);
+
+  // Unsnooze Action
+  const handleUnsnooze = useCallback(async (messageId) => {
+    if (!messageId) return;
+    try {
+      await unsnoozeAction(messageId);
+      await loadActionQueue();
+      loadDataRef.current();
+    } catch (err) {
+      console.error('Failed to unsnooze:', err);
+      setError('Failed to unsnooze item.');
+    }
+  }, [loadActionQueue]);
+
   const isInitialLoading = isLoading && emails.length === 0;
   const isRefreshing = isLoading && emails.length > 0;
+
 
   return {
     emails,
@@ -314,5 +477,18 @@ export function useEmails(isAuthenticated = false) {
     startScan: triggerScan,
     rescan: triggerRescan,
     cancelScan: triggerCancelScan,
+    actionQueue,
+    actionQueueLoading,
+    actionSortBy,
+    setActionSortBy,
+    olderSortBy,
+    setOlderSortBy,
+    loadActionQueue,
+    resolveEmail: handleResolve,
+    unresolveEmail: handleUnresolve,
+    snoozeEmail: handleSnooze,
+    unsnoozeEmail: handleUnsnooze,
+    recentlyResolved,
+    clearRecentlyResolved: () => setRecentlyResolved(null),
   };
 }

@@ -1,11 +1,19 @@
-import React, { useEffect } from 'react';
-import { ArrowLeft, X, Calendar, User, Users, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, X, Calendar, User, Users, ExternalLink, Clock, Check, RotateCcw, AlertTriangle } from 'lucide-react';
 import { PriorityBadge } from '../priority/PriorityBadge';
 import { AIInsight } from '../ai/AIInsight';
 import { getDeadlineState, cleanSenderName } from '../../utils/formatting';
 import { FeedbackWidget } from './FeedbackWidget';
+import { SnoozeModal } from './SnoozeModal';
 
-export function EmailDetail({ email, onClose }) {
+export function EmailDetail({ email, onClose, onResolve, onUnresolve, onSnooze }) {
+  const [snoozeOpen, setSnoozeOpen] = useState(false);
+  const [localResolved, setLocalResolved] = useState(Boolean(email?.is_resolved));
+
+  useEffect(() => {
+    setLocalResolved(Boolean(email?.is_resolved));
+  }, [email]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
@@ -252,6 +260,114 @@ export function EmailDetail({ email, onClose }) {
             )}
           </div>
 
+          {/* Smart Action Queue Status & Controls Card */}
+          <div
+            style={{
+              padding: '0.75rem 0.95rem',
+              borderRadius: 'var(--radius-sm)',
+              border: `1px solid ${localResolved ? 'rgba(34, 197, 94, 0.35)' : 'var(--border-subtle)'}`,
+              backgroundColor: localResolved ? 'rgba(34, 197, 94, 0.06)' : 'var(--bg-card, #1e293b)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.45rem',
+              marginTop: '0.2rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block' }}>
+                  Smart Action Queue
+                </span>
+                <span style={{ fontSize: '0.74rem', color: localResolved ? '#4ade80' : 'var(--text-secondary)' }}>
+                  {localResolved
+                    ? '● Marked as resolved'
+                    : (email.is_snoozed
+                      ? `● Snoozed until ${new Date(email.snoozed_until * 1000).toLocaleString()}`
+                      : `● Status: ${email.queue_placement === 'ACTIVE' ? 'Needs Attention' : (email.queue_placement === 'OLDER' ? 'Older action' : 'Actionable')}`)}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                {localResolved ? (
+                  <button
+                    onClick={() => {
+                      setLocalResolved(false);
+                      onUnresolve?.(email.email_id || email.id);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(34, 197, 94, 0.4)',
+                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                      color: '#4ade80',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <RotateCcw size={13} />
+                    <span>Undo resolution</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setSnoozeOpen(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        padding: '0.35rem 0.65rem',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-subtle)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.76rem',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Clock size={13} />
+                      <span>Snooze</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setLocalResolved(true);
+                        onResolve?.(email.email_id || email.id, email.thread_id);
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(34, 197, 94, 0.4)',
+                        backgroundColor: '#22c55e',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Check size={13} />
+                      <span>Mark resolved</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Contextual Next Step / Reason */}
+            {email.action_policy?.next_step && (
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.35rem' }}>
+                Next step: <strong style={{ color: 'var(--text-main)' }}>{email.action_policy.next_step}</strong>
+              </div>
+            )}
+          </div>
+
           {/* 5. Open in Gmail Button (Touch friendly, min 44px) */}
           <a
             href={gmailUrl}
@@ -340,6 +456,16 @@ export function EmailDetail({ email, onClose }) {
             </div>
           </div>
         </div>
+
+        {/* Snooze Modal */}
+        {snoozeOpen && (
+          <SnoozeModal
+            email={email}
+            isOpen={snoozeOpen}
+            onClose={() => setSnoozeOpen(false)}
+            onSnooze={onSnooze}
+          />
+        )}
       </aside>
     </>
   );

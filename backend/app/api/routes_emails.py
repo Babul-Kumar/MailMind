@@ -445,6 +445,53 @@ def get_classified_emails(
             display_list = all_emails
             total_matching = len(all_emails)
 
+    # Enrich display list with user action states (resolve, snooze) and action policy
+    from backend.app.core.action_store import user_action_store
+    from backend.app.core.action_policy import evaluate_actionability, classify_action_queue
+
+    action_states_map = user_action_store.get_user_action_states(user_id)
+    now_ts = datetime.now(timezone.utc).timestamp()
+
+    enriched_display = []
+    for item in display_list:
+        mid = item.get("email_id") or item.get("id") or item.get("message_id") or ""
+        state = action_states_map.get(mid)
+        policy_eval = evaluate_actionability(item, action_state=state, now_ts=now_ts)
+        item_copy = dict(item)
+        item_copy["is_resolved"] = policy_eval["is_resolved"]
+        item_copy["is_snoozed"] = policy_eval["is_snoozed"]
+        item_copy["snoozed_until"] = policy_eval["snoozed_until"]
+        item_copy["queue_placement"] = policy_eval["placement"]
+        item_copy["action_reason"] = policy_eval["reason"]
+        item_copy["next_step"] = policy_eval["next_step"]
+        item_copy["action_policy"] = policy_eval
+        enriched_display.append(item_copy)
+
+    if priority and priority.strip().upper() == "NEEDS_ATTENTION":
+        # Needs attention active queue: only active items (not resolved, not snoozed, not older)
+        enriched_display = [e for e in enriched_display if e.get("queue_placement") == "ACTIVE"]
+        total_matching = len(enriched_display)
+
+    display_list = enriched_display
+
+    # Compute exact action queue summary counts for sidebar and navigation badges
+    all_user_emails, _ = user_email_cache.query_emails(
+        user_id=user_id,
+        page=1,
+        page_size=10000,
+        model_version=user_model_version
+    )
+    if all_user_emails:
+        q_summary = classify_action_queue(all_user_emails, action_states_map=action_states_map, now_ts=now_ts)
+        stats["action_queue_counts"] = q_summary["counts"]
+        stats["needs_attention_count"] = q_summary["counts"]["total_active"]
+    else:
+        stats["action_queue_counts"] = {
+            "urgent": 0, "due_soon": 0, "other_active": 0, "total_active": 0,
+            "older": 0, "snoozed": 0, "resolved": 0
+        }
+        stats["needs_attention_count"] = 0
+
     t_total_ms = (time.perf_counter() - t_req_start) * 1000
     timing_breakdown = {
         "request_id": request_id,
@@ -520,26 +567,42 @@ def get_email_detail(request: Request, email_id: str):
     # Check cache first with model_version
     cached = user_email_cache.get(user_id, email_id, model_version=user_model_version)
     if cached and cached.get("body") and cached.get("body") != cached.get("snippet"):
-        return {"status": "success", "email": cached}
+        target_email = cached
+    else:
+        # Fetch on-demand
+        full_email = get_single_email(service, email_id)
+        if not full_email:
+            raise HTTPException(status_code=404, detail="Email not found in mailbox.")
 
-    # Fetch on-demand
-    full_email = get_single_email(service, email_id)
-    if not full_email:
-        raise HTTPException(status_code=404, detail="Email not found in mailbox.")
+        classified = predict_email(full_email, pipeline=pipeline)
+        classified["model_version"] = user_model_version
+        classified["canary_group"] = canary_group
+        user_email_cache.set(user_id, email_id, classified)
 
-    classified = predict_email(full_email, pipeline=pipeline)
-    classified["model_version"] = user_model_version
-    classified["canary_group"] = canary_group
-    user_email_cache.set(user_id, email_id, classified)
+        # Phase 48: Non-blocking candidate shadow inference hook (failsafe)
+        try:
+            from backend.app.ml.shadow_engine import shadow_engine
+            shadow_engine.shadow_batch_async(user_id, [full_email], [classified])
+        except Exception:
+            pass
+        target_email = classified
 
-    # Phase 48: Non-blocking candidate shadow inference hook (failsafe)
-    try:
-        from backend.app.ml.shadow_engine import shadow_engine
-        shadow_engine.shadow_batch_async(user_id, [full_email], [classified])
-    except Exception:
-        pass
+    # Enrich with user action state (resolved, snoozed) and action policy
+    from backend.app.core.action_store import user_action_store
+    from backend.app.core.action_policy import evaluate_actionability
+    state = user_action_store.get_action_state(user_id, email_id)
+    now_ts = datetime.now(timezone.utc).timestamp()
+    policy_eval = evaluate_actionability(target_email, action_state=state, now_ts=now_ts)
+    enriched = dict(target_email)
+    enriched["is_resolved"] = policy_eval["is_resolved"]
+    enriched["is_snoozed"] = policy_eval["is_snoozed"]
+    enriched["snoozed_until"] = policy_eval["snoozed_until"]
+    enriched["queue_placement"] = policy_eval["placement"]
+    enriched["action_reason"] = policy_eval["reason"]
+    enriched["next_step"] = policy_eval["next_step"]
+    enriched["action_policy"] = policy_eval
 
-    return {"status": "success", "email": classified}
+    return {"status": "success", "email": enriched}
 
 
 @router.post("/api/feedback")

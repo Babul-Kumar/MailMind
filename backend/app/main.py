@@ -15,6 +15,7 @@ from backend.app.api.routes_emails import router as emails_router
 from backend.app.api.routes_monitoring import router as monitoring_router
 from backend.app.api.routes_phase51 import router as phase51_router
 from backend.app.api.routes_adjudication import router as adjudication_router
+from backend.app.api.routes_actions import router as actions_router
 
 
 @asynccontextmanager
@@ -48,6 +49,7 @@ app.include_router(emails_router)
 app.include_router(monitoring_router)
 app.include_router(phase51_router)
 app.include_router(adjudication_router)
+app.include_router(actions_router)
 
 # Serve built React frontend from frontend/dist
 assets_dir = os.path.join(FRONTEND_DIST_DIR, "assets")

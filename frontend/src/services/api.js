@@ -198,3 +198,95 @@ export async function rescanMailbox({ scope = 'mailbox' } = {}) {
   }
   return res.json();
 }
+
+// -----------------------------------------------------------------------------
+// Smart Action Queue & Resolution Endpoints
+// -----------------------------------------------------------------------------
+
+export async function resolveAction(messageId, threadId = null, note = null) {
+  const res = await apiFetch('/api/actions/resolve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message_id: messageId,
+      thread_id: threadId,
+      note,
+    }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Failed to resolve action: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function unresolveAction(messageId) {
+  const res = await apiFetch('/api/actions/unresolve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message_id: messageId }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Failed to undo resolution: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function snoozeAction(messageId, snoozeUntil, threadId = null, snoozeReason = null) {
+  const res = await apiFetch('/api/actions/snooze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message_id: messageId,
+      thread_id: threadId,
+      snooze_until: snoozeUntil,
+      snooze_reason: snoozeReason,
+    }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Failed to snooze action: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function unsnoozeAction(messageId) {
+  const res = await apiFetch('/api/actions/unsnooze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message_id: messageId }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Failed to unsnooze: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchActionQueue({ sortBy = 'urgent', olderSortBy = 'oldest', thresholdDays = 8.0 } = {}) {
+  const params = new URLSearchParams();
+  if (sortBy) params.append('sort_by', sortBy);
+  if (olderSortBy) params.append('older_sort_by', olderSortBy);
+  if (thresholdDays) params.append('threshold_days', String(thresholdDays));
+
+  const res = await apiFetch(`/api/actions/queue?${params.toString()}`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Failed to fetch action queue: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchActionSummary(thresholdDays = 8.0) {
+  const params = new URLSearchParams();
+  if (thresholdDays) params.append('threshold_days', String(thresholdDays));
+
+  const res = await apiFetch(`/api/actions/summary?${params.toString()}`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || `Failed to fetch action summary: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
