@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MailMindLogo } from '../brand/MailMindLogo';
 import { AlertCircle, RefreshCw, ArrowLeft, ShieldCheck } from 'lucide-react';
-import { fetchAuthExchange } from '../../services/api';
+import { fetchAuthExchange, fetchAuthStatus } from '../../services/api';
+
+let _currentExchangePromise = null;
+let _currentHandoffCode = null;
 
 /**
  * Dedicated /auth/callback Route Component
@@ -16,15 +19,11 @@ import { fetchAuthExchange } from '../../services/api';
 export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, exchangeHandoff }) {
   const [status, setStatus] = useState('exchanging'); // 'exchanging' | 'success' | 'error'
   const [errorMessage, setErrorMessage] = useState(null);
-  const exchangeAttemptedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent double execution in React StrictMode
-    if (exchangeAttemptedRef.current) return;
-    exchangeAttemptedRef.current = true;
-
+    let isMounted = true;
     const urlParams = new URLSearchParams(window.location.search);
-    const handoffCode = urlParams.get('handoff');
+    const handoffFromUrl = urlParams.get('handoff');
     const authError = urlParams.get('auth_error') || urlParams.get('error');
 
     // Handle OAuth error parameter from Google/Backend
@@ -39,37 +38,82 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
       return;
     }
 
+    const handoffCode = handoffFromUrl || _currentHandoffCode;
+
     if (!handoffCode) {
-      setStatus('error');
-      setErrorMessage('Missing authentication handoff code. Please sign in again.');
+      // If no handoff code in query or cache, check if we already have an active valid session
+      fetchAuthStatus().then((authStatus) => {
+        if (!isMounted) return;
+        if (authStatus && authStatus.authenticated && authStatus.user) {
+          setStatus('success');
+          window.history.replaceState({}, document.title, '/');
+          if (onAuthenticationComplete) onAuthenticationComplete(authStatus.user);
+          setTimeout(() => {
+            if (onSuccess) onSuccess(authStatus.user);
+          }, 350);
+        } else {
+          setStatus('error');
+          setErrorMessage('Missing authentication handoff code. Please sign in again.');
+        }
+      }).catch(() => {
+        if (!isMounted) return;
+        setStatus('error');
+        setErrorMessage('Missing authentication handoff code. Please sign in again.');
+      });
       return;
     }
 
-    // Immediately clean the URL to ensure one-time handoff code is not left in browser history
-    window.history.replaceState({}, document.title, window.location.pathname);
+    // Clean URL query parameter so token is not exposed in address bar
+    if (handoffFromUrl) {
+      _currentHandoffCode = handoffFromUrl;
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
 
-    // Perform secure exchange with backend via centralized same-origin apiFetch
-    const doExchange = exchangeHandoff || fetchAuthExchange;
-    doExchange(handoffCode)
+    // Reuse or create in-flight exchange promise across React 18 StrictMode mounts
+    if (!_currentExchangePromise) {
+      const doExchange = exchangeHandoff || fetchAuthExchange;
+      _currentExchangePromise = doExchange(handoffCode);
+    }
+
+    _currentExchangePromise
       .then((data) => {
-        if (data && data.authenticated) {
+        if (!isMounted) return;
+        if (data && (data.authenticated || data.user)) {
           setStatus('success');
-          // Clean URL to home path
           window.history.replaceState({}, document.title, '/');
+          const user = data.user || data;
           if (onAuthenticationComplete) {
-            onAuthenticationComplete(data.user);
+            onAuthenticationComplete(user);
           }
-          // Small delay for smooth visual transition
           setTimeout(() => {
             if (onSuccess) {
-              onSuccess(data.user);
+              onSuccess(user);
             }
-          }, 400);
+          }, 350);
         } else {
           throw new Error('Authentication exchange returned unauthenticated status.');
         }
       })
-      .catch((err) => {
+      .catch(async (err) => {
+        if (!isMounted) return;
+        // Fallback: If code was already consumed or already processed, check if session is active
+        try {
+          const authStatus = await fetchAuthStatus();
+          if (authStatus && authStatus.authenticated && authStatus.user) {
+            setStatus('success');
+            window.history.replaceState({}, document.title, '/');
+            if (onAuthenticationComplete) {
+              onAuthenticationComplete(authStatus.user);
+            }
+            setTimeout(() => {
+              if (onSuccess) {
+                onSuccess(authStatus.user);
+              }
+            }, 350);
+            return;
+          }
+        } catch (_) {}
+
         console.error('Handoff exchange failed:', err);
         setStatus('error');
         window.history.replaceState({}, document.title, '/');
@@ -83,8 +127,18 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
             ? 'Your sign-in link expired or has already been used. Please try signing in again.'
             : 'Unable to establish a secure session. Please check your connection and try again.'
         );
+      })
+      .finally(() => {
+        setTimeout(() => {
+          _currentExchangePromise = null;
+          _currentHandoffCode = null;
+        }, 5000);
       });
-  }, [onSuccess, onAuthenticationComplete]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [onSuccess, onAuthenticationComplete, exchangeHandoff]);
 
   const handleReturnToLogin = () => {
     window.history.replaceState({}, document.title, '/');

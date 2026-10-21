@@ -449,7 +449,16 @@ def get_classified_emails(
     from backend.app.core.action_store import user_action_store
     from backend.app.core.action_policy import evaluate_actionability, classify_action_queue
 
-    action_states_map = user_action_store.get_user_action_states(user_id)
+    if hasattr(user_action_store, "get_user_action_states"):
+        action_states_map = user_action_store.get_user_action_states(user_id)
+    elif hasattr(user_action_store, "get_all_action_states"):
+        action_states_map = user_action_store.get_all_action_states(user_id)
+    elif hasattr(user_action_store, "get_user_actions_map"):
+        action_states_map = user_action_store.get_user_actions_map(user_id)
+    else:
+        action_states_map = {}
+    if not isinstance(action_states_map, dict):
+        action_states_map = {}
     now_ts = datetime.now(timezone.utc).timestamp()
 
     enriched_display = []
@@ -467,12 +476,35 @@ def get_classified_emails(
         item_copy["action_policy"] = policy_eval
         enriched_display.append(item_copy)
 
-    if priority and priority.strip().upper() == "NEEDS_ATTENTION":
-        # Needs attention active queue: only active items (not resolved, not snoozed, not older)
-        enriched_display = [e for e in enriched_display if e.get("queue_placement") == "ACTIVE"]
-        total_matching = len(enriched_display)
+    # Enforce strict priority filter on display list
+    if priority and priority.strip():
+        p_norm = priority.strip().upper()
+        if p_norm == "NEEDS_ATTENTION":
+            display_list = [e for e in enriched_display if e.get("queue_placement") == "ACTIVE"]
+            total_matching = len(display_list)
+        elif p_norm in ("P1", "P2", "P3", "P4"):
+            display_list = [
+                e for e in enriched_display
+                if (e.get("final_priority") or e.get("predicted_priority") or "").upper() == p_norm
+            ]
+            total_matching = len(display_list)
+        elif p_norm == "IMPORTANT":
+            display_list = [
+                e for e in enriched_display
+                if (e.get("final_priority") or e.get("predicted_priority") or "").upper() == "P2"
+            ]
+            total_matching = len(display_list)
+        else:
+            display_list = enriched_display
+    else:
+        display_list = enriched_display
 
-    display_list = enriched_display
+    if action_required is True:
+        display_list = [e for e in display_list if e.get("action_required")]
+        total_matching = len(display_list)
+    elif action_required is False:
+        display_list = [e for e in display_list if not e.get("action_required")]
+        total_matching = len(display_list)
 
     # Compute exact action queue summary counts for sidebar and navigation badges
     all_user_emails, _ = user_email_cache.query_emails(
@@ -481,6 +513,13 @@ def get_classified_emails(
         page_size=10000,
         model_version=user_model_version
     )
+    if not all_user_emails:
+        all_user_emails, _ = user_email_cache.query_emails(
+            user_id=user_id,
+            page=1,
+            page_size=10000,
+            model_version=None
+        )
     if all_user_emails:
         q_summary = classify_action_queue(all_user_emails, action_states_map=action_states_map, now_ts=now_ts)
         stats["action_queue_counts"] = q_summary["counts"]

@@ -3,6 +3,7 @@ import re
 import time
 import json
 import secrets
+import threading
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from fastapi import Request
@@ -12,6 +13,7 @@ from backend.app.core.config import BASE_DIR, DATA_DIR, GMAIL_SCOPES
 SESSION_COOKIE_NAME = "mailmind_session"
 SESSION_DURATION_SECONDS = 7 * 24 * 3600  # 7 days
 SESSIONS_DIR = os.path.join(DATA_DIR, "sessions")
+_handoff_lock = threading.Lock()
 
 
 @dataclass
@@ -54,9 +56,12 @@ class SessionManager:
                             if not session.is_expired():
                                 self._sessions[session.session_id] = session
                             else:
-                                os.remove(fpath)
-                    except Exception as err:
-                        print(f"[SessionManager Warning] Failed to load session {fname}: {err}")
+                                try:
+                                    os.remove(fpath)
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
         except Exception as e:
             print(f"[SessionManager Warning] Could not load persisted sessions: {e}")
 
@@ -180,14 +185,15 @@ class SessionManager:
         """
         code = secrets.token_urlsafe(32)
         now = time.time()
-        handoffs = self._load_pending_handoffs()
-        # Prune expired handoffs
-        handoffs = {c: d for c, d in handoffs.items() if now - d.get("created_at", 0) <= self.HANDOFF_TTL_SECONDS}
-        handoffs[code] = {
-            "session_id": session_id,
-            "created_at": now,
-        }
-        self._save_pending_handoffs(handoffs)
+        with _handoff_lock:
+            handoffs = self._load_pending_handoffs()
+            # Prune expired handoffs
+            handoffs = {c: d for c, d in handoffs.items() if now - d.get("created_at", 0) <= self.HANDOFF_TTL_SECONDS}
+            handoffs[code] = {
+                "session_id": session_id,
+                "created_at": now,
+            }
+            self._save_pending_handoffs(handoffs)
         return code
 
     def consume_handoff(self, code: Optional[str]) -> Optional[str]:
@@ -200,11 +206,12 @@ class SessionManager:
             return None
 
         now = time.time()
-        handoffs = self._load_pending_handoffs()
-        entry = handoffs.pop(code, None)
+        with _handoff_lock:
+            handoffs = self._load_pending_handoffs()
+            entry = handoffs.pop(code, None)
 
-        # Always persist back the deletion immediately to enforce single-use / anti-replay
-        self._save_pending_handoffs(handoffs)
+            # Always persist back the deletion immediately to enforce single-use / anti-replay
+            self._save_pending_handoffs(handoffs)
 
         if not entry:
             return None

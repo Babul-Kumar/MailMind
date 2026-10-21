@@ -69,22 +69,44 @@ export async function fetchAuthStatus() {
 }
 
 export async function fetchAuthLogin(prompt = 'select_account') {
-  const res = await apiFetch(`/api/auth/login?prompt=${encodeURIComponent(prompt)}`);
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const originParam = origin ? `&origin=${encodeURIComponent(origin)}` : '';
+  const res = await apiFetch(`/api/auth/login?prompt=${encodeURIComponent(prompt)}${originParam}`);
   if (!res.ok) throw new Error(`Login initiation failed: HTTP ${res.status}`);
   return res.json();
 }
 
+const _pendingExchanges = new Map();
+
 export async function fetchAuthExchange(handoff) {
-  const res = await apiFetch('/api/auth/exchange', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ handoff }),
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || errorData.message || `Exchange failed: HTTP ${res.status}`);
+  if (!handoff) throw new Error('Missing handoff code');
+
+  if (_pendingExchanges.has(handoff)) {
+    return _pendingExchanges.get(handoff);
   }
-  return res.json();
+
+  const exchangePromise = (async () => {
+    try {
+      const res = await apiFetch('/api/auth/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handoff }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || `Exchange failed: HTTP ${res.status}`);
+      }
+      return await res.json();
+    } finally {
+      // Clear from pending cache after 15s to allow future logins if needed
+      setTimeout(() => {
+        _pendingExchanges.delete(handoff);
+      }, 15000);
+    }
+  })();
+
+  _pendingExchanges.set(handoff, exchangePromise);
+  return exchangePromise;
 }
 
 export async function logout() {

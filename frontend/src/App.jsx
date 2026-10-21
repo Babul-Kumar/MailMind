@@ -112,8 +112,14 @@ export function App() {
     [auth, handleSwitchAccount, handleLogout]
   );
 
-  const showConnectHero = !auth.isLoading && !auth.isAuthenticated && emailsHook.emails.length === 0;
-  const showInitialLoading = auth.isAuthenticated && emailsHook.emails.length === 0 && emailsHook.isScanning;
+  const showConnectHero = !auth.isLoading && !auth.isAuthenticated && emailsHook.emails.length === 0 && !emailsHook.isShowingCached;
+  const showInitialLoading =
+    auth.isAuthenticated &&
+    emailsHook.emails.length === 0 &&
+    !emailsHook.isShowingCached &&
+    !emailsHook.error &&
+    emailsHook.isLoading &&
+    !emailsHook.initialFetchComplete;
 
   return (
     <AppShell
@@ -190,6 +196,7 @@ export function App() {
           onUnresolve={emailsHook.unresolveEmail}
           onSnooze={emailsHook.snoozeEmail}
           onUnsnooze={emailsHook.unsnoozeEmail}
+          error={emailsHook.error}
           recentlyResolved={emailsHook.recentlyResolved}
           onClearRecentlyResolved={emailsHook.clearRecentlyResolved}
         />

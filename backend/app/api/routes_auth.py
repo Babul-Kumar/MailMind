@@ -2,13 +2,14 @@ import os
 import json
 import secrets
 import time
+import urllib.parse
 from typing import Optional
 from fastapi import APIRouter, Request, Response, HTTPException, Query
 from fastapi.responses import RedirectResponse, JSONResponse
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 
-from backend.app.core.config import CREDENTIALS_FILE, GMAIL_SCOPES
+from backend.app.core.config import CREDENTIALS_FILE, GMAIL_SCOPES, ALLOWED_ORIGINS
 from backend.app.core.session import (
     session_manager,
     get_session_from_request,
@@ -45,26 +46,32 @@ def _save_pending_states(states: dict):
         print(f"[Warning] Failed to persist pending OAuth states: {e}")
 
 
-def _store_pending_state(state: str, code_verifier: Optional[str]):
+def _store_pending_state(state: str, code_verifier: Optional[str], frontend_origin: Optional[str] = None):
     now = time.time()
     states = _load_pending_states()
     # Prune states older than 10 minutes
     pruned = {s: data for s, data in states.items() if now - data.get("timestamp", 0) <= 600}
     pruned[state] = {
         "timestamp": now,
-        "code_verifier": code_verifier
+        "code_verifier": code_verifier,
+        "frontend_origin": frontend_origin
     }
     _save_pending_states(pruned)
-    _PENDING_STATES[state] = {"timestamp": now, "code_verifier": code_verifier}
+    _PENDING_STATES[state] = {
+        "timestamp": now,
+        "code_verifier": code_verifier,
+        "frontend_origin": frontend_origin
+    }
 
 
-def _retrieve_and_consume_state(state: str, request: Request) -> Optional[str]:
+def _retrieve_and_consume_state(state: str, request: Request) -> tuple[bool, Optional[str], Optional[str]]:
     """
-    Retrieves and consumes the PKCE code_verifier for the given OAuth state.
-    Returns code_verifier string (or empty string) if state is valid, or None if state is invalid/expired.
+    Retrieves and consumes the PKCE code_verifier and frontend_origin for the given OAuth state.
+    Returns (state_valid, code_verifier, frontend_origin).
     """
     now = time.time()
     code_verifier = None
+    frontend_origin = None
     state_valid = False
 
     # 1. Check in-memory state
@@ -72,6 +79,7 @@ def _retrieve_and_consume_state(state: str, request: Request) -> Optional[str]:
     if mem_data and now - mem_data.get("timestamp", 0) <= 600:
         state_valid = True
         code_verifier = mem_data.get("code_verifier")
+        frontend_origin = mem_data.get("frontend_origin")
 
     # 2. Check persisted file (survives uvicorn reload)
     states = _load_pending_states()
@@ -82,23 +90,98 @@ def _retrieve_and_consume_state(state: str, request: Request) -> Optional[str]:
             state_valid = True
             if not code_verifier:
                 code_verifier = file_data.get("code_verifier")
+            if not frontend_origin:
+                frontend_origin = file_data.get("frontend_origin")
 
     # 3. Fallback to HttpOnly cookie
     cookie_val = request.cookies.get("mailmind_oauth_verifier", "")
     if cookie_val:
         if ":" in cookie_val:
-            c_state, c_verifier = cookie_val.split(":", 1)
+            parts = cookie_val.split(":", 2)
+            c_state = parts[0]
             if c_state == state:
                 state_valid = True
-                if not code_verifier:
-                    code_verifier = c_verifier
+                if not code_verifier and len(parts) > 1:
+                    code_verifier = parts[1]
+                if not frontend_origin and len(parts) > 2:
+                    frontend_origin = parts[2]
         elif not code_verifier:
             code_verifier = cookie_val
 
-    if not state_valid:
-        return None
+    return state_valid, code_verifier or "", frontend_origin
 
-    return code_verifier or ""
+
+def _is_allowed_frontend_origin(origin: Optional[str]) -> bool:
+    """Validates that a frontend origin is authorized to prevent open redirect vulnerabilities."""
+    if not origin or not isinstance(origin, str):
+        return False
+    clean = origin.strip().rstrip("/")
+    if not clean:
+        return False
+    allowed_lower = [o.lower() for o in ALLOWED_ORIGINS]
+    if clean.lower() in allowed_lower:
+        return True
+    try:
+        parsed = urllib.parse.urlparse(clean)
+        hostname = (parsed.hostname or "").lower()
+        if not hostname:
+            return False
+        if hostname in ("localhost", "127.0.0.1"):
+            return True
+        if hostname == "mail-mind-ten-chi.vercel.app" or hostname.endswith(".vercel.app"):
+            return True
+        if hostname == "mailmind-api-xzu8.onrender.com" or hostname.endswith(".onrender.com"):
+            return True
+    except Exception:
+        return False
+    return False
+
+
+def resolve_frontend_url(request: Request, stored_origin: Optional[str] = None) -> str:
+    """
+    Resolves the canonical target frontend URL for redirecting authenticated users.
+    Prioritizes:
+      1. Validated frontend origin stored during /api/auth/login
+      2. Validated origin or referer in incoming request
+      3. Explicit FRONTEND_URL environment variable override (if set to "" in monolithic mode, returns "")
+      4. Localhost dev fallback (http://localhost:5173 if request is local)
+      5. Default cloud deployment fallback (https://mail-mind-ten-chi.vercel.app)
+    """
+    if stored_origin and _is_allowed_frontend_origin(stored_origin):
+        return stored_origin.strip().rstrip("/")
+
+    req_origin = request.headers.get("origin")
+    if req_origin and _is_allowed_frontend_origin(req_origin):
+        return req_origin.strip().rstrip("/")
+
+    req_referer = request.headers.get("referer")
+    if req_referer:
+        try:
+            parsed = urllib.parse.urlparse(req_referer)
+            ref_origin = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+            if _is_allowed_frontend_origin(ref_origin):
+                return ref_origin
+        except Exception:
+            pass
+
+    # Check explicit FRONTEND_URL environment variable override
+    env_frontend = os.environ.get("FRONTEND_URL")
+    if env_frontend is not None:
+        env_frontend = env_frontend.strip().rstrip("/")
+        if not env_frontend:
+            return ""
+        if _is_allowed_frontend_origin(env_frontend):
+            return env_frontend
+
+    # If incoming request host is localhost or 127.0.0.1, keep user on local frontend
+    host = request.headers.get("host", "").lower()
+    if "localhost" in host or "127.0.0.1" in host:
+        return "http://localhost:5173"
+
+    if "testserver" in host:
+        return ""
+
+    return "https://mail-mind-ten-chi.vercel.app"
 
 
 def get_base_url(request: Request) -> str:
@@ -269,13 +352,27 @@ def create_oauth_flow(
 def auth_login(
     request: Request,
     prompt: Optional[str] = Query(default="select_account", description="Consent/Account selection prompt"),
-    redirect_to: Optional[str] = Query(default="/", description="Frontend return path")
+    redirect_to: Optional[str] = Query(default="/", description="Frontend return path"),
+    origin: Optional[str] = Query(default=None, description="Frontend origin")
 ):
     """
     Initiates Google OAuth 2.0 flow with account selection.
     Returns the Google authorization URL or redirects if requested by a browser.
-    Preserves PKCE code_verifier across redirects.
+    Preserves PKCE code_verifier and frontend origin across redirects.
     """
+    # Detect frontend origin from query param, Origin header, or Referer header
+    detected_origin = None
+    for cand in [origin, request.headers.get("origin"), request.headers.get("referer")]:
+        if cand:
+            try:
+                parsed = urllib.parse.urlparse(cand)
+                base_cand = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+                if _is_allowed_frontend_origin(base_cand):
+                    detected_origin = base_cand
+                    break
+            except Exception:
+                continue
+
     state = secrets.token_urlsafe(16)
     redirect_uri = get_redirect_uri(request)
 
@@ -288,7 +385,7 @@ def auth_login(
             state=state
         )
         code_verifier = getattr(flow, "code_verifier", None)
-        _store_pending_state(state, code_verifier)
+        _store_pending_state(state, code_verifier, frontend_origin=detected_origin)
     except HTTPException:
         raise
     except Exception as e:
@@ -307,9 +404,10 @@ def auth_login(
 
     if code_verifier:
         cookie_samesite, cookie_secure = get_cookie_security_flags(request)
+        cookie_val = f"{state}:{code_verifier}:{detected_origin or ''}" if detected_origin else f"{state}:{code_verifier}"
         res.set_cookie(
             key="mailmind_oauth_verifier",
-            value=f"{state}:{code_verifier}",
+            value=cookie_val,
             max_age=600,
             httponly=True,
             samesite=cookie_samesite,
@@ -330,7 +428,7 @@ def auth_callback(
     Handles Google OAuth redirect, exchanges auth code for user credentials with PKCE verifier,
     extracts user identity, creates an isolated session, and sets the secure HttpOnly cookie.
     """
-    frontend_url = os.getenv("FRONTEND_URL", "https://mail-mind-ten-chi.vercel.app").strip().rstrip("/")
+    frontend_url = resolve_frontend_url(request)
     if error:
         err_url = f"{frontend_url}/?auth_error={error}" if frontend_url else f"/?auth_error={error}"
         return RedirectResponse(err_url, status_code=302)
@@ -338,10 +436,11 @@ def auth_callback(
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing OAuth code or state parameter.")
 
-    code_verifier = _retrieve_and_consume_state(state, request)
-    if code_verifier is None:
+    state_valid, code_verifier, stored_origin = _retrieve_and_consume_state(state, request)
+    if not state_valid:
         raise HTTPException(status_code=400, detail="Invalid or expired OAuth state parameter.")
 
+    frontend_url = resolve_frontend_url(request, stored_origin=stored_origin)
     redirect_uri = get_redirect_uri(request)
 
     try:
@@ -397,7 +496,7 @@ def auth_callback(
             samesite=cookie_samesite,
             secure=cookie_secure
         )
-        print(f"[OAuth Callback] Successfully authenticated {mask_email(email_address)}. Session created. Redirecting to frontend handoff.")
+        print(f"[OAuth Callback] Successfully authenticated {mask_email(email_address)}. Session created. Redirecting to frontend handoff at {frontend_url}.")
         return response
     except Exception as e:
         print(f"[OAuth Callback Error] {e}")

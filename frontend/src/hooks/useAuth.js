@@ -143,6 +143,18 @@ export function useAuth() {
         throw new Error('Authentication response unauthenticated.');
       }
     } catch (err) {
+      // Check if session is already active (e.g. handoff was already consumed by first concurrent request or page reload)
+      try {
+        const status = await fetchAuthStatus();
+        if (status && status.authenticated && status.user) {
+          setUser(status.user);
+          setIsAuthenticated(true);
+          setIsOffline(false);
+          setError(null);
+          return status;
+        }
+      } catch (_) {}
+
       console.error('Failed to exchange handoff code:', err);
       setUser(null);
       setIsAuthenticated(false);

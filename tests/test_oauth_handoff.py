@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 import os
 import sys
 import time
@@ -230,6 +230,85 @@ class TestOAuthHandoffArchitecture(unittest.TestCase):
 
         for forbidden in ["refresh_token", "mock_token", "mock_refresh", "client_secret", "access_token"]:
             self.assertNotIn(forbidden, raw_response, f"Forbidden credential keyword '{forbidden}' leaked in response!")
+
+
+    # 15. Dynamic Frontend URL Resolution: Localhost vs Production
+    def test_15_resolve_frontend_url_local_vs_production(self):
+        from backend.app.api.routes_auth import resolve_frontend_url
+        from unittest.mock import MagicMock
+
+        # Localhost request resolves to http://localhost:5173
+        req_local = MagicMock()
+        req_local.headers = {"host": "localhost:8000"}
+        req_local.query_params = {}
+        self.assertEqual(resolve_frontend_url(req_local), "http://localhost:5173")
+
+        # 127.0.0.1 request resolves to http://localhost:5173
+        req_ip = MagicMock()
+        req_ip.headers = {"host": "127.0.0.1:8000"}
+        req_ip.query_params = {}
+        self.assertEqual(resolve_frontend_url(req_ip), "http://localhost:5173")
+
+        # Production cloud host resolves to Vercel production
+        req_cloud = MagicMock()
+        req_cloud.headers = {"host": "mailmind-api-xzu8.onrender.com"}
+        req_cloud.query_params = {}
+        self.assertEqual(resolve_frontend_url(req_cloud), "https://mail-mind-ten-chi.vercel.app")
+
+    # 16. Open Redirect Protection: Rejects Untrusted Origins
+    def test_16_resolve_frontend_url_rejects_untrusted_origins(self):
+        from backend.app.api.routes_auth import resolve_frontend_url, _is_allowed_frontend_origin
+        from unittest.mock import MagicMock
+
+        self.assertFalse(_is_allowed_frontend_origin("https://evil-phishing-site.com"))
+        self.assertFalse(_is_allowed_frontend_origin("javascript:alert(1)"))
+        self.assertTrue(_is_allowed_frontend_origin("http://localhost:5173"))
+        self.assertTrue(_is_allowed_frontend_origin("https://mail-mind-ten-chi.vercel.app"))
+        self.assertTrue(_is_allowed_frontend_origin("https://mailmind-preview-123.vercel.app"))
+
+        # When an untrusted origin is passed, it falls back to safe destination
+        req_attack = MagicMock()
+        req_attack.headers = {"host": "localhost:8000"}
+        req_attack.query_params = {}
+        safe_url = resolve_frontend_url(req_attack, stored_origin="https://evil-phishing-site.com")
+        self.assertNotEqual(safe_url, "https://evil-phishing-site.com")
+        self.assertEqual(safe_url, "http://localhost:5173")
+
+    # 17. /api/auth/login Preserves Frontend Origin
+    def test_17_auth_login_captures_frontend_origin(self):
+        res = self.client.get("/api/auth/login?origin=http://localhost:5173")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get("status"), "success")
+        self.assertIn("auth_url", data)
+        state = data.get("state")
+        self.assertTrue(state)
+
+        # Check pending state dictionary in routes_auth
+        from backend.app.api.routes_auth import _PENDING_STATES
+        self.assertIn(state, _PENDING_STATES)
+        self.assertEqual(_PENDING_STATES[state].get("frontend_origin"), "http://localhost:5173")
+
+    # 18. Concurrent Thread Safety on Single-Use Handoff Codes
+    def test_18_concurrent_handoff_consumption_thread_safety(self):
+        import concurrent.futures
+
+        code = session_manager.create_handoff(self.session.session_id)
+        results = []
+
+        def try_consume():
+            return session_manager.consume_handoff(code)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(try_consume) for _ in range(5)]
+            for f in concurrent.futures.as_completed(futures):
+                results.append(f.result())
+
+        # Exactly ONE thread must succeed in consuming the code
+        successes = [r for r in results if r == self.session.session_id]
+        failures = [r for r in results if r is None]
+        self.assertEqual(len(successes), 1, "Exactly one consumer must succeed")
+        self.assertEqual(len(failures), 4, "All other concurrent attempts must be rejected")
 
 
 if __name__ == "__main__":

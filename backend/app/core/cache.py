@@ -228,7 +228,7 @@ class UserEmailCache:
                 from backend.app.ml.registry import model_registry
                 active_ver = model_registry.get_active_version()
                 model_ver = item.get("model_version") or model_version or active_ver
-                priority = item.get("predicted_priority") or item.get("final_priority") or "P4"
+                priority = item.get("final_priority") or item.get("predicted_priority") or "P4"
                 action_req = 1 if item.get("action_required") else 0
                 deadline_det = 1 if item.get("deadline_detected") else 0
                 deadline_disp = item.get("deadline_display")
@@ -248,6 +248,8 @@ class UserEmailCache:
                 item_copy["content_hash"] = c_hash
                 item_copy["model_version"] = model_ver
                 item_copy["thread_id"] = thread_id
+                item_copy["predicted_priority"] = priority
+                item_copy["final_priority"] = priority
                 if "deadline_status" in item:
                     item_copy["deadline_status"] = item["deadline_status"]
                 if "action_evidence" in item:
@@ -540,7 +542,7 @@ class UserEmailCache:
         order_dir = "ASC" if sort_order.lower() == "asc" else "DESC"
         offset = max(0, (page - 1) * page_size)
         query_sql = f"""
-            SELECT data_json, thread_id
+            SELECT data_json, thread_id, predicted_priority
             FROM user_email_cache
             WHERE {where_sql}
             ORDER BY internal_date {order_dir}, analyzed_at {order_dir}, message_id {order_dir}
@@ -553,6 +555,9 @@ class UserEmailCache:
                 em = json.loads(r["data_json"])
                 if not em.get("thread_id") and r["thread_id"]:
                     em["thread_id"] = r["thread_id"]
+                p_val = r["predicted_priority"] or em.get("final_priority") or em.get("predicted_priority") or "P4"
+                em["predicted_priority"] = p_val
+                em["final_priority"] = p_val
                 emails.append(em)
             except Exception:
                 pass

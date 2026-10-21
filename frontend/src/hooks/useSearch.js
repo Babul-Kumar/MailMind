@@ -18,31 +18,31 @@ export function useSearch(emails, options = {}) {
     if (!emails) return [];
     let list = [...emails];
 
-    // If serverFiltered is false (or omitted without external options), perform local filtering for testing compatibility
-    if (!options.serverFiltered) {
-      if (focusMode) {
-        list = list.filter(isNeedsAttention);
-      } else if (activeFilter === 'NEEDS_ATTENTION') {
-        list = list.filter(isNeedsAttention);
-      } else if (activeFilter === 'IMPORTANT') {
-        list = list.filter((e) => (e.final_priority || e.predicted_priority) === 'P2');
-      } else if (activeFilter !== 'ALL') {
-        list = list.filter((e) => (e.final_priority || e.predicted_priority) === activeFilter);
-      }
+    // Strict filter guards (applied both for client-side and serverFiltered modes)
+    if (focusMode) {
+      list = list.filter(isNeedsAttention);
+    } else if (activeFilter === 'NEEDS_ATTENTION') {
+      list = list.filter(isNeedsAttention);
+    } else if (activeFilter === 'IMPORTANT') {
+      list = list.filter((e) => (e.final_priority || e.predicted_priority) === 'P2');
+    } else if (['P1', 'P2', 'P3', 'P4'].includes(activeFilter)) {
+      list = list.filter((e) => ((e.final_priority || e.predicted_priority || '').toUpperCase()) === activeFilter);
+    }
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        list = list.filter((e) => {
-          const subj = (e.subject || '').toLowerCase();
-          const sndr = (e.sender || '').toLowerCase();
-          const body = (e.body || '').toLowerCase();
-          return subj.includes(q) || sndr.includes(q) || body.includes(q);
-        });
-      }
-    } else {
-      if (focusMode) {
-        list = list.filter(isNeedsAttention);
-      }
+    if (actionFilter === 'ACTION_REQUIRED') {
+      list = list.filter((e) => Boolean(e.action_required));
+    } else if (actionFilter === 'NO_ACTION') {
+      list = list.filter((e) => !e.action_required);
+    }
+
+    if (!options.serverFiltered && searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter((e) => {
+        const subj = (e.subject || '').toLowerCase();
+        const sndr = (e.sender || '').toLowerCase();
+        const body = (e.body || '').toLowerCase();
+        return subj.includes(q) || sndr.includes(q) || body.includes(q);
+      });
     }
 
     // Sorting: skip client-side sort if backend already returned date_desc order

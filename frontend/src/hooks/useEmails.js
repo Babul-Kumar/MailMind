@@ -91,6 +91,10 @@ export function useEmails(isAuthenticated = false, user = null) {
   const [scanStatus, setScanStatus] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const pollTimerRef = useRef(null);
+  const retryTimerRef = useRef(null);
+  const consecutiveErrorsRef = useRef(0);
+  const activeRequestIdRef = useRef(0);
+  const [initialFetchComplete, setInitialFetchComplete] = useState(false);
 
   // Stable references for state during async cache saves
   const emailsRef = useRef(emails);
@@ -161,6 +165,8 @@ export function useEmails(isAuthenticated = false, user = null) {
   const loadData = useCallback(async (customPage, customPageSize, customQuery, customFilter, customAction) => {
     if (!isAuthenticated) return;
 
+    const reqId = ++activeRequestIdRef.current;
+
     const pageToUse = customPage !== undefined ? customPage : page;
     const sizeToUse = customPageSize !== undefined ? customPageSize : pageSize;
     const filterToUse = customFilter !== undefined ? customFilter : activeFilter;
@@ -184,6 +190,12 @@ export function useEmails(isAuthenticated = false, user = null) {
         actionRequired: actionParam,
       });
 
+      if (activeRequestIdRef.current !== reqId) {
+        // A newer request has already been issued, discard stale response
+        return;
+      }
+
+      consecutiveErrorsRef.current = 0;
       setEmails(data.emails || []);
       setStats(data.stats || null);
       setProfile(data.profile || null);
@@ -221,6 +233,10 @@ export function useEmails(isAuthenticated = false, user = null) {
         setIsJustUpdated(false);
       }, 1500);
     } catch (err) {
+      if (activeRequestIdRef.current !== reqId) {
+        return;
+      }
+      consecutiveErrorsRef.current += 1;
       if (err.status === 401) {
         setEmails([]);
         setStats(null);
@@ -238,9 +254,21 @@ export function useEmails(isAuthenticated = false, user = null) {
         } else {
           setError(err.message || 'Network unavailable. Showing saved emails.');
         }
+
+        // Bounded retry with exponential backoff (max 3 automated retries, then waits for user)
+        if (consecutiveErrorsRef.current <= 3 && err.status !== 401) {
+          const delay = Math.pow(2, consecutiveErrorsRef.current - 1) * 1000 + Math.random() * 500;
+          if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+          retryTimerRef.current = setTimeout(() => {
+            loadDataRef.current();
+          }, delay);
+        }
       }
     } finally {
-      setIsLoading(false);
+      if (activeRequestIdRef.current === reqId) {
+        setIsLoading(false);
+        setInitialFetchComplete(true);
+      }
     }
   }, [isAuthenticated, user, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, saveAccountCache]);
 
@@ -271,6 +299,7 @@ export function useEmails(isAuthenticated = false, user = null) {
   useEffect(() => {
     if (!isAuthenticated) {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
       return;
     }
 
@@ -280,23 +309,28 @@ export function useEmails(isAuthenticated = false, user = null) {
     const startPolling = () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       pollTimerRef.current = setInterval(async () => {
+        // Slow down polling when document is not visible
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          return;
+        }
+
         const latest = await checkScanStatus();
         if (latest) {
           const isActive = ['QUEUED', 'SCANNING', 'ANALYZING', 'FINALIZING'].includes(latest.status);
           if (!isActive) {
-            // Scan finished or stopped — refresh email view
+            // Scan finished or stopped — refresh email view and stop polling
             clearInterval(pollTimerRef.current);
             pollTimerRef.current = null;
             loadDataRef.current();
           } else if (latest.status === 'ANALYZING' && latest.analyzed) {
-            // As batches complete and are committed to cache, refresh list periodically
-            if (latest.analyzed - lastRefreshedCount.current >= 50) {
+            // As batches complete and are committed to cache, refresh list periodically if not loading and error-free
+            if (latest.analyzed - lastRefreshedCount.current >= 50 && !isLoading && consecutiveErrorsRef.current < 3) {
               lastRefreshedCount.current = latest.analyzed;
               loadDataRef.current();
             }
           }
         }
-      }, 1500);
+      }, 2500);
     };
 
     if (isScanning) {
@@ -309,7 +343,7 @@ export function useEmails(isAuthenticated = false, user = null) {
         pollTimerRef.current = null;
       }
     };
-  }, [isAuthenticated, isScanning, checkScanStatus]);
+  }, [isAuthenticated, isScanning, checkScanStatus, isLoading]);
 
   // Trigger Complete Scan (Incremental by default, or full discovery)
   const triggerScan = useCallback(async ({ scope = 'mailbox', mode = 'incremental', forceRescan = false } = {}) => {
@@ -566,6 +600,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     setPageSize,
     isLoading,
     isInitialLoading,
+    initialFetchComplete,
     isRefreshing,
     isJustUpdated,
     isShowingCached,

@@ -206,22 +206,45 @@ def get_action_queue(
             detail="Authentication required. Please connect your Gmail account."
         )
 
-    user_id = session.user_id
-    active_version = model_registry.get_active_version()
+    # Determine the model version assigned to this user via canary router
+    try:
+        from backend.app.ml.canary_router import canary_router
+        _, route_info = canary_router.get_pipeline_for_user(user_id)
+        user_model_version = route_info.get("model_version")
+    except Exception:
+        user_model_version = model_registry.get_active_version()
 
     # Query all cached emails for user
-    # Note: query_emails with page_size=10000 gets all cached messages without pagination truncating the queue
     all_cached_emails, _ = user_email_cache.query_emails(
         user_id=user_id,
         priority=None,  # All priorities
         search=None,
         page=1,
         page_size=10000,
-        model_version=active_version
+        model_version=user_model_version
     )
+    # If no emails found under user_model_version, fallback to querying all un-stale cached emails for this user
+    if not all_cached_emails:
+        all_cached_emails, _ = user_email_cache.query_emails(
+            user_id=user_id,
+            priority=None,
+            search=None,
+            page=1,
+            page_size=10000,
+            model_version=None
+        )
 
     # Fetch user action states map
-    action_states_map = user_action_store.get_user_action_states(user_id)
+    if hasattr(user_action_store, "get_user_action_states"):
+        action_states_map = user_action_store.get_user_action_states(user_id)
+    elif hasattr(user_action_store, "get_all_action_states"):
+        action_states_map = user_action_store.get_all_action_states(user_id)
+    elif hasattr(user_action_store, "get_user_actions_map"):
+        action_states_map = user_action_store.get_user_actions_map(user_id)
+    else:
+        action_states_map = {}
+    if not isinstance(action_states_map, dict):
+        action_states_map = {}
     now_ts = datetime.now(timezone.utc).timestamp()
 
     queue_data = classify_action_queue(
@@ -255,8 +278,13 @@ def get_action_summary(
             detail="Authentication required. Please connect your Gmail account."
         )
 
-    user_id = session.user_id
-    active_version = model_registry.get_active_version()
+    # Determine the model version assigned to this user via canary router
+    try:
+        from backend.app.ml.canary_router import canary_router
+        _, route_info = canary_router.get_pipeline_for_user(user_id)
+        user_model_version = route_info.get("model_version")
+    except Exception:
+        user_model_version = model_registry.get_active_version()
 
     all_cached_emails, _ = user_email_cache.query_emails(
         user_id=user_id,
@@ -264,10 +292,28 @@ def get_action_summary(
         search=None,
         page=1,
         page_size=10000,
-        model_version=active_version
+        model_version=user_model_version
     )
+    if not all_cached_emails:
+        all_cached_emails, _ = user_email_cache.query_emails(
+            user_id=user_id,
+            priority=None,
+            search=None,
+            page=1,
+            page_size=10000,
+            model_version=None
+        )
 
-    action_states_map = user_action_store.get_user_action_states(user_id)
+    if hasattr(user_action_store, "get_user_action_states"):
+        action_states_map = user_action_store.get_user_action_states(user_id)
+    elif hasattr(user_action_store, "get_all_action_states"):
+        action_states_map = user_action_store.get_all_action_states(user_id)
+    elif hasattr(user_action_store, "get_user_actions_map"):
+        action_states_map = user_action_store.get_user_actions_map(user_id)
+    else:
+        action_states_map = {}
+    if not isinstance(action_states_map, dict):
+        action_states_map = {}
     now_ts = datetime.now(timezone.utc).timestamp()
 
     queue_data = classify_action_queue(

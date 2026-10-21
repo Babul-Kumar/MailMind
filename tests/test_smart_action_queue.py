@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import unittest
 import tempfile
 import shutil
@@ -585,6 +586,48 @@ class TestSmartActionQueue(unittest.TestCase):
         ]
         for key in expected_keys:
             self.assertIn(key, res, f"Expected key '{key}' in prediction response")
+
+    # 19. Action store method compatibility and aliases
+    def test_19_action_store_method_compatibility_and_aliases(self):
+        self.store.resolve_action(user_id="user_compat_1", message_id="msg_101", note="Done")
+        self.store.snooze_action(user_id="user_compat_1", message_id="msg_102", snoozed_until=time.time() + 3600, reason="Later")
+
+        # Verify get_user_actions_map
+        map1 = self.store.get_user_actions_map("user_compat_1")
+        self.assertIn("msg_101", map1)
+        self.assertIn("msg_102", map1)
+        self.assertEqual(map1["msg_101"]["is_resolved"], 1)
+        self.assertEqual(map1["msg_102"]["is_snoozed"], 1)
+
+        # Verify get_user_action_states alias
+        map2 = self.store.get_user_action_states("user_compat_1")
+        self.assertEqual(map1, map2)
+
+        # Verify get_all_action_states alias
+        map3 = self.store.get_all_action_states("user_compat_1")
+        self.assertEqual(map1, map3)
+
+    # 20. Action store strict user isolation
+    def test_20_action_store_strict_user_isolation(self):
+        self.store.resolve_action(user_id="user_alice", message_id="msg_shared", note="Alice resolved")
+
+        alice_states = self.store.get_user_action_states("user_alice")
+        bob_states = self.store.get_user_action_states("user_bob")
+
+        self.assertIn("msg_shared", alice_states)
+        self.assertEqual(alice_states["msg_shared"]["is_resolved"], 1)
+        self.assertNotIn("msg_shared", bob_states)
+        self.assertEqual(bob_states, {})
+
+    # 21. Action store safe handling of empty or missing users
+    def test_21_action_store_safe_handling_of_empty_inputs(self):
+        self.assertEqual(self.store.get_user_actions_map(""), {})
+        self.assertEqual(self.store.get_user_action_states(""), {})
+        self.assertEqual(self.store.get_all_action_states(""), {})
+        self.assertEqual(self.store.get_resolved_message_ids(""), set())
+        self.assertEqual(self.store.get_active_snoozed_message_ids(""), set())
+        self.assertIsNone(self.store.get_action_state("", "msg_1"))
+        self.assertIsNone(self.store.get_action_state("user_1", ""))
 
 
 class TestAnnouncementRegression(unittest.TestCase):

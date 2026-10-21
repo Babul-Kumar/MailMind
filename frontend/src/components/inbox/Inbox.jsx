@@ -40,6 +40,7 @@ export function Inbox({
   onUnresolve,
   onSnooze,
   onUnsnooze,
+  error = null,
   recentlyResolved,
   onClearRecentlyResolved,
 }) {
@@ -181,6 +182,44 @@ export function Inbox({
           <div className="scan-status-subnote">
             You can browse cached emails while background analysis continues.
           </div>
+        </div>
+      )}
+
+      {/* Recoverable Mailbox Error Banner */}
+      {error && !isOfflineMode && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.65rem 1rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.22)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1rem',
+            color: 'var(--p1-color)',
+            fontSize: '0.82rem',
+            fontWeight: 500,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={() => onRefresh?.()}
+            style={{
+              fontSize: '0.78rem',
+              color: 'var(--p1-color)',
+              fontWeight: 600,
+              padding: '0.2rem 0.55rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
         </div>
       )}
 

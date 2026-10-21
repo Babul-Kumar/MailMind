@@ -302,6 +302,10 @@ class UserActionStore:
         """Alias for get_user_actions_map for backward compatibility."""
         return self.get_user_actions_map(user_id)
 
+    def get_all_action_states(self, user_id: str) -> Dict[str, Dict[str, Any]]:
+        """Alias for get_user_actions_map for backward compatibility."""
+        return self.get_user_actions_map(user_id)
+
     def get_resolved_message_ids(self, user_id: str) -> Set[str]:
         """Returns set of resolved message IDs for a user."""
         if not user_id:
