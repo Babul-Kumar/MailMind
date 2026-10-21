@@ -12,6 +12,10 @@ export function Inbox({
   isLoading,
   isRefreshing = false,
   isInitialLoading = false,
+  isShowingCached = false,
+  isOfflineMode = false,
+  cachedTimestamp = null,
+  lastUpdated = null,
   searchQuery,
   activeFilter,
   onSelectFilter,
@@ -180,6 +184,76 @@ export function Inbox({
         </div>
       )}
 
+      {/* Offline Mode Indicator Banner */}
+      {isOfflineMode && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.65rem 1rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.22)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1rem',
+            color: 'var(--p1-color)',
+            fontSize: '0.82rem',
+            fontWeight: 500,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <span>You're offline. Saved emails are available.</span>
+            {lastUpdated && (
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                · Last updated at {new Date(lastUpdated).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => onRefresh?.()}
+            style={{
+              fontSize: '0.78rem',
+              color: 'var(--p1-color)',
+              fontWeight: 600,
+              padding: '0.2rem 0.55rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              cursor: 'pointer',
+            }}
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
+
+      {/* Showing Cached Banner during Background Refresh */}
+      {isShowingCached && !isOfflineMode && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            padding: '0.55rem 0.95rem',
+            backgroundColor: 'rgba(99, 102, 241, 0.06)',
+            border: '1px solid rgba(99, 102, 241, 0.18)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1rem',
+            color: 'var(--text-secondary)',
+            fontSize: '0.8rem',
+          }}
+        >
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent)' }} />
+          <span>Showing saved emails.</span>
+          {lastUpdated && (
+            <span style={{ color: 'var(--text-muted)' }}>
+              Last updated at {new Date(lastUpdated).toLocaleTimeString()}.
+            </span>
+          )}
+          {isLoading && <span style={{ color: 'var(--accent)', fontWeight: 500 }}>Refreshing inbox…</span>}
+        </div>
+      )}
+
       {/* Focus Mode Notification Banner */}
       {focusMode && (
         <div
@@ -223,8 +297,8 @@ export function Inbox({
       {/* Mobile Horizontal Priority Filter Bar */}
       <div className="mobile-priority-bar" role="tablist" aria-label="Filter by priority">
         {[
-          { key: 'ALL', label: 'All', count: totalCount },
           { key: 'NEEDS_ATTENTION', label: 'Needs Attention', count: stats?.needs_attention_count || 0, isAttention: true },
+          { key: 'ALL', label: 'All Mail', count: totalCount },
           { key: 'P1', label: 'P1', count: stats?.counts?.P1 || 0, dotColor: 'var(--p1-color)' },
           { key: 'P2', label: 'P2', count: stats?.counts?.P2 || 0, dotColor: 'var(--p2-color)' },
           { key: 'P3', label: 'P3', count: stats?.counts?.P3 || 0, dotColor: 'var(--p3-color)' },

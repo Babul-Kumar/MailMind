@@ -12,7 +12,7 @@ import {
   fetchActionQueue,
 } from '../services/api';
 
-export function useEmails(isAuthenticated = false) {
+export function useEmails(isAuthenticated = false, user = null) {
   const [emails, setEmails] = useState([]);
   const [stats, setStats] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -33,10 +33,28 @@ export function useEmails(isAuthenticated = false) {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isJustUpdated, setIsJustUpdated] = useState(false);
 
-  const [activeFilter, setActiveFilterState] = useState('ALL');
+  // Cached and Offline resilience state
+  const [isShowingCached, setIsShowingCached] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [cachedTimestamp, setCachedTimestamp] = useState(null);
+
+  // Default to Needs Attention for productivity, with preference fallback
+  const [activeFilter, setActiveFilterState] = useState(() => {
+    try {
+      return localStorage.getItem('mailmind_preferred_view') || 'NEEDS_ATTENTION';
+    } catch {
+      return 'NEEDS_ATTENTION';
+    }
+  });
   const [actionFilter, setActionFilterState] = useState('ALL');
   const [searchQuery, setSearchQueryState] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  // Cache key scoped to the authenticated account
+  const getCacheKey = useCallback((u) => {
+    const uid = u?.user_id || u?.id || u?.email || 'default';
+    return `mailmind_cache_${uid}`;
+  }, []);
 
   // Debounce search input to avoid hitting backend on every keystroke
   useEffect(() => {
@@ -50,6 +68,13 @@ export function useEmails(isAuthenticated = false) {
     setActiveFilterState(newFilter);
     setActionFilterState('ALL');
     setPage(1);
+    try {
+      if (newFilter === 'NEEDS_ATTENTION' || newFilter === 'ALL') {
+        localStorage.setItem('mailmind_preferred_view', newFilter);
+      }
+    } catch {
+      // Ignore localStorage write errors in private mode
+    }
   }, []);
 
   const setActionFilter = useCallback((newAction) => {
@@ -66,6 +91,71 @@ export function useEmails(isAuthenticated = false) {
   const [scanStatus, setScanStatus] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const pollTimerRef = useRef(null);
+
+  // Stable references for state during async cache saves
+  const emailsRef = useRef(emails);
+  const statsRef = useRef(stats);
+  const profileRef = useRef(profile);
+  const paginationRef = useRef(pagination);
+  useEffect(() => {
+    emailsRef.current = emails;
+    statsRef.current = stats;
+    profileRef.current = profile;
+    paginationRef.current = pagination;
+  }, [emails, stats, profile, pagination]);
+
+  // Helper to persist bounded account-scoped cache
+  const saveAccountCache = useCallback((u, patch = {}) => {
+    const uid = u?.user_id || u?.id || u?.email;
+    if (!uid) return;
+    try {
+      const key = `mailmind_cache_${uid}`;
+      const toStore = {
+        emails: (patch.emails !== undefined ? patch.emails : emailsRef.current || []).slice(0, 100),
+        stats: patch.stats !== undefined ? patch.stats : statsRef.current,
+        profile: patch.profile !== undefined ? patch.profile : profileRef.current,
+        pagination: patch.pagination !== undefined ? patch.pagination : paginationRef.current,
+        actionQueue: patch.actionQueue !== undefined ? patch.actionQueue : undefined,
+        lastUpdated: new Date().toISOString(),
+      };
+      localStorage.setItem(key, JSON.stringify(toStore));
+    } catch (e) {
+      console.warn('Failed to save account cache:', e);
+    }
+  }, []);
+
+  // Immediate cached restoration as soon as user or session is available
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsShowingCached(false);
+      setIsOfflineMode(false);
+      setCachedTimestamp(null);
+      return;
+    }
+
+    const cacheKey = getCacheKey(user);
+    try {
+      const cachedRaw = localStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached && typeof cached === 'object') {
+          if (Array.isArray(cached.emails) && cached.emails.length > 0) {
+            setEmails(cached.emails);
+          }
+          if (cached.stats) setStats(cached.stats);
+          if (cached.profile) setProfile(cached.profile);
+          if (cached.pagination) setPagination(cached.pagination);
+          if (cached.lastUpdated) {
+            setLastUpdated(new Date(cached.lastUpdated));
+            setCachedTimestamp(cached.lastUpdated);
+          }
+          setIsShowingCached(true);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not restore account cache:', e);
+    }
+  }, [isAuthenticated, user, getCacheKey]);
 
   // Load emails and stats from backend
   const loadData = useCallback(async (customPage, customPageSize, customQuery, customFilter, customAction) => {
@@ -97,18 +187,16 @@ export function useEmails(isAuthenticated = false) {
       setEmails(data.emails || []);
       setStats(data.stats || null);
       setProfile(data.profile || null);
-      if (data.pagination) {
-        setPagination(data.pagination);
-      } else {
-        setPagination({
-          page: pageToUse,
-          page_size: sizeToUse,
-          total_emails: data.emails?.length || 0,
-          total_pages: 1,
-          has_next: false,
-          has_prev: false,
-        });
-      }
+      const newPag = data.pagination || {
+        page: pageToUse,
+        page_size: sizeToUse,
+        total_emails: data.emails?.length || 0,
+        total_pages: 1,
+        has_next: false,
+        has_prev: false,
+      };
+      setPagination(newPag);
+
       if (data.scan_status) {
         setScanStatus(data.scan_status);
         const active = ['QUEUED', 'SCANNING', 'ANALYZING', 'FINALIZING'].includes(data.scan_status.status);
@@ -116,7 +204,17 @@ export function useEmails(isAuthenticated = false) {
       }
 
       setLastUpdated(new Date());
+      setIsShowingCached(false);
+      setIsOfflineMode(false);
       setLoadingStep('Mailbox synchronized');
+
+      // Save bounded cache
+      saveAccountCache(user, {
+        emails: data.emails || [],
+        stats: data.stats || null,
+        profile: data.profile || null,
+        pagination: newPag,
+      });
 
       setIsJustUpdated(true);
       setTimeout(() => {
@@ -127,15 +225,24 @@ export function useEmails(isAuthenticated = false) {
         setEmails([]);
         setStats(null);
         setProfile(null);
-        setError(null);
+        setIsShowingCached(false);
+        setIsOfflineMode(false);
+        setError('Your session has expired. Sign in again to continue.');
       } else {
-        console.error('Error fetching mailbox:', err);
-        setError(err.message || 'Failed to connect to Gmail.');
+        console.warn('Network or backend sync issue, checking cached state:', err);
+        setIsOfflineMode(true);
+        // If we have cached emails or data, keep displaying saved emails without a destructive error
+        if (emailsRef.current && emailsRef.current.length > 0) {
+          setIsShowingCached(true);
+          setError(null);
+        } else {
+          setError(err.message || 'Network unavailable. Showing saved emails.');
+        }
       }
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery]);
+  }, [isAuthenticated, user, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, saveAccountCache]);
 
   // Check and update scan status
   const checkScanStatus = useCallback(async () => {
@@ -317,13 +424,14 @@ export function useEmails(isAuthenticated = false) {
       const res = await fetchActionQueue({ sortBy: sToUse, olderSortBy: osToUse });
       if (res.data) {
         setActionQueue(res.data);
+        saveAccountCache(user, { actionQueue: res.data });
       }
     } catch (err) {
       console.warn('Could not load action queue:', err);
     } finally {
       setActionQueueLoading(false);
     }
-  }, [isAuthenticated, actionSortBy, olderSortBy]);
+  }, [isAuthenticated, user, actionSortBy, olderSortBy, saveAccountCache]);
 
   // Refresh action queue whenever activeFilter becomes 'NEEDS_ATTENTION'
   useEffect(() => {
@@ -460,6 +568,9 @@ export function useEmails(isAuthenticated = false) {
     isInitialLoading,
     isRefreshing,
     isJustUpdated,
+    isShowingCached,
+    isOfflineMode,
+    cachedTimestamp,
     loadingStep,
     error,
     gmailQuery,

@@ -45,7 +45,7 @@ function TopBarComponent({
   const authError = auth?.error;
 
   return (
-    <header className="topbar-header">
+    <header className="topbar-header" style={{ position: 'sticky', top: 0, zIndex: 1300 }}>
       {/* 1. Dedicated Mobile Header: Row 1 (<= 640px) */}
       <div className="topbar-mobile-row-1">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>

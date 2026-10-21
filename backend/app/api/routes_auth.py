@@ -16,6 +16,7 @@ from backend.app.core.session import (
     SESSION_DURATION_SECONDS,
     SESSIONS_DIR,
     mask_email,
+    is_admin_user,
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -453,6 +454,7 @@ async def auth_exchange(
             "email": session.email,
             "masked_email": mask_email(session.email),
             "user_id": session.user_id,
+            "is_admin": is_admin_user(session, request),
         }
     })
     res.set_cookie(
@@ -484,6 +486,7 @@ def auth_status(request: Request):
                 "email": session.email,
                 "masked_email": mask_email(session.email),
                 "user_id": session.user_id,
+                "is_admin": is_admin_user(session, request),
             }
         }
 

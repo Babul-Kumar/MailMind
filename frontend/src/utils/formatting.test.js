@@ -129,3 +129,17 @@ test('9. historical deadline (datetime)', () => {
   assert.equal(state?.icon, '📅');
   assert.equal(state?.label, 'Past · Nov 20 · 6:00 PM');
 });
+
+test('10. cleanSenderName cleans display name, quotes, and addresses', () => {
+  import('./formatting.js').then(({ cleanSenderName, extractSnippet }) => {
+    assert.equal(cleanSenderName('"NPTEL Exam Cell" <exams@nptel.iitm.ac.in>'), 'NPTEL Exam Cell');
+    assert.equal(cleanSenderName('Google Security Team <no-reply@accounts.google.com>'), 'Google Security Team');
+    assert.equal(cleanSenderName('user@domain.com'), 'user@domain.com');
+    assert.equal(cleanSenderName(''), 'Unknown Sender');
+    assert.equal(cleanSenderName(null), 'Unknown Sender');
+
+    assert.equal(extractSnippet('First line of text that is short', 'Subj'), 'First line of text that is short');
+    assert.equal(extractSnippet('   Lots of   spaces and newlines   ', 'Subj'), 'Lots of spaces and newlines');
+  });
+});
+

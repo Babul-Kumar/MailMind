@@ -36,6 +36,18 @@ def _require_session(request: Request):
     return session
 
 
+def _require_admin_session(request: Request):
+    """Admin/developer auth guard for adjudication actions."""
+    session = _require_session(request)
+    from backend.app.core.session import is_admin_user
+    if not is_admin_user(session, request):
+        raise HTTPException(
+            status_code=403,
+            detail="Developer and administrative access is restricted to authorized operators."
+        )
+    return session
+
+
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
@@ -105,7 +117,7 @@ def submit_adjudication(request: Request, body: AdjudicationRequest):
 
     FORBIDDEN: This endpoint NEVER triggers model training or promotion.
     """
-    session = _require_session(request)
+    session = _require_admin_session(request)
 
     if body.adjudication_status not in (VALID_STATUSES - {"PENDING_REVIEW"}):
         raise HTTPException(

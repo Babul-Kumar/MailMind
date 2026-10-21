@@ -6,6 +6,9 @@ import React from 'react';
  * Works crisply at 20px, 24px, 32px, 48px in both dark and light modes.
  */
 export function MailMindLogo({ size = 24, isScanning = false, className = '' }) {
+  const uniqueId = React.useId ? React.useId().replace(/[^a-zA-Z0-9_-]/g, '') : 'default';
+  const gradId = `mailmind-accent-grad-${uniqueId}`;
+
   return (
     <svg
       width={size}
@@ -14,11 +17,19 @@ export function MailMindLogo({ size = 24, isScanning = false, className = '' }) 
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={`mailmind-logo ${className} ${isScanning ? 'logo-scanning' : ''}`.trim()}
-      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+      style={{
+        display: 'inline-block',
+        verticalAlign: 'middle',
+        flexShrink: 0,
+        minWidth: `${size}px`,
+        minHeight: `${size}px`,
+        width: `${size}px`,
+        height: `${size}px`,
+      }}
       aria-label="MailMind logo"
     >
       <defs>
-        <linearGradient id="mailmind-accent-grad" x1="2" y1="4" x2="30" y2="28" gradientUnits="userSpaceOnUse">
+        <linearGradient id={gradId} x1="2" y1="4" x2="30" y2="28" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#818cf8" />
           <stop offset="100%" stopColor="#4f46e5" />
         </linearGradient>
@@ -31,7 +42,7 @@ export function MailMindLogo({ size = 24, isScanning = false, className = '' }) 
         width="26"
         height="20"
         rx="3.5"
-        stroke="url(#mailmind-accent-grad)"
+        stroke={`url(#${gradId})`}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -41,7 +52,7 @@ export function MailMindLogo({ size = 24, isScanning = false, className = '' }) 
       {/* Stylized "M" Flap Fold Lines */}
       <path
         d="M4 8.5L16 18.5L28 8.5"
-        stroke="url(#mailmind-accent-grad)"
+        stroke={`url(#${gradId})`}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -50,7 +61,7 @@ export function MailMindLogo({ size = 24, isScanning = false, className = '' }) 
       {/* Bottom Fold Lines creating Envelope Depth */}
       <path
         d="M4.5 24.5L11.5 17.5"
-        stroke="url(#mailmind-accent-grad)"
+        stroke={`url(#${gradId})`}
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -58,7 +69,7 @@ export function MailMindLogo({ size = 24, isScanning = false, className = '' }) 
       />
       <path
         d="M27.5 24.5L20.5 17.5"
-        stroke="url(#mailmind-accent-grad)"
+        stroke={`url(#${gradId})`}
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"

@@ -35,6 +35,18 @@ def _require_session(request: Request):
     return session
 
 
+def _require_admin_session(request: Request):
+    """Admin/developer auth guard for restricted monitoring and canary operations."""
+    session = _require_session(request)
+    from backend.app.core.session import is_admin_user
+    if not is_admin_user(session, request):
+        raise HTTPException(
+            status_code=403,
+            detail="Developer and administrative access is restricted to authorized operators."
+        )
+    return session
+
+
 # ---------------------------------------------------------------------------
 # 1. Master summary
 # ---------------------------------------------------------------------------
@@ -367,9 +379,9 @@ def canary_monitoring_gates(request: Request):
 def set_canary_stage(request: Request, stage: int):
     """
     Admin control to set the active canary stage (0=0%, 1=5%, 2=10%, 3=25%, 4=50%).
-    Requires active session. Does not allow auto-promotion to 100%.
+    Requires admin session. Does not allow auto-promotion to 100%.
     """
-    session = _require_session(request)
+    session = _require_admin_session(request)
     try:
         from backend.app.ml.canary_router import canary_router
         result = canary_router.set_stage(stage)
@@ -387,7 +399,7 @@ def rollback_canary(request: Request):
     Admin emergency rollback: sets canary percentage to 0% and routes 100% of traffic
     back to active production model (priority-v4.1).
     """
-    session = _require_session(request)
+    session = _require_admin_session(request)
     try:
         from backend.app.ml.canary_router import canary_router
         result = canary_router.rollback()

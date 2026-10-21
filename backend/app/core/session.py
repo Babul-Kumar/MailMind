@@ -273,3 +273,24 @@ def mask_email(email: str) -> str:
     else:
         visible = local[:max(2, len(local) // 2)]
     return f"{visible}••••@{domain}"
+
+
+def is_admin_user(session: Optional[SessionData], request: Optional[Request] = None) -> bool:
+    """
+    Checks if the authenticated user has administrative / developer privileges.
+    In production: user's email or user_id must be in ADMIN_USERS or DEV_EMAILS env vars.
+    In development: allowed if explicitly enabled or if local dev mode.
+    """
+    if not session:
+        return False
+    admin_env = os.getenv("ADMIN_USERS", os.getenv("DEV_EMAILS", "")).strip()
+    if admin_env:
+        allowed = {e.strip().lower() for e in admin_env.split(",") if e.strip()}
+        user_email = (session.email or "").strip().lower()
+        user_id = (session.user_id or "").strip().lower()
+        return user_email in allowed or user_id in allowed
+
+    is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    if is_production:
+        return False
+    return os.getenv("ENABLE_DEV_MODE", "true").lower() in ("true", "1", "yes")

@@ -10,7 +10,7 @@ import { MailboxLoadingState } from './components/common/MailboxLoadingState';
 
 export function App() {
   const auth = useAuth();
-  const emailsHook = useEmails(auth.isAuthenticated);
+  const emailsHook = useEmails(auth.isAuthenticated, auth.user);
 
   const [currentPath, setCurrentPath] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -162,6 +162,10 @@ export function App() {
           isLoading={emailsHook.isLoading}
           isRefreshing={emailsHook.isRefreshing}
           isInitialLoading={emailsHook.isInitialLoading}
+          isShowingCached={emailsHook.isShowingCached}
+          isOfflineMode={emailsHook.isOfflineMode}
+          cachedTimestamp={emailsHook.cachedTimestamp}
+          lastUpdated={emailsHook.lastUpdated}
           searchQuery={searchHook.searchQuery}
           activeFilter={searchHook.activeFilter}
           onSelectFilter={searchHook.setActiveFilter}

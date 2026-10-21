@@ -184,13 +184,22 @@ ACTION_SERVICE_PATTERNS = re.compile(
 )
 
 # Domain-general actionable announcements (applicable across education, travel, government, finance, work)
+DOC_TYPE_TERMS = (
+    r"(?:hall[- ]?tickets?|admit cards?|entry pass(?:es)?|boarding pass(?:es)?|exam pass(?:es)?|tickets?|"
+    r"tax (?:forms?|documents?)|w-?2(?: (?:forms?|statements?))?|1099(?: (?:forms?|statements?))?|"
+    r"transcripts?|scorecards?|score[- ]cards?|grade[- ]cards?|marks[- ]?sheets?|certificates?|diplomas?|"
+    r"ballots?|account statements?|pay[- ]?slips?|salary slips?)"
+)
+DOC_STATUS_TERMS = (
+    r"(?:released|available for download|ready for download|available to download|available|published|issued|out now|live|uploaded)"
+)
+
 ACTION_DOCUMENT_RELEASE_PATTERNS = re.compile(
-    r"\b("
-    r"(?:hall[- ]?tickets?|admit cards?|entry pass(?:es)?|boarding pass(?:es)?|tickets?|"
-    r"tax (?:forms?|documents?)|w-?2 (?:forms?|statements?)|transcripts?|scorecards?|certificates?|diplomas?|ballots?|exam pass(?:es)?)"
-    r"\s+(?:is|are|has been|have been)?\s*(?:released|available for download|ready for download|available to download|published|issued|out now|live)|"
-    r"download (?:your )?(?:hall[- ]?ticket|admit card|ticket|pass|boarding pass|tax (?:form|document)|w-?2|certificate|transcript|scorecard|document|statement|materials?)"
-    r")\b",
+    rf"\b("
+    rf"{DOC_TYPE_TERMS}(?:[,\s]+(?:and\s+)?[\w\s]{{0,60}})?\s+(?:is|are|has been|have been)?\s*(?:now\s+)?{DOC_STATUS_TERMS}|"
+    rf"{DOC_TYPE_TERMS}\s*[:–—-]\s*{DOC_STATUS_TERMS}|"
+    rf"(?:download|print|access|view|collect)\s+(?:your|the|their|available)?\s*(?:[\w\-]+\s+){{0,3}}{DOC_TYPE_TERMS}"
+    rf")\b",
     re.IGNORECASE
 )
 
@@ -347,9 +356,15 @@ def evaluate_action_layer(
         next_step = "Submit required work or assignment"
     elif ACTION_DOCUMENT_RELEASE_PATTERNS.search(text):
         action_type = "document_download"
-        action_reason = "Download available document or ticket"
-        applicability = "Relevant to eligible recipients or registered candidates"
-        next_step = "Open original email and download document or ticket if registered"
+        is_exam_ticket = bool(re.search(r"\b(hall[- ]?tickets?|admit cards?|exam pass(?:es)?)\b", text, re.I))
+        if is_exam_ticket:
+            action_reason = "Download available exam hall ticket or admit card"
+            applicability = "Relevant to candidates registered for the examination"
+            next_step = "Open original email and download hall ticket if registered"
+        else:
+            action_reason = "Download available document or ticket"
+            applicability = "Relevant to eligible recipients or registered candidates"
+            next_step = "Open original email and download document or ticket if registered"
     elif ACTION_REGISTRATION_PATTERNS.search(text):
         action_type = "registration"
         action_reason = "Complete registration or application"

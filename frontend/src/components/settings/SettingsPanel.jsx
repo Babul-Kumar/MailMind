@@ -46,13 +46,7 @@ export function SettingsPanel({
   const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
   const [scanScope, setScanScope] = useState('mailbox');
 
-  const [isDevMode, setIsDevMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const q = window.location.search;
-      return q.includes('dev=true') || q.includes('admin=true');
-    }
-    return false;
-  });
+  const isDevMode = Boolean(auth?.user?.is_admin);
 
   const [shadowData, setShadowData] = useState(null);
   const [isShadowLoading, setIsShadowLoading] = useState(false);

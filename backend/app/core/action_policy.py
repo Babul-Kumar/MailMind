@@ -248,6 +248,21 @@ def evaluate_actionability(
 
     priority = str(email.get("final_priority") or email.get("predicted_priority") or "P4").upper()
     action_required = bool(email.get("action_required"))
+    if not action_required:
+        subject = str(email.get("subject") or "")
+        snippet = str(email.get("snippet") or "")
+        body = str(email.get("body") or "")
+        text = f"{subject} {snippet} {body[:500]}".strip()
+        if text:
+            from backend.app.ml.refinement import evaluate_action_layer
+            dyn_req, dyn_reason, dyn_ev = evaluate_action_layer(subject, f"{snippet} {body[:500]}", priority)
+            if dyn_req:
+                action_required = True
+                if not email.get("action_reason") and dyn_reason:
+                    email["action_reason"] = dyn_reason
+                if not email.get("action_evidence") and dyn_ev:
+                    email["action_evidence"] = dyn_ev
+
     critical_incident = is_critical_incident(email)
     otp_email = is_otp_or_verification_code(email)
 

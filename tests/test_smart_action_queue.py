@@ -753,6 +753,71 @@ class TestAnnouncementRegression(unittest.TestCase):
         self.assertFalse(pred["action_required"])
         self.assertFalse(pred["needs_attention"])
 
+    # 10. Multi-clause hall ticket & centre details announcement
+    def test_case10_multi_clause_hall_ticket_and_centre_details(self):
+        email = {
+            "id": "case10_nptel_multi_clause",
+            "subject": "FINAL October 2026 NPTEL Exams – Hall Tickets, Centre Details and Registration...",
+            "body": (
+                "Dear Learner, The hall tickets, centre details and registration details are now available for download. "
+                "Candidates can access their exam hall tickets from the candidate portal."
+            ),
+            "sender": "onlinecourses@nptel.iitm.ac.in",
+            "date": (self.now_dt - timedelta(days=1)).isoformat()
+        }
+        pred = predict_email(email, self.pipeline)
+        self.assertEqual(pred["final_priority"], "P3")
+        self.assertTrue(pred["action_required"])
+        self.assertTrue(pred["needs_attention"])
+        queue_item = classify_action_queue_item(pred, now_dt=self.now_dt)
+        self.assertEqual(queue_item["queue_placement"], "ACTIVE_QUEUE")
+        self.assertIn("download", queue_item["next_step"].lower())
+
+    # 11. Informational exam format announcement is NOT actionable
+    def test_case11_exam_format_informational_not_actionable(self):
+        email = {
+            "id": "case11_exam_format",
+            "subject": "Exam Format - October, 2026!!",
+            "body": "The exam format will be 50 multiple choice questions with 3 hours duration. Calculators are permitted.",
+            "sender": "onlinecourses@nptel.iitm.ac.in",
+            "date": (self.now_dt - timedelta(days=2)).isoformat()
+        }
+        pred = predict_email(email, self.pipeline)
+        self.assertEqual(pred["final_priority"], "P3")
+        self.assertFalse(pred["action_required"])
+        self.assertFalse(pred["needs_attention"])
+        queue_item = classify_action_queue_item(pred, now_dt=self.now_dt)
+        self.assertEqual(queue_item["queue_placement"], "EXCLUDED")
+
+    # 12. General course update is NOT actionable
+    def test_case12_general_course_update_not_actionable(self):
+        email = {
+            "id": "case12_course_update",
+            "subject": "Lecture notes and slide deck for Module 4 uploaded",
+            "body": "Dear students, the lecture notes for module 4 have been uploaded to the portal for your reference.",
+            "sender": "instructor@university.edu",
+            "date": (self.now_dt - timedelta(days=1)).isoformat()
+        }
+        pred = predict_email(email, self.pipeline)
+        self.assertFalse(pred["action_required"])
+        self.assertFalse(pred["needs_attention"])
+
+    # 13. Tax document release announcement is actionable P3
+    def test_case13_tax_document_release_actionable_p3(self):
+        email = {
+            "id": "case13_w2_tax_doc",
+            "subject": "Your W-2 tax statement is ready for download",
+            "body": "Your annual wage and tax statement (Form W-2) is now available for download on the payroll portal.",
+            "sender": "payroll@enterprise.com",
+            "date": (self.now_dt - timedelta(days=2)).isoformat()
+        }
+        pred = predict_email(email, self.pipeline)
+        self.assertTrue(pred["action_required"])
+        self.assertTrue(pred["needs_attention"])
+        self.assertEqual(pred["action_evidence"]["action_type"], "document_download")
+        queue_item = classify_action_queue_item(pred, now_dt=self.now_dt)
+        self.assertEqual(queue_item["queue_placement"], "ACTIVE_QUEUE")
+
 
 if __name__ == "__main__":
     unittest.main()
