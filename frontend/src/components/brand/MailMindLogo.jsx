@@ -3,7 +3,7 @@ import logoUrl from '../../assets/logo.svg';
 
 /**
  * MailMind Brand Logo
- * Loads the user-supplied assest/logo.svg directly as a bundled vector asset.
+ * Loads the vector logo directly as a bundled vector asset.
  * This ensures exact rendering fidelity, prevents SVG gradient ID collisions in the DOM,
  * and renders identically across dev, preview, and production.
  */

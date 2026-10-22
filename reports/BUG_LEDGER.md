@@ -145,7 +145,7 @@ This persistent ledger records every defect uncovered, investigated, diagnosed, 
 * **Actual Behavior:** Logo displayed as a tiny, unrecognizable dot in a square.
 * **Root Cause:** Duplicate inline SVG `<linearGradient id="...">` definitions collided in the browser's global DOM namespace, breaking gradient fills on sibling logo instances.
 * **Fix Implemented:**
-  1. Integrated the official vector asset `assest/logo.svg` into `frontend/public/logo.svg`.
+  1. Integrated the official vector asset `assets/logo.svg` into `frontend/public/logo.svg`.
   2. Updated `MailMindLogo.jsx` to render via self-contained `<img>` tag with standard SVG fallback, eliminating all global ID collisions.
 * **Regression Tests Added:**
   - `npm run build` validated asset bundling.

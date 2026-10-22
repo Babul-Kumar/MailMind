@@ -43,7 +43,7 @@ A total of **7 defects** (1 P0, 2 P1, 3 P2, 1 P3) were documented, diagnosed, re
 2. **BUG-002 (P1 — Cross-Priority Leakage):** Discrepancy between SQLite indexing column (`predicted_priority` raw) and JSON metadata (`final_priority` refined). Fallback in `routes_emails.py` also bypassed priority filtering when `total_cached <= len(all_emails)`. Resolved by indexing refined priority in SQLite, filtering `display_list` across all backend branches, and adding client-side guards in `useSearch.js`.
 3. **BUG-003 (P1 — Stuck "Analyzing Complete Mailbox" Loader):** Full-screen loader depended on `emails.length === 0 && isScanning`. An API failure kept `emails.length === 0` while scan polling returned 200, trapping the user. Resolved by rendering the shell and cached emails immediately and presenting a recoverable error banner with manual retry.
 4. **BUG-004 (P2 — Empty Action Queue for Canary Users):** Action endpoints hardcoded active version from `registry.json`, filtering out emails for users routed to canary version `v5.1`. Resolved by using canary-aware user routing with automatic fallback to unversioned cached emails.
-5. **BUG-005 (P2 — Broken Logo Dot Artifact):** Multiple inline SVG gradient IDs collided across components. Resolved by integrating `assest/logo.svg` via `frontend/public/logo.svg` as an isolated image with SVG fallback.
+5. **BUG-005 (P2 — Broken Logo Dot Artifact):** Multiple inline SVG gradient IDs collided across components. Resolved by integrating `assets/logo.svg` via `frontend/public/logo.svg` as an isolated image with SVG fallback.
 6. **BUG-006 (P2 — Mobile Header & Viewport Crowding):** Header crammed search, logo, and controls into a single row on mobile. Resolved with a dedicated two-row mobile header and `@media (max-width: 320px)` micro-screen rules.
 7. **BUG-007 (P3 — Unbounded Polling & Stale Response Overwrite):** Rapid filter switching risked network race conditions. Resolved with monotonic request IDs (`activeRequestIdRef`), bounded retries, and visibility-aware polling (10s hidden / 2.5s visible).
 
@@ -122,7 +122,7 @@ The application was audited against all target viewport resolutions:
 1. The critical production HTTP 500 defect (`AttributeError: 'UserActionStore' object has no attribute 'get_user_action_states'`) has been fixed with multi-method defensive dispatch and verified across automated regression suites.
 2. Priority filtering is strictly isolated across P1, P2, P3, and P4 classes with zero cross-tier row leakage.
 3. The stuck full-screen analysis screen has been eliminated; cached emails display immediately upon app launch.
-4. The user-supplied logo (`assest/logo.svg`) renders crisply across all resolutions without SVG gradient ID collisions.
+4. The user-supplied logo (`assets/logo.svg`) renders crisply across all resolutions without SVG gradient ID collisions.
 5. All 650 backend tests and 14 frontend tests pass with zero failures.
 6. The frozen ML model SHA-256 hash has been verified 100% intact.
 7. Mobile and tablet layouts are responsive, touch-friendly, and fully usable for a live demonstration.
