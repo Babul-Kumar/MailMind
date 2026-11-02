@@ -1,10 +1,10 @@
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.app.core.config import FRONTEND_DIST_DIR
+from backend.app.core.config import BASE_DIR
 from backend.app.core.security import setup_security
 from backend.app.ml.predictor import load_model
 from backend.app.api.routes_health import router as health_router
@@ -51,69 +51,28 @@ app.include_router(phase51_router)
 app.include_router(adjudication_router)
 app.include_router(actions_router)
 
-# Serve built React frontend from frontend/dist
-assets_dir = os.path.join(FRONTEND_DIST_DIR, "assets")
-if os.path.exists(assets_dir):
-    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
-
-# Also mount /static if frontend/dist/static or legacy static exists
-static_dir = os.path.join(FRONTEND_DIST_DIR, "static")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+# Mount frontend static assets if built dist exists
+_frontend_assets_dir = os.path.join(BASE_DIR, "frontend", "dist", "assets")
+if os.path.exists(_frontend_assets_dir):
+    app.mount("/assets", StaticFiles(directory=_frontend_assets_dir), name="assets")
 
 
-@app.get("/favicon.ico", include_in_schema=False)
-def serve_favicon_ico():
-    fav_ico = os.path.join(FRONTEND_DIST_DIR, "favicon.ico")
-    if os.path.exists(fav_ico):
-        return FileResponse(fav_ico, media_type="image/x-icon")
-    fav_svg = os.path.join(FRONTEND_DIST_DIR, "favicon.svg")
-    if os.path.exists(fav_svg):
-        return FileResponse(fav_svg, media_type="image/svg+xml")
-    from fastapi import Response
-    return Response(status_code=204)
-
-
-@app.get("/favicon.svg", include_in_schema=False)
-def serve_favicon_svg():
-    fav_svg = os.path.join(FRONTEND_DIST_DIR, "favicon.svg")
-    if os.path.exists(fav_svg):
-        return FileResponse(fav_svg, media_type="image/svg+xml")
-    from fastapi import Response
-    return Response(status_code=204)
-
-
-@app.get("/index.html", include_in_schema=False)
-@app.get("/")
-def serve_index():
-    index_html = os.path.join(FRONTEND_DIST_DIR, "index.html")
-    if os.path.exists(index_html):
-        return FileResponse(index_html)
+@app.get("/", include_in_schema=False)
+def serve_root():
     return HTMLResponse(
         """<!DOCTYPE html>
         <html>
-        <head><title>MailMind | Email Priority Intelligence</title></head>
-        <body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#fff;">
-          <h1>✦ MailMind</h1>
-          <p>AI Email Priority Intelligence API is active.</p>
-          <p>Frontend is currently building or run via <code>npm run dev</code> in <code>frontend/</code>.</p>
+        <head><title>MailMind | AI Email Priority Intelligence</title></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 60px 20px; background: #0b0f19; color: #f8fafc;">
+          <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">✦ MailMind</h1>
+          <p style="font-size: 1.1rem; color: #94a3b8; margin-bottom: 2rem;">AI Email Priority Intelligence & Action Lifecycle API</p>
+          <div style="display: inline-block; background: #131b2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1.5rem 2rem; text-align: left; max-width: 500px;">
+            <p style="margin: 0.5rem 0;">🚀 <strong>Streamlit App:</strong> <a href="http://localhost:8501" style="color: #818cf8; text-decoration: none;">http://localhost:8501</a></p>
+            <p style="margin: 0.5rem 0;">📖 <strong>API Documentation:</strong> <a href="/docs" style="color: #38bdf8; text-decoration: none;">/docs</a></p>
+            <p style="margin: 0.5rem 0;">🔍 <strong>Health Status:</strong> <a href="/health" style="color: #34d399; text-decoration: none;">/health</a></p>
+          </div>
         </body></html>"""
     )
-
-
-@app.get("/{full_path:path}", include_in_schema=False)
-def serve_spa_fallback(full_path: str):
-    # Do not intercept API routes; let standard 404 handler return proper JSON error
-    if full_path.startswith("api/") or full_path == "api":
-        raise HTTPException(status_code=404, detail="API endpoint not found")
-
-    # If physical static asset exists in dist (e.g. assets, favicon, etc.), serve it
-    file_path = os.path.join(FRONTEND_DIST_DIR, full_path)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
-
-    # Fallback to index.html for client-side SPA routing
-    return serve_index()
 
 
 if __name__ == "__main__":

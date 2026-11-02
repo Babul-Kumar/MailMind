@@ -33,29 +33,24 @@ TOKEN_FILE = (
 MODEL_PATH = os.path.join(BASE_DIR, "dataset", "models", "tfidf_logistic_baseline.joblib")
 TEST_CSV_PATH = os.path.join(BASE_DIR, "dataset", "processed", "test.csv")
 
-# Frontend static distribution build directory
-FRONTEND_DIST_DIR = os.path.join(BASE_DIR, "frontend", "dist")
+# Streamlit frontend URL & allowed origins
+STREAMLIT_APP_URL = os.getenv("STREAMLIT_APP_URL", "http://localhost:8501").strip().rstrip("/")
+FRONTEND_URL = os.getenv("FRONTEND_URL") or STREAMLIT_APP_URL
 
 # Gmail Read-Only OAuth Scope
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-# Base CORS allowed origins (Local development defaults + Production Vercel)
+# Base CORS allowed origins (Local development + Streamlit/Vite defaults + custom origins)
 _DEFAULT_ORIGINS: List[str] = [
+    "http://127.0.0.1:8501",
+    "http://localhost:8501",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
     "http://127.0.0.1:8001",
     "http://localhost:8001",
-    "http://127.0.0.1:8080",
-    "http://localhost:8080",
-    "http://127.0.0.1:3000",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-    "http://localhost:5173",
-    "https://mail-mind-ten-chi.vercel.app",
 ]
-
-# Frontend application URL (Vercel deployment URL)
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://mail-mind-ten-chi.vercel.app").strip().rstrip("/")
 
 # Support production custom domains via ALLOWED_ORIGINS, FRONTEND_URL, or BASE_URL
 _extra_origins_env = os.getenv("ALLOWED_ORIGINS", "")
@@ -69,4 +64,3 @@ if _base_url_env and _base_url_env not in _extra_origins:
     _extra_origins.append(_base_url_env)
 
 ALLOWED_ORIGINS: List[str] = list(dict.fromkeys(_DEFAULT_ORIGINS + _extra_origins))
-

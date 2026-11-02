@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import os
 import sys
 import json
@@ -138,7 +139,7 @@ class TestUIRefinementAndCompleteScan:
                 "subject": f"Notice {i:04d}",
                 "body": "Detailed content" * 20,
                 "sender": "sender@test.com",
-                "date": f"2026-10-01T{i % 24:02d}:00:00Z",
+                "date": datetime.now(timezone.utc).isoformat(),
                 "predicted_priority": "P1" if i == 0 else "P2" if i < 50 else "P3" if i < 150 else "P4",
                 "action_required": (i < 50),
                 "needs_attention": (i < 50),

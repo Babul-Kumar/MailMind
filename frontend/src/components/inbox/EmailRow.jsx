@@ -6,7 +6,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
   const senderDisplay = useMemo(() => cleanSenderName(email.sender), [email.sender]);
   const dateDisplay = useMemo(() => formatEmailDate(email.date), [email.date]);
   const snippet = useMemo(() => extractSnippet(email.body, email.subject), [email.body, email.subject]);
-  const priority = email.final_priority || email.predicted_priority;
+  const priority = email.effective_priority || email.final_priority || email.predicted_priority;
   const actionRequired = Boolean(email.action_required);
   const deadlineState = useMemo(() => getDeadlineState(email), [email.deadline_status, email.deadline_datetime, email.date]);
 

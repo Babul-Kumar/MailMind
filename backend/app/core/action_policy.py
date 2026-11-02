@@ -17,6 +17,29 @@ from typing import Dict, Any, List, Optional, Tuple, Set
 DEFAULT_AGE_THRESHOLD_DAYS: float = 8.0
 AGE_THRESHOLD_SECONDS: float = DEFAULT_AGE_THRESHOLD_DAYS * 86400.0  # Exactly 691,200.0 seconds
 
+SEVEN_DAYS_THRESHOLD_DAYS: float = 7.0
+SEVEN_DAYS_SECONDS: float = SEVEN_DAYS_THRESHOLD_DAYS * 86400.0      # Exactly 604,800.0 seconds
+
+DEFAULT_OTP_EXPIRY_SECONDS: float = 600.0  # 10 minutes (600.0 seconds)
+
+# Regex for detecting routine security notifications (not active critical incidents)
+SECURITY_NOTIFICATION_PATTERN = re.compile(
+    r"\b("
+    r"new (?:sign-in|login)(?:\s+(?:from|on|detected))?|"
+    r"password (?:changed|reset|updated)|"
+    r"two-factor authentication (?:enabled|disabled|updated)|"
+    r"security alert(?::|\b)|"
+    r"login from (?:new device|unknown device|new location)|"
+    r"device added to your account"
+    r")\b",
+    re.IGNORECASE
+)
+
+OTP_VALIDITY_PATTERN = re.compile(
+    r"\bvalid\s+(?:for\s+)?(\d+)\s*(?:minutes?|mins?|m\b)",
+    re.IGNORECASE
+)
+
 # Regex for detecting genuine critical security incidents or infrastructure breaches
 CRITICAL_INCIDENT_PATTERN = re.compile(
     r"\b("
@@ -56,8 +79,8 @@ def parse_timestamp_safe(val: Any) -> float:
 OTP_PATTERN = re.compile(
     r"\b("
     r"verification code|one-time (?:password|passcode)|\botp\b|"
-    r"two-factor authentication code|2fa code|security code|"
-    r"login verification code|confirm your email code|"
+    r"two-factor authentication code|2fa code|security (?:code|passcode)|"
+    r"login (?:verification )?code|confirm your email code|"
     r"valid for \d+ (?:minutes?|mins?)"
     r")\b",
     re.IGNORECASE
@@ -144,6 +167,37 @@ def is_otp_or_verification_code(email: Dict[str, Any]) -> bool:
     return bool(OTP_PATTERN.search(text))
 
 
+def get_otp_expiry_seconds(email: Dict[str, Any]) -> float:
+    """
+    Extracts explicit OTP validity window in seconds if mentioned in subject/body.
+    Defaults to 10 minutes (600.0 seconds).
+    """
+    subject = str(email.get("subject") or "")
+    snippet = str(email.get("snippet") or "")
+    body = str(email.get("body") or "")
+    text = f"{subject} {snippet} {body[:500]}"
+    match = OTP_VALIDITY_PATTERN.search(text)
+    if match:
+        try:
+            mins = float(match.group(1))
+            if 0 < mins <= 120:
+                return mins * 60.0
+        except (ValueError, TypeError):
+            pass
+    return DEFAULT_OTP_EXPIRY_SECONDS
+
+
+def is_security_notification(email: Dict[str, Any]) -> bool:
+    """
+    Determines if an email is a routine security alert or login/account notification.
+    """
+    subject = str(email.get("subject") or "")
+    snippet = str(email.get("snippet") or "")
+    body = str(email.get("body") or "")
+    text = f"{subject} {snippet} {body[:500]}"
+    return bool(SECURITY_NOTIFICATION_PATTERN.search(text))
+
+
 def evaluate_deadline_state(
     email: Dict[str, Any],
     now_ts: Optional[float] = None
@@ -172,10 +226,14 @@ def evaluate_deadline_state(
     if is_otp_or_verification_code(email):
         # OTPs are time-bounded to minutes
         age_sec = calculate_email_age_seconds(email, now_ts)
-        # If older than 15 minutes, verification code is definitively expired
-        if age_sec > 900.0 or raw_status == "EXPIRED":
+        validity_sec = get_otp_expiry_seconds(email)
+        # If older than validity window (default 10 minutes or explicit), verification code is definitively expired
+        if age_sec > validity_sec or raw_status == "EXPIRED":
             return "EXPIRED", "Code expired", "Request a new verification code"
         return "UPCOMING", deadline_disp or "Valid for a few minutes", "Enter code to verify"
+
+    if raw_status == "EXPIRED":
+        return "EXPIRED", deadline_disp or "Deadline passed", "Check if late submission or action is possible"
 
     if CLOSED_OPPORTUNITY_PATTERN.search(text):
         return "EXPIRED", "Registration closed", "Check if registration has been extended or contact organizer"
@@ -206,9 +264,20 @@ def evaluate_deadline_state(
             # Past deadline - check if overdue or expired
             topic = str(email.get("topic") or "").lower()
             subject_body = f"{email.get('subject', '')} {email.get('body', '')}".lower()
-            if "bill" in topic or "payment" in topic or "academic" in topic or any(w in subject_body for w in ["bill", "payment", "overdue", "assignment", "due"]):
+            if raw_status == "EXPIRED":
+                return "EXPIRED", deadline_disp or "Deadline passed", "Check if late submission is accepted"
+
+            is_non_actionable_expiry = (
+                not email.get("action_required") or
+                any(w in subject_body for w in ["registration", "offer", "discount", "early bird", "webinar", "rsvp", "ticket", "event", "deal", "coupon"]) or
+                topic in ("promotions", "social", "updates")
+            )
+            if "bill" in topic or "payment" in topic or "academic" in topic or any(w in subject_body for w in ["bill", "payment", "overdue", "assignment", "due", "invoice"]):
                 # Bills, payments, assignments remain overdue and actionable!
                 return "OVERDUE", deadline_disp or "Overdue", "Review overdue task and complete payment or submission"
+
+            if is_non_actionable_expiry:
+                return "EXPIRED", deadline_disp or "Deadline passed", "Check if late submission is accepted"
             
             diff_days = (now_ts - dl_ts) / 86400.0
             if diff_days <= 30.0:
@@ -217,6 +286,193 @@ def evaluate_deadline_state(
     except Exception:
         # Date string was ambiguous or malformed
         return "UNCERTAIN", "Deadline unclear", "Review email for specific dates"
+
+
+def evaluate_priority_aging(
+    email: Dict[str, Any],
+    action_state: Optional[Dict[str, Any]] = None,
+    now_ts: Optional[float] = None
+) -> Dict[str, Any]:
+    """
+    Dynamically computes effective priority, aging, and action status
+    without mutating frozen ML classifications.
+
+    Separates:
+      - original_priority: Original frozen ML classification (P1-P4)
+      - effective_priority: Current priority after aging and expiry rules
+      - action_status: 'ACTIVE', 'EXPIRED', 'RESOLVED', 'SNOOZED', 'ARCHIVED'
+
+    Rules:
+      1. Explicit deadline has passed:
+         - Overdue actionable task -> Demote P1 to P2; marked OVERDUE; remains ACTIVE in Needs Attention.
+         - Expired task (no action possible) -> Demote P1 to P4; marked EXPIRED; leaves active queue.
+      2. OTP or verification code expired:
+         - If age > validity (default 10 mins or explicit) -> Demote to P4; marked EXPIRED; removed from active queues.
+      3. P1 without an explicit deadline:
+         - Days 0-7 -> Remains P1.
+         - After 7 days -> Demote to P2.
+      4. Security alert without a deadline:
+         - Days 0-7 -> Remains P1.
+         - After 7 days -> Demote to P2.
+         - If unresolved security incident -> Keeps accessible in Needs Attention even after P1 demotion.
+      5. User resolution / snooze overrides:
+         - Resolved -> action_status = 'RESOLVED'
+         - Snoozed -> action_status = 'SNOOZED'
+    """
+    if now_ts is None:
+        now_ts = datetime.now(timezone.utc).timestamp()
+
+    # Original frozen priority from model / refinement (P1-P4)
+    # Do not mutate!
+    raw_p = str(email.get("original_priority") or email.get("final_priority") or email.get("predicted_priority") or "P4").upper()
+    if raw_p not in ("P1", "P2", "P3", "P4"):
+        raw_p = "P4"
+    original_priority = raw_p
+
+    # Clock starts from original received timestamp (never scan or refresh time)
+    email_ts = get_email_timestamp(email)
+    age_sec = max(0.0, now_ts - email_ts) if email_ts > 0 else 0.0
+    age_days = round(age_sec / 86400.0, 2)
+
+    # User persistent action states
+    is_resolved = False
+    resolved_at = None
+    is_snoozed = False
+    snoozed_until = None
+    if action_state:
+        is_resolved = bool(action_state.get("is_resolved"))
+        resolved_at = action_state.get("resolved_at")
+        s_until = action_state.get("snoozed_until")
+        if s_until:
+            s_ts = parse_timestamp_safe(s_until)
+            if s_ts > now_ts:
+                is_snoozed = True
+                snoozed_until = s_until
+
+    crit_incident = is_critical_incident(email)
+    sec_notify = is_security_notification(email)
+    otp_email = is_otp_or_verification_code(email)
+    dl_status, dl_disp, next_step = evaluate_deadline_state(email, now_ts)
+
+    otp_validity_sec = get_otp_expiry_seconds(email) if otp_email else DEFAULT_OTP_EXPIRY_SECONDS
+    is_otp_expired = False
+    if otp_email:
+        if dl_status == "EXPIRED" or age_sec > otp_validity_sec:
+            is_otp_expired = True
+
+    effective_priority = original_priority
+    is_demoted = False
+    demotion_reason = None
+    action_status = "ACTIVE"
+
+    # User state precedence
+    if is_resolved:
+        action_status = "RESOLVED"
+    elif is_snoozed:
+        action_status = "SNOOZED"
+
+    # Priority Aging and Expiry Rules
+    if is_otp_expired:
+        # OTP expired: immediately remove from active P1 status
+        effective_priority = "P4"
+        is_demoted = (original_priority != "P4")
+        demotion_reason = f"Verification code expired ({int(otp_validity_sec / 60)} min validity exceeded)"
+        if not is_resolved and not is_snoozed:
+            action_status = "EXPIRED"
+
+    elif dl_status == "EXPIRED":
+        # Explicit deadline passed and no further action is possible
+        if original_priority == "P1":
+            effective_priority = "P4" if not crit_incident else "P2"
+            is_demoted = True
+            demotion_reason = "Explicit deadline passed; opportunity or registration closed"
+        elif original_priority == "P2":
+            effective_priority = "P4" if not crit_incident else "P2"
+            is_demoted = True
+            demotion_reason = "Explicit deadline passed; opportunity or registration closed"
+        if not is_resolved and not is_snoozed:
+            action_status = "EXPIRED"
+
+    elif dl_status == "OVERDUE":
+        # Explicit deadline has passed, but task is still actionable
+        if original_priority == "P1":
+            effective_priority = "P2"
+            is_demoted = True
+            demotion_reason = "Explicit deadline has passed; reassessed and demoted to P2 (overdue actionable task)"
+        if not is_resolved and not is_snoozed:
+            action_status = "ACTIVE"
+
+    elif original_priority == "P1":
+        # P1 without explicit passed deadline
+        # 7-day rule: Days 0-7: P1. After 7 days: P2.
+        if age_sec > SEVEN_DAYS_SECONDS:
+            effective_priority = "P2"
+            is_demoted = True
+            if crit_incident:
+                demotion_reason = "Security incident older than 7 days; demoted to P2 (retained in Needs Attention)"
+            elif sec_notify:
+                demotion_reason = "Security alert older than 7 days; demoted to P2"
+            else:
+                demotion_reason = "P1 email older than 7 days without explicit deadline; demoted to P2"
+
+    # Determine queue placement & actionability
+    if action_status == "RESOLVED":
+        queue_placement = "RESOLVED"
+        is_act = False
+    elif action_status == "SNOOZED":
+        queue_placement = "SNOOZED"
+        is_act = True
+    elif action_status == "EXPIRED":
+        queue_placement = "HISTORICAL"
+        is_act = False
+    elif crit_incident:
+        queue_placement = "ACTIVE"
+        is_act = True
+    elif effective_priority in ("P1", "P2") and (email.get("action_required") or dl_status in ("UPCOMING", "OVERDUE")):
+        queue_placement = "ACTIVE"
+        is_act = True
+    elif effective_priority == "P1":
+        queue_placement = "ACTIVE"
+        is_act = True
+    else:
+        queue_placement = "HISTORICAL"
+        is_act = bool(email.get("action_required"))
+
+    return {
+        "original_priority": original_priority,
+        "effective_priority": effective_priority,
+        "action_status": action_status,
+        "is_demoted": is_demoted,
+        "demotion_reason": demotion_reason,
+        "queue_placement": queue_placement,
+        "is_actionable": is_act,
+        "age_seconds": age_sec,
+        "age_days": age_days,
+        "email_timestamp": email_ts,
+        "is_critical_incident": crit_incident,
+        "is_security_notification": sec_notify,
+        "is_otp": otp_email,
+        "is_otp_expired": is_otp_expired,
+        "deadline_status": dl_status,
+        "deadline_display": dl_disp,
+        "next_step": next_step,
+        "is_resolved": is_resolved,
+        "resolved_at": resolved_at,
+        "is_snoozed": is_snoozed,
+        "snoozed_until": snoozed_until,
+    }
+
+
+def calculate_effective_priority(
+    email: Dict[str, Any],
+    action_state: Optional[Dict[str, Any]] = None,
+    now_ts: Optional[float] = None
+) -> Tuple[str, str, Optional[str]]:
+    """
+    Convenience helper: returns (effective_priority, original_priority, demotion_reason).
+    """
+    res = evaluate_priority_aging(email, action_state=action_state, now_ts=now_ts)
+    return res["effective_priority"], res["original_priority"], res["demotion_reason"]
 
 
 def evaluate_actionability(
@@ -228,10 +484,9 @@ def evaluate_actionability(
     """
     Evaluates an email's placement in the Smart Action Queue.
     Distinguishes:
-      - Priority: ML classified priority (P1-P4) — preserved untouched.
-      - Actionability: Whether an active task still exists.
-      - Resolution: Persistent resolution state from user.
-      - Snooze: Persistent snooze state until return time.
+      - original_priority: ML classified priority (P1-P4) — preserved untouched.
+      - effective_priority: Current priority after aging and expiry rules.
+      - action_status: 'ACTIVE', 'EXPIRED', 'RESOLVED', 'SNOOZED', 'ARCHIVED'.
       - Placement:
           'ACTIVE': in Needs Attention active queue
           'OLDER': in Older actions collapsible section
@@ -243,10 +498,25 @@ def evaluate_actionability(
         now_ts = datetime.now(timezone.utc).timestamp()
 
     age_threshold_sec = age_threshold_days * 86400.0
-    age_sec = calculate_email_age_seconds(email, now_ts)
-    age_days = round(age_sec / 86400.0, 2)
 
-    priority = str(email.get("final_priority") or email.get("predicted_priority") or "P4").upper()
+    # 1. Evaluate dynamic priority aging and expiry
+    aging = evaluate_priority_aging(email, action_state=action_state, now_ts=now_ts)
+    original_priority = aging["original_priority"]
+    effective_priority = aging["effective_priority"]
+    action_status = aging["action_status"]
+    age_sec = aging["age_seconds"]
+    age_days = aging["age_days"]
+    critical_incident = aging["is_critical_incident"]
+    dl_status = aging["deadline_status"]
+    dl_disp = aging["deadline_display"]
+    next_step = aging["next_step"]
+    is_resolved = aging["is_resolved"]
+    resolved_at = aging["resolved_at"]
+    is_snoozed = aging["is_snoozed"]
+    snoozed_until = aging["snoozed_until"]
+    otp_email = aging["is_otp"]
+    is_otp_expired = aging["is_otp_expired"]
+
     action_required = bool(email.get("action_required"))
     if not action_required:
         subject = str(email.get("subject") or "")
@@ -255,7 +525,7 @@ def evaluate_actionability(
         text = f"{subject} {snippet} {body[:500]}".strip()
         if text:
             from backend.app.ml.refinement import evaluate_action_layer
-            dyn_req, dyn_reason, dyn_ev = evaluate_action_layer(subject, f"{snippet} {body[:500]}", priority)
+            dyn_req, dyn_reason, dyn_ev = evaluate_action_layer(subject, f"{snippet} {body[:500]}", effective_priority)
             if dyn_req:
                 action_required = True
                 if not email.get("action_reason") and dyn_reason:
@@ -263,24 +533,7 @@ def evaluate_actionability(
                 if not email.get("action_evidence") and dyn_ev:
                     email["action_evidence"] = dyn_ev
 
-    critical_incident = is_critical_incident(email)
-    otp_email = is_otp_or_verification_code(email)
-
-    # 1. Check user persistent action state (resolved or snoozed)
-    is_resolved = False
-    resolved_at = None
-    is_snoozed = False
-    snoozed_until = None
-
-    if action_state:
-        is_resolved = bool(action_state.get("is_resolved"))
-        resolved_at = action_state.get("resolved_at")
-        snoozed_until = action_state.get("snoozed_until")
-        if snoozed_until:
-            s_ts = parse_timestamp_safe(snoozed_until)
-            if s_ts > now_ts:
-                is_snoozed = True
-
+    # 2. Check user persistent action state (resolved or snoozed)
     if is_resolved:
         return {
             "placement": "RESOLVED",
@@ -290,7 +543,13 @@ def evaluate_actionability(
             "is_snoozed": False,
             "snoozed_until": None,
             "age_days": age_days,
-            "priority": priority,
+            "age_seconds": age_sec,
+            "priority": effective_priority,
+            "original_priority": original_priority,
+            "effective_priority": effective_priority,
+            "action_status": "RESOLVED",
+            "is_demoted": aging["is_demoted"],
+            "demotion_reason": aging["demotion_reason"],
             "reason": "Resolved by user",
             "deadline_status": "NONE",
             "deadline_display": None,
@@ -309,7 +568,13 @@ def evaluate_actionability(
             "is_snoozed": True,
             "snoozed_until": snoozed_until,
             "age_days": age_days,
-            "priority": priority,
+            "age_seconds": age_sec,
+            "priority": effective_priority,
+            "original_priority": original_priority,
+            "effective_priority": effective_priority,
+            "action_status": "SNOOZED",
+            "is_demoted": aging["is_demoted"],
+            "demotion_reason": aging["demotion_reason"],
             "reason": f"Snoozed until {s_disp}",
             "deadline_status": "NONE",
             "deadline_display": None,
@@ -317,27 +582,29 @@ def evaluate_actionability(
             "is_critical_incident": critical_incident,
         }
 
-    # 2. Evaluate Deadline Status and intelligent expiry
-    dl_status, dl_disp, next_step = evaluate_deadline_state(email, now_ts)
-
-    # 3. Check for expired actions (e.g. OTP older than validity period)
-    if otp_email:
-        if dl_status == "EXPIRED" or age_sec > 900.0:  # > 15 mins
-            return {
-                "placement": "EXCLUDED",
-                "is_actionable": False,
-                "is_resolved": False,
-                "resolved_at": None,
-                "is_snoozed": False,
-                "snoozed_until": None,
-                "age_days": age_days,
-                "priority": priority,
-                "reason": "Verification code expired",
-                "deadline_status": "EXPIRED",
-                "deadline_display": dl_disp,
-                "next_step": next_step or "Request a new verification code",
-                "is_critical_incident": False,
-            }
+    # 3. Check for expired actions (e.g. OTP older than validity period or closed registration)
+    if is_otp_expired:
+        return {
+            "placement": "EXCLUDED",
+            "is_actionable": False,
+            "is_resolved": False,
+            "resolved_at": None,
+            "is_snoozed": False,
+            "snoozed_until": None,
+            "age_days": age_days,
+            "age_seconds": age_sec,
+            "priority": effective_priority,
+            "original_priority": original_priority,
+            "effective_priority": effective_priority,
+            "action_status": "EXPIRED",
+            "is_demoted": aging["is_demoted"],
+            "demotion_reason": aging["demotion_reason"],
+            "reason": "Verification code expired",
+            "deadline_status": "EXPIRED",
+            "deadline_display": dl_disp,
+            "next_step": next_step or "Request a new verification code",
+            "is_critical_incident": False,
+        }
 
     if dl_status == "EXPIRED" and not action_required and not critical_incident:
         return {
@@ -348,7 +615,13 @@ def evaluate_actionability(
             "is_snoozed": False,
             "snoozed_until": None,
             "age_days": age_days,
-            "priority": priority,
+            "age_seconds": age_sec,
+            "priority": effective_priority,
+            "original_priority": original_priority,
+            "effective_priority": effective_priority,
+            "action_status": "EXPIRED",
+            "is_demoted": aging["is_demoted"],
+            "demotion_reason": aging["demotion_reason"],
             "reason": "Opportunity or deadline has expired",
             "deadline_status": "EXPIRED",
             "deadline_display": dl_disp,
@@ -361,13 +634,15 @@ def evaluate_actionability(
     # - action_required is True
     # - OR has an upcoming or overdue deadline
     # - OR is a critical security/operational incident
-    # - OR is P1/P2 with operational relevance
+    # - OR is P1 (either original or effective)
+    # - OR is P2 with action_required
     is_actionable = (
         action_required or
         dl_status in ("UPCOMING", "OVERDUE") or
         critical_incident or
-        (priority == "P1") or
-        (priority == "P2" and action_required)
+        (effective_priority == "P1") or
+        (original_priority == "P1") or
+        (effective_priority == "P2" and action_required)
     )
 
     if not is_actionable:
@@ -379,7 +654,13 @@ def evaluate_actionability(
             "is_snoozed": False,
             "snoozed_until": None,
             "age_days": age_days,
-            "priority": priority,
+            "age_seconds": age_sec,
+            "priority": effective_priority,
+            "original_priority": original_priority,
+            "effective_priority": effective_priority,
+            "action_status": "ARCHIVED",
+            "is_demoted": aging["is_demoted"],
+            "demotion_reason": aging["demotion_reason"],
             "reason": "Informational or non-actionable",
             "deadline_status": dl_status,
             "deadline_display": dl_disp,
@@ -387,7 +668,7 @@ def evaluate_actionability(
             "is_critical_incident": False,
         }
 
-    # Determine concise, meaningful reason why it needs attention
+    # Concise, meaningful reason why it needs attention
     if critical_incident:
         reason = "Critical security incident or account alert"
     elif dl_status == "UPCOMING":
@@ -396,27 +677,22 @@ def evaluate_actionability(
         reason = f"Overdue task: {dl_disp}" if dl_disp else "Overdue task requiring action"
     elif email.get("action_reason"):
         reason = email.get("action_reason")
-    elif priority == "P1":
+    elif effective_priority == "P1":
         reason = "High priority operational request"
-    elif priority == "P2":
+    elif effective_priority == "P2":
         reason = "Action required on important email"
     else:
         reason = "Action required"
 
     # 5. Apply the 8-Day Age Policy and its exceptions
-    # Boundary condition:
-    # age_sec <= age_threshold_sec: eligible for active queue
-    # age_sec > age_threshold_sec: moves to older actions UNLESS an exception applies
     is_within_threshold = (age_sec <= age_threshold_sec)
 
     # Exceptions to 8-day rule:
     # Exception 1: Active upcoming future deadline that warrants continued attention
     has_active_future_deadline = (dl_status == "UPCOMING")
-    # Exception 2: Unresolved critical incident (security breach, compromised account)
+    # Exception 2: Unresolved critical incident (security breach, compromised account, suspicious login)
     has_unresolved_incident = critical_incident
 
-    # Rule: Old P1 emails without a meaningful unresolved critical incident or active future deadline
-    # do NOT bypass the age rule!
     if is_within_threshold:
         placement = "ACTIVE"
     else:
@@ -434,7 +710,12 @@ def evaluate_actionability(
         "snoozed_until": None,
         "age_days": age_days,
         "age_seconds": age_sec,
-        "priority": priority,
+        "priority": effective_priority,
+        "original_priority": original_priority,
+        "effective_priority": effective_priority,
+        "action_status": "ACTIVE" if placement == "ACTIVE" else "ARCHIVED",
+        "is_demoted": aging["is_demoted"],
+        "demotion_reason": aging["demotion_reason"],
         "reason": reason,
         "deadline_status": dl_status,
         "deadline_display": dl_disp,
@@ -456,7 +737,8 @@ def sort_action_items(items: List[Dict[str, Any]], sort_by: str = "urgent") -> L
 
     def _sort_key(item: Dict[str, Any]):
         policy = item.get("action_policy") or {}
-        p_val = priority_order.get(item.get("predicted_priority") or item.get("final_priority"), 4)
+        effective_p = policy.get("effective_priority") or item.get("effective_priority") or item.get("final_priority") or item.get("predicted_priority") or "P4"
+        p_val = priority_order.get(effective_p, 4)
         ts = get_email_timestamp(item)
         mid = str(item.get("email_id") or item.get("id") or item.get("message_id") or "")
         dl_status = policy.get("deadline_status", "NONE")
@@ -530,6 +812,14 @@ def classify_action_queue(
         # Attach evaluated policy to email copy
         email_augmented = dict(email)
         email_augmented["action_policy"] = policy_eval
+        # Priority aging & action status properties
+        email_augmented["original_priority"] = policy_eval["original_priority"]
+        email_augmented["effective_priority"] = policy_eval["effective_priority"]
+        email_augmented["action_status"] = policy_eval["action_status"]
+        email_augmented["is_demoted"] = policy_eval["is_demoted"]
+        email_augmented["demotion_reason"] = policy_eval["demotion_reason"]
+        email_augmented["final_priority"] = policy_eval["effective_priority"]
+        email_augmented["predicted_priority"] = policy_eval["effective_priority"]
         # Also attach top-level convenience flags for UI
         email_augmented["is_resolved"] = policy_eval["is_resolved"]
         email_augmented["is_snoozed"] = policy_eval["is_snoozed"]
@@ -544,7 +834,7 @@ def classify_action_queue(
             active_queue.append(email_augmented)
             # Categorize counts mutually exclusively
             # Priority 1 or Critical Incident = Urgent
-            if policy_eval["priority"] == "P1" or policy_eval["is_critical_incident"]:
+            if policy_eval["effective_priority"] == "P1" or policy_eval["is_critical_incident"]:
                 urgent_count += 1
             elif policy_eval["deadline_status"] in ("UPCOMING", "OVERDUE"):
                 due_soon_count += 1

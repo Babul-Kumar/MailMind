@@ -35,6 +35,17 @@ class ClassifiedEmail(BaseModel):
     probabilities: Dict[str, float]
     explanation: str
     top_signals: List[TopSignal] = []
+    original_priority: Optional[str] = None
+    effective_priority: Optional[str] = None
+    action_status: Optional[str] = None
+    is_demoted: Optional[bool] = False
+    demotion_reason: Optional[str] = None
+    action_policy: Optional[Dict[str, Any]] = None
+    queue_placement: Optional[str] = None
+    is_resolved: Optional[bool] = False
+    is_snoozed: Optional[bool] = False
+    snoozed_until: Optional[Any] = None
+    next_step: Optional[str] = None
 
 
 class PriorityCounts(BaseModel):

@@ -467,6 +467,13 @@ def get_classified_emails(
         state = action_states_map.get(mid)
         policy_eval = evaluate_actionability(item, action_state=state, now_ts=now_ts)
         item_copy = dict(item)
+        item_copy["original_priority"] = policy_eval["original_priority"]
+        item_copy["effective_priority"] = policy_eval["effective_priority"]
+        item_copy["action_status"] = policy_eval["action_status"]
+        item_copy["is_demoted"] = policy_eval["is_demoted"]
+        item_copy["demotion_reason"] = policy_eval["demotion_reason"]
+        item_copy["final_priority"] = policy_eval["effective_priority"]
+        item_copy["predicted_priority"] = policy_eval["effective_priority"]
         item_copy["is_resolved"] = policy_eval["is_resolved"]
         item_copy["is_snoozed"] = policy_eval["is_snoozed"]
         item_copy["snoozed_until"] = policy_eval["snoozed_until"]
@@ -485,13 +492,13 @@ def get_classified_emails(
         elif p_norm in ("P1", "P2", "P3", "P4"):
             display_list = [
                 e for e in enriched_display
-                if (e.get("final_priority") or e.get("predicted_priority") or "").upper() == p_norm
+                if (e.get("effective_priority") or e.get("final_priority") or e.get("predicted_priority") or "").upper() == p_norm
             ]
             total_matching = len(display_list)
         elif p_norm == "IMPORTANT":
             display_list = [
                 e for e in enriched_display
-                if (e.get("final_priority") or e.get("predicted_priority") or "").upper() == "P2"
+                if (e.get("effective_priority") or e.get("final_priority") or e.get("predicted_priority") or "").upper() == "P2"
             ]
             total_matching = len(display_list)
         else:
@@ -524,7 +531,33 @@ def get_classified_emails(
         q_summary = classify_action_queue(all_user_emails, action_states_map=action_states_map, now_ts=now_ts)
         stats["action_queue_counts"] = q_summary["counts"]
         stats["needs_attention_count"] = q_summary["counts"]["total_active"]
+
+        # Ensure mailbox priority counts and percentages use dynamic effective_priority
+        dynamic_counts = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
+        for e in all_user_emails:
+            state = action_states_map.get(e.get("email_id") or e.get("id") or "")
+            pe = evaluate_actionability(e, action_state=state, now_ts=now_ts)
+            ep = pe.get("effective_priority") or "P4"
+            dynamic_counts[ep] = dynamic_counts.get(ep, 0) + 1
+        tot = sum(dynamic_counts.values()) or len(all_user_emails)
+        stats["counts"] = dynamic_counts
+        stats["percentages"] = {
+            cls: round((cnt / tot * 100), 1) if tot > 0 else 0.0
+            for cls, cnt in dynamic_counts.items()
+        }
+        stats["highest_priority_count"] = dynamic_counts.get("P1", 0)
     else:
+        dynamic_counts = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
+        for e in enriched_display:
+            ep = e.get("effective_priority") or "P4"
+            dynamic_counts[ep] = dynamic_counts.get(ep, 0) + 1
+        tot = sum(dynamic_counts.values()) or len(enriched_display) or 1
+        stats["counts"] = dynamic_counts
+        stats["percentages"] = {
+            cls: round((cnt / tot * 100), 1) if tot > 0 else 0.0
+            for cls, cnt in dynamic_counts.items()
+        }
+        stats["highest_priority_count"] = dynamic_counts.get("P1", 0)
         stats["action_queue_counts"] = {
             "urgent": 0, "due_soon": 0, "other_active": 0, "total_active": 0,
             "older": 0, "snoozed": 0, "resolved": 0
@@ -633,6 +666,13 @@ def get_email_detail(request: Request, email_id: str):
     now_ts = datetime.now(timezone.utc).timestamp()
     policy_eval = evaluate_actionability(target_email, action_state=state, now_ts=now_ts)
     enriched = dict(target_email)
+    enriched["original_priority"] = policy_eval["original_priority"]
+    enriched["effective_priority"] = policy_eval["effective_priority"]
+    enriched["action_status"] = policy_eval["action_status"]
+    enriched["is_demoted"] = policy_eval["is_demoted"]
+    enriched["demotion_reason"] = policy_eval["demotion_reason"]
+    enriched["final_priority"] = policy_eval["effective_priority"]
+    enriched["predicted_priority"] = policy_eval["effective_priority"]
     enriched["is_resolved"] = policy_eval["is_resolved"]
     enriched["is_snoozed"] = policy_eval["is_snoozed"]
     enriched["snoozed_until"] = policy_eval["snoozed_until"]

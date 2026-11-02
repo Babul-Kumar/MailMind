@@ -9,8 +9,8 @@ services:
     runtime: python
     region: oregon
     plan: starter # Note: Starter plan ($7/mo) supports persistent disks; free plan does not support disks.
-    buildCommand: "cd frontend && npm install && npm run build && cd .. && pip install -r requirements.txt"
-    startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips \"*\""
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT --workers 1 --proxy-headers --forwarded-allow-ips \"*\""
     healthCheckPath: /api/health
     envVars:
       - key: ENVIRONMENT

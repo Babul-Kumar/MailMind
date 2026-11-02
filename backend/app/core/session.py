@@ -252,18 +252,18 @@ def get_session_from_request(request: Request) -> Optional[SessionData]:
     Extracts session token from cookie or Authorization header.
     Returns SessionData if valid, or None if unauthenticated.
     """
-    # 1. Cookie
-    session_id = request.cookies.get(SESSION_COOKIE_NAME)
-    if session_id:
-        session = session_manager.get_session(session_id)
-        if session:
-            return session
-
-    # 2. Bearer Header (for programmatic / mobile clients)
+    # 1. Bearer Header (for programmatic / Streamlit / mobile clients)
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header[7:].strip()
         session = session_manager.get_session(token)
+        if session:
+            return session
+
+    # 2. Cookie (for browser / SameSite sessions)
+    session_id = request.cookies.get(SESSION_COOKIE_NAME)
+    if session_id:
+        session = session_manager.get_session(session_id)
         if session:
             return session
 

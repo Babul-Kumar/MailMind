@@ -24,9 +24,9 @@ export function useSearch(emails, options = {}) {
     } else if (activeFilter === 'NEEDS_ATTENTION') {
       list = list.filter(isNeedsAttention);
     } else if (activeFilter === 'IMPORTANT') {
-      list = list.filter((e) => (e.final_priority || e.predicted_priority) === 'P2');
+      list = list.filter((e) => (e.effective_priority || e.final_priority || e.predicted_priority) === 'P2');
     } else if (['P1', 'P2', 'P3', 'P4'].includes(activeFilter)) {
-      list = list.filter((e) => ((e.final_priority || e.predicted_priority || '').toUpperCase()) === activeFilter);
+      list = list.filter((e) => ((e.effective_priority || e.final_priority || e.predicted_priority || '').toUpperCase()) === activeFilter);
     }
 
     if (actionFilter === 'ACTION_REQUIRED') {
@@ -49,8 +49,8 @@ export function useSearch(emails, options = {}) {
     if (sortBy !== 'date_desc' || !options.serverFiltered) {
       list.sort((a, b) => {
         if (sortBy === 'priority_desc') {
-          const rankA = PRIORITY_CONFIG[a.predicted_priority]?.rank || 0;
-          const rankB = PRIORITY_CONFIG[b.predicted_priority]?.rank || 0;
+          const rankA = PRIORITY_CONFIG[a.effective_priority || a.final_priority || a.predicted_priority]?.rank || 0;
+          const rankB = PRIORITY_CONFIG[b.effective_priority || b.final_priority || b.predicted_priority]?.rank || 0;
           return rankB - rankA;
         }
         if (sortBy === 'deadline_asc') {

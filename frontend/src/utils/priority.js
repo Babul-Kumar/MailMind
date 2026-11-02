@@ -50,7 +50,9 @@ export function hasGenuineDeadline(email) {
 
 export function isNeedsAttention(email) {
   if (!email) return false;
-  const p = email.final_priority || email.predicted_priority;
+  if (email.action_status === 'EXPIRED' || email.is_resolved) return false;
+  if (email.queue_placement === 'ACTIVE') return true;
+  const p = email.effective_priority || email.final_priority || email.predicted_priority;
   if (p === 'P1') return true;
   if (p === 'P2' && email.action_required) return true;
   if (email.action_required && hasGenuineDeadline(email)) return true;

@@ -24,7 +24,7 @@ export function EmailDetail({ email, onClose, onResolve, onUnresolve, onSnooze }
 
   if (!email) return null;
 
-  const priority = email.final_priority || email.predicted_priority;
+  const priority = email.effective_priority || email.final_priority || email.predicted_priority;
   const topic = email.topic && email.topic !== 'other' && email.topic !== 'general' ? email.topic : null;
   const actionRequired = Boolean(email.action_required);
   const deadlineState = getDeadlineState(email);

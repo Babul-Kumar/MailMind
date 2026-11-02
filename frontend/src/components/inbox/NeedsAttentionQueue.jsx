@@ -626,7 +626,7 @@ export function NeedsAttentionQueue({
  */
 function ActionQueueRow({ email, isOlderSection = false, onOpen, onResolve, onSnoozeClick }) {
   const policy = email.action_policy || {};
-  const priority = email.final_priority || email.predicted_priority || 'P4';
+  const priority = email.effective_priority || email.final_priority || email.predicted_priority || 'P4';
   const reason = email.action_reason || policy.reason || 'Action required';
   const nextStep = email.next_step || policy.next_step;
   const isCritical = email.is_critical_incident || policy.is_critical_incident || priority === 'P1';
