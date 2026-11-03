@@ -53,7 +53,8 @@ async def start_scan(
     scope: str = Query(default="mailbox", description="Scan scope: 'mailbox' or 'label'"),
     mode: str = Query(default="incremental", description="Scan mode: 'incremental' or 'full'"),
     query: Optional[str] = Query(default=None, max_length=200, description="Optional search filter query"),
-    force_rescan: bool = Query(default=False, description="Whether to recompute all cached analysis")
+    force_rescan: bool = Query(default=False, description="Whether to recompute all cached analysis"),
+    period: Optional[str] = Query(default=None, description="Optional analysis period")
 ):
     """
     Initiates a background complete mailbox scan or incremental synchronization.
@@ -61,6 +62,7 @@ async def start_scan(
     and classifies uncached/changed messages in manageable batches.
     """
     # Check if parameters were provided via JSON body (e.g. from frontend api client)
+    period_from_body = None
     try:
         body = await request.json()
         if isinstance(body, dict):
@@ -72,6 +74,8 @@ async def start_scan(
                 query = str(body["query"])[:200]
             if "force_rescan" in body:
                 force_rescan = bool(body["force_rescan"])
+            if "period" in body and body["period"]:
+                period_from_body = str(body["period"])
     except Exception:
         pass
 
@@ -85,6 +89,22 @@ async def start_scan(
             status_code=401,
             detail="Authentication required. Please connect your Gmail account."
         )
+
+    # Scoping to user analysis preference (default: last_3_months)
+    pref = user_email_cache.get_analysis_preference(session.user_id, session.email)
+    active_period = (period or period_from_body or pref.get("period") or "last_3_months").lower().strip()
+    from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
+    if active_period not in SUPPORTED_PERIODS:
+        active_period = "last_3_months"
+
+    if not query and active_period != "all_time":
+        boundaries = calculate_period_boundaries(
+            period=active_period,
+            tz_name=pref.get("timezone", "UTC"),
+            custom_start_date=pref.get("custom_start_date"),
+            custom_end_date=pref.get("custom_end_date")
+        )
+        query = boundaries.get("gmail_query") or None
 
     # If scan is already running for user, return active scan status immediately
     if scan_manager.is_scanning(session.user_id):
@@ -106,7 +126,8 @@ async def start_scan(
         scope=scope,
         mode=mode,
         query=query,
-        force_rescan=force_rescan
+        force_rescan=force_rescan,
+        period=active_period
     )
 
 
@@ -225,12 +246,20 @@ def get_recent_emails(
         is_analyzed=True
     )
 
+    stats = user_email_cache.get_mailbox_stats(
+        user_id=user_id,
+        model_version=user_model_version,
+        start_ts=boundaries["start_ts_sec"] if boundaries["start_ts_sec"] > 0 else None,
+        end_ts=boundaries["end_ts_sec"]
+    )
+
     total_pages = max(1, (total_count + page_size - 1) // page_size) if total_count > 0 else 1
 
     return {
         "status": "success",
         "data": {
             "items": items,
+            "stats": stats,
             "pagination": {
                 "page": page,
                 "page_size": page_size,
@@ -339,7 +368,8 @@ def get_classified_emails(
     priority: Optional[str] = Query(default=None, description="Optional priority filter: ALL, P1, P2, P3, P4, NEEDS_ATTENTION"),
     action_required: Optional[bool] = Query(default=None, description="Optional action required filter: true or false"),
     query: Optional[str] = Query(default=None, max_length=200, description="Optional search filter query"),
-    scan_scope: str = Query(default="mailbox", description="Scan scope: 'mailbox' or 'label'")
+    scan_scope: str = Query(default="mailbox", description="Scan scope: 'mailbox' or 'label'"),
+    period: Optional[str] = Query(default=None, description="Optional analysis period filter")
 ):
     """
     Fetches emails from Gmail for the authenticated user, utilizing an incremental user-scoped cache.
@@ -395,21 +425,61 @@ def get_classified_emails(
     user_model_version = route_info["model_version"]
     canary_group = route_info["canary_group"]
 
-    stats_db = user_email_cache.get_mailbox_stats(user_id, model_version=user_model_version)
+    # Period boundary filtering if period parameter is specified
+    start_ts_sec: Optional[float] = None
+    end_ts_sec: Optional[float] = None
+    active_period = None
+    if period:
+        active_period = str(period).lower().strip()
+        from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
+        if active_period in SUPPORTED_PERIODS and active_period != "all_time":
+            pref = user_email_cache.get_analysis_preference(user_id, session.email)
+            boundaries = calculate_period_boundaries(
+                period=active_period,
+                tz_name=pref.get("timezone", "UTC"),
+                custom_start_date=pref.get("custom_start_date"),
+                custom_end_date=pref.get("custom_end_date")
+            )
+            start_ts_sec = boundaries["start_ts_sec"] if boundaries["start_ts_sec"] > 0 else None
+            end_ts_sec = boundaries["end_ts_sec"]
+
+    stats_db = user_email_cache.get_mailbox_stats(
+        user_id,
+        model_version=user_model_version,
+        start_ts=start_ts_sec,
+        end_ts=end_ts_sec
+    )
     total_cached = stats_db.get("total_analyzed", 0)
     has_explicit_max = "max_emails" in request.query_params
 
-    # Auto-initiate complete background mailbox discovery if mailbox cache is empty
+    # Auto-initiate background mailbox discovery if mailbox cache is empty
     if not has_explicit_max and total_cached == 0 and not scan_manager.is_scanning(user_id):
         try:
+            pref = user_email_cache.get_analysis_preference(user_id, session.email)
+            auto_period = (period or pref.get("period") or "last_3_months").lower().strip()
+            from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
+            if auto_period not in SUPPORTED_PERIODS:
+                auto_period = "last_3_months"
+
+            auto_query = query
+            if not auto_query and auto_period != "all_time":
+                boundaries = calculate_period_boundaries(
+                    period=auto_period,
+                    tz_name=pref.get("timezone", "UTC"),
+                    custom_start_date=pref.get("custom_start_date"),
+                    custom_end_date=pref.get("custom_end_date")
+                )
+                auto_query = boundaries.get("gmail_query") or None
+
             scan_manager.start_scan(
                 user_id=user_id,
                 service=service,
                 scope=scan_scope,
                 mode="incremental",
-                query=query
+                query=auto_query,
+                period=auto_period
             )
-            logger.info("Automatically initiated complete mailbox discovery scan for user: %s", user_id_hash)
+            logger.info("Automatically initiated %s mailbox discovery scan for user: %s", auto_period, user_id_hash)
         except Exception as scan_err:
             logger.warning("Could not auto-start background scan for %s: %s", user_id_hash, scan_err)
 
@@ -442,7 +512,9 @@ def get_classified_emails(
             page=page,
             page_size=page_size,
             action_required=action_required,
-            model_version=user_model_version
+            model_version=user_model_version,
+            start_ts=start_ts_sec,
+            end_ts=end_ts_sec
         )
         t_cache_ms = (time.perf_counter() - t_cache_start) * 1000
         total_analyzed = total_matching

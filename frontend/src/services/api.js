@@ -130,12 +130,13 @@ export async function fetchModelInfo() {
   return res.json();
 }
 
-export async function fetchEmails({ page = 1, pageSize = 50, priority = '', query = '', actionRequired = null, maxEmails } = {}) {
+export async function fetchEmails({ page = 1, pageSize = 50, priority = '', query = '', actionRequired = null, maxEmails, period = '' } = {}) {
   const params = new URLSearchParams();
   if (page) params.append('page', String(page));
   if (pageSize) params.append('page_size', String(pageSize));
   if (priority) params.append('priority', priority);
   if (query) params.append('query', query);
+  if (period) params.append('period', period);
   if (actionRequired !== null && actionRequired !== undefined) {
     params.append('action_required', String(actionRequired));
   }

@@ -199,6 +199,7 @@ export function App() {
           error={emailsHook.error}
           recentlyResolved={emailsHook.recentlyResolved}
           onClearRecentlyResolved={emailsHook.clearRecentlyResolved}
+          onCancelScan={emailsHook.cancelScan}
           analysisPeriod={emailsHook.analysisPeriod}
           customStartDate={emailsHook.customStartDate}
           customEndDate={emailsHook.customEndDate}

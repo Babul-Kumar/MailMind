@@ -45,6 +45,7 @@ export function Inbox({
   error = null,
   recentlyResolved,
   onClearRecentlyResolved,
+  onCancelScan = null,
   analysisPeriod = 'last_3_months',
   customStartDate = '',
   customEndDate = '',
@@ -156,9 +157,19 @@ export function Inbox({
               <span className="scan-status-pulse-dot animate-pulse" />
               <span className="scan-status-title">
                 {scanStatus.status === 'SCANNING'
-                  ? 'Scanning Gmail Mailbox'
+                  ? 'Scanning Gmail Messages'
                   : scanStatus.status === 'ANALYZING'
-                  ? 'Analyzing Complete Mailbox'
+                  ? (scanStatus.period === 'this_month' || analysisPeriod === 'this_month'
+                      ? 'Analyzing This Month'
+                      : scanStatus.period === 'last_3_months' || analysisPeriod === 'last_3_months'
+                      ? 'Analyzing Last 3 Months'
+                      : scanStatus.period === 'last_1_year' || analysisPeriod === 'last_1_year'
+                      ? 'Analyzing Last 1 Year'
+                      : scanStatus.period === 'custom' || analysisPeriod === 'custom'
+                      ? 'Analyzing Custom Date Range'
+                      : scanStatus.period === 'all_time' || analysisPeriod === 'all_time'
+                      ? 'Analyzing All Messages'
+                      : 'Analyzing Recent Mail')
                   : 'Analysis Complete'}
               </span>
             </div>
@@ -182,7 +193,7 @@ export function Inbox({
           <div className="scan-status-meta-line">
             {scanStatus.status === 'ANALYZING' ? (
               <>
-                <span>{scanStatus.progress_percent}% analyzed</span>
+                <span>{scanStatus.progress_percent || 0}% analyzed</span>
                 <span className="meta-dot">·</span>
                 <span>{scanStatus.cached?.toLocaleString() || 0} reused from cache</span>
               </>
@@ -193,8 +204,28 @@ export function Inbox({
             )}
           </div>
 
-          <div className="scan-status-subnote">
-            You can browse cached emails while background analysis continues.
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem' }}>
+            <div className="scan-status-subnote" style={{ margin: 0 }}>
+              You can browse cached emails while background analysis continues.
+            </div>
+            {onCancelScan && (
+              <button
+                type="button"
+                onClick={onCancelScan}
+                style={{
+                  background: 'none',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '4px',
+                  color: 'var(--text-muted, #94a3b8)',
+                  fontSize: '0.75rem',
+                  padding: '2px 8px',
+                  cursor: 'pointer',
+                }}
+                title="Stop background analysis"
+              >
+                Cancel Analysis
+              </button>
+            )}
           </div>
         </div>
       )}

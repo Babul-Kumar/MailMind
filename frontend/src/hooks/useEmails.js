@@ -214,7 +214,7 @@ export function useEmails(isAuthenticated = false, user = null) {
   }, [isAuthenticated, user, getCacheKey]);
 
   // Load emails and stats from backend
-  const loadData = useCallback(async (customPage, customPageSize, customQuery, customFilter, customAction) => {
+  const loadData = useCallback(async (customPage, customPageSize, customQuery, customFilter, customAction, customPeriod) => {
     if (!isAuthenticated) return;
 
     const reqId = ++activeRequestIdRef.current;
@@ -224,6 +224,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     const filterToUse = customFilter !== undefined ? customFilter : activeFilter;
     const actionToUse = customAction !== undefined ? customAction : actionFilter;
     const searchToUse = customQuery !== undefined ? customQuery : debouncedSearchQuery;
+    const periodToUse = customPeriod !== undefined ? customPeriod : analysisPeriod;
 
     const priorityParam = filterToUse !== 'ALL' ? filterToUse : '';
     const actionParam = actionToUse === 'ACTION_REQUIRED' ? true : actionToUse === 'NO_ACTION' ? false : null;
@@ -240,6 +241,7 @@ export function useEmails(isAuthenticated = false, user = null) {
         priority: priorityParam,
         query: queryParam,
         actionRequired: actionParam,
+        period: periodToUse,
       });
 
       if (activeRequestIdRef.current !== reqId) {
@@ -397,19 +399,28 @@ export function useEmails(isAuthenticated = false, user = null) {
     };
   }, [isAuthenticated, isScanning, checkScanStatus, isLoading]);
 
-  // Trigger Complete Scan (Incremental by default, or full discovery)
+  // Trigger Mailbox Analysis scoped to current period
   const triggerScan = useCallback(async ({ scope = 'mailbox', mode = 'incremental', forceRescan = false } = {}) => {
     if (!isAuthenticated) return;
     setIsLoading(true);
     setError(null);
     try {
-      const res = await startScan({
-        scope,
-        mode,
-        query: gmailQuery,
-        forceRescan,
+      const res = await startIncrementalAnalysis({
+        period: analysisPeriod,
+        custom_start_date: customStartDate,
+        custom_end_date: customEndDate,
+        force_reanalysis: forceRescan,
       });
-      setScanStatus(res.scan_status);
+      if (res?.data) {
+        setScanStatus({
+          status: 'ANALYZING',
+          period: analysisPeriod,
+          total: res.data.total_eligible || 0,
+          analyzed: res.data.already_analyzed || 0,
+          cached: res.data.reused_from_cache || 0,
+          progress_percent: res.data.progress_percentage || 0,
+        });
+      }
       setIsScanning(true);
     } catch (err) {
       console.error('Error initiating scan:', err);
@@ -417,7 +428,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, gmailQuery]);
+  }, [isAuthenticated, analysisPeriod, customStartDate, customEndDate]);
 
   // Trigger Full Rescan
   const triggerRescan = useCallback(async ({ scope = 'mailbox' } = {}) => {
@@ -447,18 +458,31 @@ export function useEmails(isAuthenticated = false, user = null) {
     }
   }, []);
 
-  // Initial load once upon authentication
+  // Initial load once upon authentication: restores period config and loads scoped emails
   useEffect(() => {
     if (isAuthenticated) {
       if (!initialLoadedRef.current) {
         initialLoadedRef.current = true;
-        loadDataRef.current().then(() => {
-          checkScanStatus().then((status) => {
-            if (!status || status.status === 'NOT_STARTED' || (status.status === 'COMPLETE' && status.total === 0)) {
-              triggerScan({ scope: 'mailbox', mode: 'incremental' });
-            }
+        fetchAnalysisConfig()
+          .then((cfgRes) => {
+            const serverPeriod = cfgRes?.data?.period || analysisPeriod || 'last_3_months';
+            setAnalysisPeriod(serverPeriod);
+            if (cfgRes?.data?.custom_start_date) setCustomStartDate(cfgRes.data.custom_start_date);
+            if (cfgRes?.data?.custom_end_date) setCustomEndDate(cfgRes.data.custom_end_date);
+
+            return loadDataRef.current(1, undefined, undefined, undefined, undefined, serverPeriod).then(() => {
+              return checkScanStatus().then((status) => {
+                if (!status || status.status === 'NOT_STARTED' || (status.status === 'COMPLETE' && status.total === 0)) {
+                  startIncrementalAnalysis({ period: serverPeriod }).catch(() => {});
+                }
+              });
+            });
+          })
+          .catch(() => {
+            loadDataRef.current().then(() => {
+              checkScanStatus();
+            });
           });
-        });
       }
     } else {
       initialLoadedRef.current = false;
@@ -470,7 +494,7 @@ export function useEmails(isAuthenticated = false, user = null) {
       setScanStatus(null);
       setIsScanning(false);
     }
-  }, [isAuthenticated, checkScanStatus, triggerScan]);
+  }, [isAuthenticated, checkScanStatus]);
 
   // Subsequent data fetch when query, page, or filters change
   useEffect(() => {
@@ -684,11 +708,22 @@ export function useEmails(isAuthenticated = false, user = null) {
         custom_end_date: newCustomEnd,
       });
 
-      await startIncrementalAnalysis({
+      const startRes = await startIncrementalAnalysis({
         period: newPeriod,
         custom_start_date: newCustomStart,
         custom_end_date: newCustomEnd,
       });
+      if (startRes?.data) {
+        setScanStatus({
+          status: 'ANALYZING',
+          period: newPeriod,
+          total: startRes.data.total_eligible || 0,
+          analyzed: startRes.data.already_analyzed || 0,
+          cached: startRes.data.reused_from_cache || 0,
+          progress_percent: startRes.data.progress_percentage || 0,
+        });
+        setIsScanning(true);
+      }
 
       if (analysisPollTimerRef.current) clearInterval(analysisPollTimerRef.current);
       analysisPollTimerRef.current = setInterval(async () => {

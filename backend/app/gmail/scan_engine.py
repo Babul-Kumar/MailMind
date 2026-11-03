@@ -430,11 +430,17 @@ class MailboxScanJob:
                     with open(cp_file, "r", encoding="utf-8") as fp:
                         cp_data = json.load(fp)
                     # Only resume if previous scan was interrupted while in progress (QUEUED, SCANNING, ANALYZING)
+                    # AND the query, period, and scope match the current job parameters
                     if cp_data.get("status") in (ScanJobState.QUEUED, ScanJobState.SCANNING, ScanJobState.ANALYZING) and not self.force_rescan:
-                        if cp_data.get("discovered_ids"):
-                            resumed_discovered = cp_data["discovered_ids"]
-                        if cp_data.get("processed_ids"):
-                            resumed_processed = set(cp_data["processed_ids"])
+                        cp_query = (cp_data.get("query") or "").strip()
+                        current_query = (self.query or "").strip()
+                        cp_period = cp_data.get("period")
+                        cp_scope = cp_data.get("scope")
+                        if cp_query == current_query and cp_period == self.period and cp_scope == self.scope:
+                            if cp_data.get("discovered_ids"):
+                                resumed_discovered = cp_data["discovered_ids"]
+                            if cp_data.get("processed_ids"):
+                                resumed_processed = set(cp_data["processed_ids"])
                 except Exception:
                     pass
 
@@ -777,7 +783,20 @@ class ScanManager:
         """
         with self._lock:
             if self.is_scanning(user_id):
-                return self.get_status(user_id)
+                active_job = self._active_scan_jobs.get(user_id)
+                if active_job:
+                    active_query = (active_job.query or "").strip()
+                    target_query = (query or "").strip()
+                    if active_query == target_query and active_job.period == period and not force_rescan:
+                        return self.get_status(user_id)
+                    # Query or period changed: cancel running job and start requested one
+                    logger.info("Cancelling active scan (query='%s', period='%s') for new scan (query='%s', period='%s')",
+                                active_job.query, active_job.period, query, period)
+                    active_job.cancel()
+                    self._active_scan_jobs.pop(user_id, None)
+                else:
+                    # In-flight state recorded in _jobs without active worker handle: reset state
+                    self._jobs[user_id]["status"] = ScanJobState.CANCELLED
 
             job = MailboxScanJob(
                 user_id=user_id,

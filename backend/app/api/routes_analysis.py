@@ -252,21 +252,31 @@ def start_analysis_job(request: Request, body: AnalysisStartRequest):
     # Check if a scan is already active for this user
     if scan_manager.is_scanning(user_id):
         active_status = scan_manager.get_status(user_id)
-        latest_job = user_email_cache.get_latest_analysis_job(user_id)
-        job_id = latest_job["job_id"] if latest_job else f"job_{user_id[:8]}"
-        return {
-            "status": "success",
-            "message": "Analysis job already running.",
-            "data": {
-                "job_id": job_id,
-                "status": "running",
-                "period": target_period,
-                "total_eligible": active_status.get("total", 0),
-                "already_analyzed": active_status.get("analyzed", 0),
-                "pending": max(0, active_status.get("total", 0) - active_status.get("analyzed", 0)),
-                "reused_from_cache": active_status.get("cached", 0)
+        active_period = active_status.get("period")
+        active_query = (active_status.get("query") or "").strip()
+        expected_query = (boundaries.get("gmail_query") or "").strip()
+
+        if active_period == target_period and active_query == expected_query and not body.force_reanalysis:
+            latest_job = user_email_cache.get_latest_analysis_job(user_id)
+            job_id = latest_job["job_id"] if latest_job else f"job_{user_id[:8]}"
+            return {
+                "status": "success",
+                "message": "Analysis job already running.",
+                "data": {
+                    "job_id": job_id,
+                    "status": "running",
+                    "period": target_period,
+                    "total_eligible": active_status.get("total", 0),
+                    "already_analyzed": active_status.get("analyzed", 0),
+                    "pending": max(0, active_status.get("total", 0) - active_status.get("analyzed", 0)),
+                    "reused_from_cache": active_status.get("cached", 0)
+                }
             }
-        }
+        else:
+            logger.info("Cancelling active scan (period=%s, query=%s) for new target period %s (query=%s)",
+                        active_period, active_query, target_period, expected_query)
+            scan_manager.cancel_scan(user_id)
+            time.sleep(0.1)
 
     # Verify Gmail service connectivity
     try:
