@@ -1,7 +1,7 @@
 import re
 import base64
 from email.header import decode_header
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from bs4 import BeautifulSoup
 
 
@@ -146,6 +146,13 @@ def parse_message(msg_data: Dict[str, Any]) -> Dict[str, Any]:
     if not body_text and snippet:
         body_text = snippet
 
+    internal_date = None
+    if "internalDate" in msg_data:
+        try:
+            internal_date = int(msg_data["internalDate"])
+        except (ValueError, TypeError):
+            internal_date = None
+
     return {
         "id": msg_id,
         "thread_id": thread_id,
@@ -156,4 +163,5 @@ def parse_message(msg_data: Dict[str, Any]) -> Dict[str, Any]:
         "body": body_text,
         "snippet": snippet,
         "labels": label_ids,
+        "internal_date": internal_date,
     }

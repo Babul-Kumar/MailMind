@@ -130,13 +130,14 @@ export async function fetchModelInfo() {
   return res.json();
 }
 
-export async function fetchEmails({ page = 1, pageSize = 50, priority = '', query = '', actionRequired = null, maxEmails, period = '' } = {}) {
+export async function fetchEmails({ page = 1, pageSize = 50, priority = '', query = '', actionRequired = null, maxEmails, period = '', sync = false } = {}) {
   const params = new URLSearchParams();
   if (page) params.append('page', String(page));
   if (pageSize) params.append('page_size', String(pageSize));
   if (priority) params.append('priority', priority);
   if (query) params.append('query', query);
   if (period) params.append('period', period);
+  if (sync) params.append('sync', 'true');
   if (actionRequired !== null && actionRequired !== undefined) {
     params.append('action_required', String(actionRequired));
   }
@@ -209,8 +210,11 @@ export async function cancelScan() {
   return res.json();
 }
 
-export async function rescanMailbox({ scope = 'mailbox' } = {}) {
-  const res = await apiFetch('/api/scan/rescan', {
+export async function rescanMailbox({ scope = 'mailbox', period = '' } = {}) {
+  const params = new URLSearchParams();
+  if (period) params.append('period', period);
+  const url = `/api/scan/rescan${params.toString() ? `?${params.toString()}` : ''}`;
+  const res = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scope }),
@@ -417,6 +421,20 @@ export async function fetchHistoryEmails({ page = 1, pageSize = 50, query = '', 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || errorData.message || ('Failed to fetch historical emails: HTTP ' + res.status));
+  }
+  return res.json();
+}
+
+export async function syncIncomingEmails({ period = '' } = {}) {
+  const params = new URLSearchParams();
+  if (period) params.append('period', period);
+  const url = `/api/emails/sync${params.toString() ? `?${params.toString()}` : ''}`;
+  const res = await apiFetch(url, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to sync emails: HTTP ' + res.status));
   }
   return res.json();
 }

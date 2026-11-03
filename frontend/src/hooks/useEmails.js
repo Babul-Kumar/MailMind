@@ -18,6 +18,7 @@ import {
   fetchRecentEmails,
   fetchHistoryEmails,
   fetchAttentionActions,
+  syncIncomingEmails,
 } from '../services/api';
 
 export function useEmails(isAuthenticated = false, user = null) {
@@ -213,7 +214,7 @@ export function useEmails(isAuthenticated = false, user = null) {
   }, [isAuthenticated, user, getCacheKey]);
 
   // Load emails and stats from backend
-  const loadData = useCallback(async (customPage, customPageSize, customQuery, customFilter, customAction, customPeriod) => {
+  const loadData = useCallback(async (customPage, customPageSize, customQuery, customFilter, customAction, customPeriod, forceSync = false) => {
     if (!isAuthenticated) return;
 
     const reqId = ++activeRequestIdRef.current;
@@ -241,6 +242,7 @@ export function useEmails(isAuthenticated = false, user = null) {
         query: queryParam,
         actionRequired: actionParam,
         period: periodToUse,
+        sync: forceSync || (pageToUse === 1 && !searchToUse.trim()),
       });
 
       if (activeRequestIdRef.current !== reqId) {
@@ -435,7 +437,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await rescanMailbox({ scope });
+      const res = await rescanMailbox({ scope, period: analysisPeriod });
       setScanStatus(res.scan_status);
       setIsScanning(true);
     } catch (err) {
@@ -444,7 +446,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, analysisPeriod]);
 
   // Cancel running scan
   const triggerCancelScan = useCallback(async () => {
@@ -456,6 +458,37 @@ export function useEmails(isAuthenticated = false, user = null) {
       console.error('Error cancelling scan:', err);
     }
   }, []);
+
+  // Dedicated refresh triggering an immediate Gmail check for incoming emails
+  const handleRefresh = useCallback((customPeriod) => {
+    return loadData(1, undefined, undefined, undefined, undefined, customPeriod, true);
+  }, [loadData]);
+
+  // Background heartbeat: periodically check for new incoming emails every 45 seconds
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const bgSyncTimer = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+      if (isScanning || isLoading) {
+        return;
+      }
+
+      try {
+        const res = await syncIncomingEmails({ period: analysisPeriod });
+        if (res && res.new_emails_count > 0) {
+          console.log(`[MailMind] Automatically recognized ${res.new_emails_count} incoming email(s). Updating inbox.`);
+          loadDataRef.current();
+        }
+      } catch (err) {
+        // Non-intrusive background check
+      }
+    }, 45000);
+
+    return () => clearInterval(bgSyncTimer);
+  }, [isAuthenticated, isScanning, isLoading, analysisPeriod]);
 
   // Initial load once upon authentication: restores period config and loads scoped emails
   useEffect(() => {
@@ -821,7 +854,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     gmailQuery,
     setGmailQuery,
     lastUpdated,
-    refresh: loadData,
+    refresh: handleRefresh,
     activeFilter,
     setActiveFilter,
     actionFilter,

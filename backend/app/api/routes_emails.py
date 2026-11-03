@@ -3,6 +3,7 @@ import uuid
 import json
 import logging
 import hashlib
+import threading
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Query, HTTPException, Request, Response
@@ -26,6 +27,107 @@ from backend.app.core.prediction_log import log_prediction
 
 logger = logging.getLogger("mailmind.observability")
 router = APIRouter(tags=["Emails"])
+
+_last_user_sync_time: Dict[str, float] = {}
+_user_sync_lock = threading.Lock()
+
+
+def sync_incoming_emails(
+    user_id: str,
+    service,
+    pipeline=None,
+    model_version: Optional[str] = None,
+    query: Optional[str] = None,
+    limit: int = 25,
+    force: bool = False
+) -> int:
+    """
+    Checks Gmail for newly arrived messages that are not yet in the local cache.
+    Fetches, classifies with the active model pipeline, and persists them into SQLite cache.
+    Returns the count of newly discovered and analyzed emails.
+    """
+    if not user_id or not service:
+        return 0
+
+    now = time.time()
+    with _user_sync_lock:
+        last_check = _last_user_sync_time.get(user_id, 0.0)
+        if not force and (now - last_check) < 15.0:
+            return 0
+        _last_user_sync_time[user_id] = now
+
+    try:
+        from backend.app.ml.registry import model_registry
+        target_version = model_version or model_registry.get_active_version()
+
+        if pipeline is None:
+            from backend.app.ml.canary_router import canary_router
+            pipeline, route_info = canary_router.get_pipeline_for_user(user_id)
+            target_version = target_version or route_info.get("model_version")
+
+        res = list_message_ids(service=service, max_results=limit, query=query)
+        messages = res.get("messages", [])
+        if not messages:
+            return 0
+
+        target_ids = [m["id"] for m in messages if m.get("id")]
+        if not target_ids:
+            return 0
+
+        _, missing_ids = user_email_cache.get_batch(
+            user_id=user_id,
+            message_ids=target_ids,
+            active_model_version=target_version
+        )
+
+        if not missing_ids:
+            return 0
+
+        logger.info(
+            "Found %d new message(s) from Gmail for user %s. Syncing and analyzing...",
+            len(missing_ids),
+            mask_email(user_id)
+        )
+
+        raw_missing: Dict[str, Dict[str, Any]] = {}
+        with ThreadPoolExecutor(max_workers=min(8, len(missing_ids))) as executor:
+            future_to_id = {
+                executor.submit(_fetch_single_message_safe, service, mid): mid
+                for mid in missing_ids
+            }
+            for future in as_completed(future_to_id):
+                mid = future_to_id[future]
+                try:
+                    parsed = future.result()
+                    if parsed:
+                        raw_missing[mid] = parsed
+                except Exception as ex:
+                    logger.warning("Failed to fetch incoming message %s: %s", mid, ex)
+
+        if not raw_missing:
+            return 0
+
+        ordered_missing = [raw_missing[mid] for mid in missing_ids if mid in raw_missing]
+        predicted_items = predict_batch(ordered_missing, pipeline=pipeline)
+
+        user_email_cache.store_batch(
+            user_id=user_id,
+            items=predicted_items,
+            model_version=target_version
+        )
+
+        logger.info(
+            "Successfully synced, classified, and cached %d new incoming email(s) for user %s",
+            len(predicted_items),
+            mask_email(user_id)
+        )
+        return len(predicted_items)
+
+    except Exception as err:
+        logger.warning("Error during incremental incoming email sync for %s: %s", mask_email(user_id), err)
+        return 0
+
+
 
 
 # -----------------------------------------------------------------------------
@@ -145,8 +247,11 @@ def cancel_scan(request: Request):
 
 
 @router.post("/api/scan/rescan")
-def rescan_mailbox(request: Request):
-    """Convenience trigger for an explicit, complete mailbox rescan."""
+def rescan_mailbox(
+    request: Request,
+    period: Optional[str] = Query(default=None, description="Optional analysis period")
+):
+    """Convenience trigger for an explicit, scoped mailbox rescan."""
     session = get_session_from_request(request)
     if not session:
         raise HTTPException(
@@ -160,12 +265,31 @@ def rescan_mailbox(request: Request):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
 
+    pref = user_email_cache.get_analysis_preference(session.user_id, session.email)
+    active_period = (period or pref.get("period") or "last_3_months").lower().strip()
+
+    from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
+    if active_period not in SUPPORTED_PERIODS:
+        active_period = "last_3_months"
+
+    query = None
+    if active_period != "all_time":
+        boundaries = calculate_period_boundaries(
+            period=active_period,
+            tz_name=pref.get("timezone", "UTC"),
+            custom_start_date=pref.get("custom_start_date"),
+            custom_end_date=pref.get("custom_end_date")
+        )
+        query = boundaries.get("gmail_query") or None
+
     return scan_manager.start_scan(
         user_id=session.user_id,
         service=service,
         scope="mailbox",
         mode="full",
-        force_rescan=True
+        query=query,
+        force_rescan=True,
+        period=active_period
     )
 
 
@@ -194,6 +318,74 @@ def migrate_model_cache(
 # Date-Scoped Recent Mail & Historical Mailbox Endpoints
 # -----------------------------------------------------------------------------
 
+
+@router.post("/api/emails/sync")
+def sync_emails_endpoint(
+    request: Request,
+    period: Optional[str] = Query(default=None, description="Analysis period scope")
+):
+    """
+    Explicitly checks Gmail for new incoming emails, classifies them,
+    persists to cache, and returns summary of any new messages.
+    """
+    session = get_session_from_request(request)
+    if not session:
+        raise HTTPException(status_code=401, detail="Authentication required. Please connect your Gmail account.")
+    try:
+        service = get_user_gmail_service(session=session)
+    except PermissionError:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
+
+    user_id = session.user_id
+    pref = user_email_cache.get_analysis_preference(user_id, session.email)
+    target_period = (period or pref.get("period") or "last_3_months").lower().strip()
+
+    from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
+    if target_period not in SUPPORTED_PERIODS:
+        target_period = "last_3_months"
+
+    query = None
+    boundaries = {}
+    if target_period != "all_time":
+        boundaries = calculate_period_boundaries(
+            period=target_period,
+            tz_name=pref.get("timezone", "UTC"),
+            custom_start_date=pref.get("custom_start_date"),
+            custom_end_date=pref.get("custom_end_date")
+        )
+        query = boundaries.get("gmail_query") or None
+
+    from backend.app.ml.canary_router import canary_router
+    pipeline, route_info = canary_router.get_pipeline_for_user(user_id)
+    user_model_version = route_info.get("model_version")
+
+    new_count = sync_incoming_emails(
+        user_id=user_id,
+        service=service,
+        pipeline=pipeline,
+        model_version=user_model_version,
+        query=query,
+        limit=25,
+        force=True
+    )
+
+    stats = user_email_cache.get_mailbox_stats(
+        user_id=user_id,
+        model_version=user_model_version,
+        start_ts=boundaries.get("start_ts_sec") if boundaries.get("start_ts_sec", 0) > 0 else None,
+        end_ts=boundaries.get("end_ts_sec")
+    )
+
+    return {
+        "status": "success",
+        "new_emails_count": new_count,
+        "stats": stats,
+        "message": f"Discovered and classified {new_count} new email(s)." if new_count > 0 else "Mailbox is up to date."
+    }
+
+
 @router.get("/api/emails/recent")
 def get_recent_emails(
     request: Request,
@@ -203,7 +395,8 @@ def get_recent_emails(
     priority: Optional[str] = Query(default=None, description="Optional priority filter: ALL, P1, P2, P3, P4, NEEDS_ATTENTION"),
     action_required: Optional[bool] = Query(default=None, description="Optional action required filter: true or false"),
     search: Optional[str] = Query(default=None, max_length=200, description="Optional search filter query"),
-    sort: str = Query(default="desc", description="Sort order: 'desc' (newest first) or 'asc'")
+    sort: str = Query(default="desc", description="Sort order: 'desc' (newest first) or 'asc'"),
+    sync: bool = Query(default=False, description="Force incremental sync check with Gmail")
 ):
     """
     Returns email summaries strictly within the selected analysis period for the authenticated user.
@@ -231,6 +424,21 @@ def get_recent_emails(
         user_model_version = route_info.get("model_version")
     except Exception:
         user_model_version = model_registry.get_active_version()
+
+    # Incremental incoming check for recent emails on page 1
+    if (page == 1 or sync) and not search:
+        try:
+            service = get_user_gmail_service(session=session)
+            sync_incoming_emails(
+                user_id=user_id,
+                service=service,
+                model_version=user_model_version,
+                query=boundaries.get("gmail_query") or None,
+                limit=25,
+                force=sync
+            )
+        except Exception as sync_err:
+            logger.debug("Non-blocking incoming email sync skipped for recent emails: %s", sync_err)
 
     items, total_count = user_email_cache.query_emails(
         user_id=user_id,
@@ -369,7 +577,8 @@ def get_classified_emails(
     action_required: Optional[bool] = Query(default=None, description="Optional action required filter: true or false"),
     query: Optional[str] = Query(default=None, max_length=200, description="Optional search filter query"),
     scan_scope: str = Query(default="mailbox", description="Scan scope: 'mailbox' or 'label'"),
-    period: Optional[str] = Query(default=None, description="Optional analysis period filter")
+    period: Optional[str] = Query(default=None, description="Optional analysis period filter"),
+    sync: bool = Query(default=False, description="Force incremental sync check with Gmail")
 ):
     """
     Fetches emails from Gmail for the authenticated user, utilizing an incremental user-scoped cache.
@@ -501,6 +710,30 @@ def get_classified_emails(
     has_explicit_query = bool(query and query.strip())
 
     use_display_pagination = (not has_explicit_max and total_cached > 0) or has_explicit_page or has_explicit_priority or has_explicit_action or has_explicit_query
+
+    # Incremental incoming check: If user already has cached emails, check Gmail for new arrivals
+    if not has_explicit_max and total_cached > 0 and (page == 1 or sync) and not has_explicit_query:
+        try:
+            auto_q = auto_query if "auto_query" in locals() and auto_query else None
+            new_synced = sync_incoming_emails(
+                user_id=user_id,
+                service=service,
+                pipeline=pipeline,
+                model_version=user_model_version,
+                query=auto_q,
+                limit=25,
+                force=sync
+            )
+            if new_synced > 0:
+                stats_db = user_email_cache.get_mailbox_stats(
+                    user_id,
+                    model_version=user_model_version,
+                    start_ts=start_ts_sec,
+                    end_ts=end_ts_sec
+                )
+                total_cached = stats_db.get("total_analyzed", 0)
+        except Exception as sync_err:
+            logger.warning("Non-blocking incoming email sync encountered error: %s", sync_err)
 
     if not has_explicit_max and total_cached > 0:
         # Instant serve from complete analyzed mailbox cache
