@@ -204,6 +204,9 @@ cse472/
 ├── .gitignore                         # Security & environment exclusion rules
 ├── index.ipynb                        # Master Jupyter Notebook (Research, training, validation)
 ├── pytest.ini                         # Standardized test discovery configuration
+├── package.json                       # Root workspace scripts & full-stack orchestrator
+├── run_dev.mjs                        # Unified concurrent Node development runner
+├── run_dev.py                         # Unified concurrent Python development runner
 ├── render.yaml                        # Low-memory Render backend deployment blueprint
 ├── requirements.txt                   # Root Python dependencies
 └── README.md                          # Authoritative system documentation
@@ -259,16 +262,29 @@ cd ..
 
 ### Step 4: Run Locally
 
-**Terminal 1 — Backend REST API:**
+**Option A: Single-Command Full-Stack (Recommended)**
+Start both the FastAPI backend and React frontend concurrently with one command from the project root:
+```bash
+npm run dev
+# OR with Python:
+python run_dev.py
+```
+
+**Option B: Separate Terminals**
+If you prefer running services independently:
+
+*Terminal 1 — Backend REST API:*
 ```bash
 python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-**Terminal 2 — React Frontend:**
+*Terminal 2 — React Frontend:*
 ```bash
 cd frontend
 npm run dev
 ```
+
+> **Smart Dev Proxy:** When running the frontend standalone (`npm run dev`), the Vite proxy automatically checks if your local backend on `127.0.0.1:8000` is active. If offline, it smoothly routes `/api` requests to the live cloud backend (`https://mailmind-api-xzu8.onrender.com`), eliminating `ECONNREFUSED` connection drops.
 
 Navigate your browser to `http://localhost:5173`.
 
