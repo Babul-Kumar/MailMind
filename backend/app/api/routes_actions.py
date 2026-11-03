@@ -186,6 +186,7 @@ def unsnooze_action(request: Request, body: UnsnoozeRequest):
 
 
 @router.get("/queue")
+@router.get("/attention")
 def get_action_queue(
     request: Request,
     sort_by: str = Query(default="urgent", description="Active queue sort: urgent, newest, deadline, oldest"),
@@ -205,6 +206,7 @@ def get_action_queue(
             status_code=401,
             detail="Authentication required. Please connect your Gmail account."
         )
+    user_id = session.user_id
 
     # Determine the model version assigned to this user via canary router
     try:
@@ -256,6 +258,24 @@ def get_action_queue(
         older_sort_by=older_sort_by
     )
 
+    active_items = queue_data.get("active_queue", [])
+    urgent_items = []
+    due_soon_items = []
+    other_items = []
+    for it in active_items:
+        pol = it.get("action_policy", {})
+        if it.get("effective_priority") == "P1" or pol.get("is_critical_incident") or it.get("deadline_status") == "OVERDUE":
+            urgent_items.append(it)
+        elif it.get("deadline_status") == "UPCOMING":
+            due_soon_items.append(it)
+        else:
+            other_items.append(it)
+
+    queue_data["urgent"] = urgent_items
+    queue_data["due_soon"] = due_soon_items
+    queue_data["other_active"] = other_items
+    queue_data["older"] = queue_data.get("older_actions", [])
+
     return {
         "status": "success",
         "data": queue_data
@@ -277,6 +297,7 @@ def get_action_summary(
             status_code=401,
             detail="Authentication required. Please connect your Gmail account."
         )
+    user_id = session.user_id
 
     # Determine the model version assigned to this user via canary router
     try:

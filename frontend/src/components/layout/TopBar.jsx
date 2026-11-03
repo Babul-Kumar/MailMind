@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RefreshCw, Sun, Moon, Settings, Menu, Check, User, LogOut, RefreshCcw, ShieldCheck, Sparkles } from 'lucide-react';
 import { SearchBar } from '../inbox/SearchBar';
+import { PeriodSelector } from '../inbox/PeriodSelector';
 import { AIProcessingState } from '../ai/AIProcessingState';
 import { MailMindLogo } from '../brand/MailMindLogo';
 
@@ -25,6 +26,12 @@ function TopBarComponent({
   onToggleTheme,
   onOpenSettings,
   onToggleMobileMenu,
+  analysisPeriod = 'last_3_months',
+  customStartDate = '',
+  customEndDate = '',
+  onChangePeriod,
+  analysisSummary = null,
+  isAnalyzing = false,
 }) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef(null);
@@ -98,8 +105,11 @@ function TopBarComponent({
       </div>
 
       {/* 2. Dedicated Mobile Header: Row 2 Full-Width Search (<= 640px) */}
-      <div className="topbar-mobile-row-2">
-        <SearchBar value={searchQuery} onChange={onSearchChange} matchCount={matchCount} placeholder="Search analyzed mail..." />
+      <div className="topbar-mobile-row-2" style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <SearchBar value={searchQuery} onChange={onSearchChange} matchCount={matchCount} placeholder="Search analyzed mail..." />
+        </div>
+        <PeriodSelector activePeriod={analysisPeriod} customStartDate={customStartDate} customEndDate={customEndDate} onChangePeriod={onChangePeriod} summary={analysisSummary} isAnalyzing={isAnalyzing} disabled={isScanning || isLoading} />
       </div>
 
       {/* 3. Desktop Single-Row Layout (> 640px) */}
@@ -127,6 +137,7 @@ function TopBarComponent({
 
         {/* Central Search Bar */}
         <SearchBar value={searchQuery} onChange={onSearchChange} matchCount={matchCount} />
+        <PeriodSelector activePeriod={analysisPeriod} customStartDate={customStartDate} customEndDate={customEndDate} onChangePeriod={onChangePeriod} summary={analysisSummary} isAnalyzing={isAnalyzing} disabled={isScanning || isLoading} />
 
         {/* Right Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

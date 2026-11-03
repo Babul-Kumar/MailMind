@@ -3,6 +3,8 @@ import { PrioritySummary } from '../priority/PrioritySummary';
 import { EmailList } from './EmailList';
 import { EmailDetail } from './EmailDetail';
 import { NeedsAttentionQueue } from './NeedsAttentionQueue';
+import { HistoryView } from './HistoryView';
+import { PeriodSelector } from './PeriodSelector';
 import { Zap } from 'lucide-react';
 
 export function Inbox({
@@ -43,6 +45,18 @@ export function Inbox({
   error = null,
   recentlyResolved,
   onClearRecentlyResolved,
+  analysisPeriod = 'last_3_months',
+  customStartDate = '',
+  customEndDate = '',
+  onChangePeriod,
+  analysisSummary = null,
+  isAnalyzing = false,
+  historyEmails = [],
+  historyPagination = null,
+  historyLoading = false,
+  historyFilter = {},
+  setHistoryFilter,
+  loadHistoryData,
 }) {
 
   const [selectedEmail, setSelectedEmail] = useState(null);
@@ -99,7 +113,7 @@ export function Inbox({
   const endIdx = totalCount > 0 ? Math.min(pageNum * pageSize, totalCount) : 0;
 
   // Title and description for active view
-  let viewTitle = 'All Mail';
+  let viewTitle = 'Recent Mail';
   let viewDescription = '';
   if (focusMode) {
     viewTitle = 'Focus Mode';
@@ -123,7 +137,7 @@ export function Inbox({
     viewTitle = 'P4 · Low';
     viewDescription = 'Bulk notifications, updates, or low priority.';
   } else if (activeFilter === 'ALL') {
-    viewTitle = 'All Mail';
+    viewTitle = 'Recent Mail';
     viewDescription = '';
   }
 
@@ -387,6 +401,19 @@ export function Inbox({
           recentlyResolved={recentlyResolved}
           onClearRecentlyResolved={onClearRecentlyResolved}
           onNavigateAllMail={() => onSelectFilter?.('ALL')}
+        />
+      ) : activeFilter === 'HISTORY' ? (
+        <HistoryView
+          emails={historyEmails}
+          pagination={historyPagination}
+          onPageChange={(newPage) => loadHistoryData?.(newPage)}
+          isLoading={historyLoading}
+          startDate={historyFilter.startDate}
+          endDate={historyFilter.endDate}
+          searchQuery={historyFilter.query}
+          analyzedOnly={historyFilter.analyzedOnly}
+          onFilterChange={(newFilters) => setHistoryFilter?.(newFilters)}
+          onSelectEmail={setSelectedEmail}
         />
       ) : (
         <>

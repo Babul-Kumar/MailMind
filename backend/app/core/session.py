@@ -252,7 +252,7 @@ def get_session_from_request(request: Request) -> Optional[SessionData]:
     Extracts session token from cookie or Authorization header.
     Returns SessionData if valid, or None if unauthenticated.
     """
-    # 1. Bearer Header (for programmatic / Streamlit / mobile clients)
+    # 1. Bearer Header (for programmatic / mobile clients)
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header[7:].strip()

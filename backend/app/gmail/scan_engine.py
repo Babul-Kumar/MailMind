@@ -306,7 +306,9 @@ class MailboxScanJob:
         force_rescan: bool = False,
         batch_size: int = 100,
         scans_dir: str = SCANS_DIR,
-        on_progress: Optional[Any] = None
+        on_progress: Optional[Any] = None,
+        period: Optional[str] = None,
+        analysis_job_id: Optional[str] = None
     ):
         self.user_id = user_id
         self.service = service
@@ -317,6 +319,8 @@ class MailboxScanJob:
         self.batch_size = batch_size
         self.scans_dir = scans_dir
         self.on_progress = on_progress
+        self.period = period
+        self.analysis_job_id = analysis_job_id
         self.stop_event = threading.Event()
         self._lock = threading.RLock()
 
@@ -327,6 +331,8 @@ class MailboxScanJob:
             "scope": self.scope,
             "mode": self.mode,
             "query": self.query,
+            "period": self.period,
+            "analysis_job_id": self.analysis_job_id,
             "discovered": 0,
             "analyzed": 0,
             "cached": 0,
@@ -383,6 +389,31 @@ class MailboxScanJob:
                 if self.state["newly_analyzed"] > 0:
                     self.state["throughput_emails_per_sec"] = round(self.state["newly_analyzed"] / cur_dur, 1)
             self._persist()
+            if self.analysis_job_id:
+                try:
+                    st_mapped = "running"
+                    if self.state.get("status") == ScanJobState.COMPLETE:
+                        st_mapped = "completed"
+                    elif self.state.get("status") == ScanJobState.FAILED:
+                        st_mapped = "failed"
+                    elif self.state.get("status") == ScanJobState.CANCELLED:
+                        st_mapped = "cancelled"
+                    elif self.state.get("status") == ScanJobState.QUEUED:
+                        st_mapped = "queued"
+
+                    user_email_cache.update_analysis_job(
+                        self.analysis_job_id,
+                        status=st_mapped,
+                        processed_count=self.state.get("cached", 0) + self.state.get("newly_analyzed", 0),
+                        failed_count=self.state.get("failed", 0),
+                        already_analyzed=self.state.get("cached", 0),
+                        total_eligible=self.state.get("total", 0),
+                        reused_from_cache=self.state.get("cached", 0),
+                        error=self.state.get("error")
+                    )
+                except Exception:
+                    pass
+
             if self.on_progress:
                 try:
                     self.on_progress(dict(self.state))
@@ -737,7 +768,9 @@ class ScanManager:
         scope: str = "mailbox",
         mode: str = "incremental",
         query: Optional[str] = None,
-        force_rescan: bool = False
+        force_rescan: bool = False,
+        period: Optional[str] = None,
+        analysis_job_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Initiates a background complete mailbox scan or incremental sync for user_id.
@@ -753,7 +786,9 @@ class ScanManager:
                 mode=mode,
                 query=query,
                 force_rescan=force_rescan,
-                scans_dir=self.scans_dir
+                scans_dir=self.scans_dir,
+                period=period,
+                analysis_job_id=analysis_job_id
             )
             self._active_scan_jobs[user_id] = job
             self._jobs[user_id] = job.state

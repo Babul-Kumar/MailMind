@@ -170,6 +170,162 @@ def migrate_model_cache(
 
 
 # -----------------------------------------------------------------------------
+# Date-Scoped Recent Mail & Historical Mailbox Endpoints
+# -----------------------------------------------------------------------------
+
+@router.get("/api/emails/recent")
+def get_recent_emails(
+    request: Request,
+    page: int = Query(default=1, ge=1, description="Display page number (1-indexed)"),
+    page_size: int = Query(default=50, ge=1, le=100, description="Display page size (1-100)"),
+    period: Optional[str] = Query(default=None, description="Analysis period scope (defaults to user preference)"),
+    priority: Optional[str] = Query(default=None, description="Optional priority filter: ALL, P1, P2, P3, P4, NEEDS_ATTENTION"),
+    action_required: Optional[bool] = Query(default=None, description="Optional action required filter: true or false"),
+    search: Optional[str] = Query(default=None, max_length=200, description="Optional search filter query"),
+    sort: str = Query(default="desc", description="Sort order: 'desc' (newest first) or 'asc'")
+):
+    """
+    Returns email summaries strictly within the selected analysis period for the authenticated user.
+    Server-side pagination and dynamic priority aging applied.
+    """
+    session = get_session_from_request(request)
+    if not session:
+        raise HTTPException(status_code=401, detail="Authentication required. Please connect your Gmail account.")
+
+    user_id = session.user_id
+    pref = user_email_cache.get_analysis_preference(user_id, session.email)
+    target_period = (period or pref.get("period") or "last_3_months").lower().strip()
+
+    from backend.app.core.date_utils import calculate_period_boundaries
+    boundaries = calculate_period_boundaries(
+        period=target_period,
+        tz_name=pref.get("timezone", "UTC"),
+        custom_start_date=pref.get("custom_start_date"),
+        custom_end_date=pref.get("custom_end_date")
+    )
+
+    try:
+        from backend.app.ml.canary_router import canary_router
+        _, route_info = canary_router.get_pipeline_for_user(user_id)
+        user_model_version = route_info.get("model_version")
+    except Exception:
+        user_model_version = model_registry.get_active_version()
+
+    items, total_count = user_email_cache.query_emails(
+        user_id=user_id,
+        priority=priority,
+        search=search,
+        page=page,
+        page_size=page_size,
+        sort_order=sort,
+        action_required=action_required,
+        model_version=user_model_version,
+        start_ts=boundaries["start_ts_sec"] if boundaries["start_ts_sec"] > 0 else None,
+        end_ts=boundaries["end_ts_sec"],
+        is_analyzed=True
+    )
+
+    total_pages = max(1, (total_count + page_size - 1) // page_size) if total_count > 0 else 1
+
+    return {
+        "status": "success",
+        "data": {
+            "items": items,
+            "pagination": {
+                "page": page,
+                "page_size": page_size,
+                "total_items": total_count,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            },
+            "period": target_period,
+            "date_boundaries": {
+                "start_iso": boundaries["start_iso"],
+                "end_iso": boundaries["end_iso"]
+            }
+        }
+    }
+
+
+@router.get("/api/emails/history")
+def get_historical_emails(
+    request: Request,
+    page: int = Query(default=1, ge=1, description="Display page number (1-indexed)"),
+    page_size: int = Query(default=50, ge=1, le=100, description="Display page size (1-100)"),
+    start_date: Optional[str] = Query(default=None, description="Optional start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(default=None, description="Optional end date (YYYY-MM-DD)"),
+    search: Optional[str] = Query(default=None, max_length=200, description="Optional search filter query"),
+    priority: Optional[str] = Query(default=None, description="Optional priority filter: ALL, P1, P2, P3, P4"),
+    analyzed: Optional[bool] = Query(default=None, description="Filter by analyzed status (true, false, or omitted for all)"),
+    sort: str = Query(default="desc", description="Sort order: 'desc' (newest first) or 'asc'")
+):
+    """
+    Provides browsing access to all historical synchronized mailbox messages independently of the selected analysis period.
+    Displays existing predictions where available and clearly indicates unanalyzed messages.
+    Does NOT automatically trigger full ML inference on old emails.
+    """
+    session = get_session_from_request(request)
+    if not session:
+        raise HTTPException(status_code=401, detail="Authentication required. Please connect your Gmail account.")
+
+    user_id = session.user_id
+    pref = user_email_cache.get_analysis_preference(user_id, session.email)
+    tz_name = pref.get("timezone", "UTC")
+
+    start_ts_sec = None
+    end_ts_sec = None
+    if start_date or end_date:
+        from backend.app.core.date_utils import validate_date_range
+        try:
+            s_dt, e_dt = validate_date_range(start_date or "1970-01-01", end_date or datetime.now(timezone.utc).strftime("%Y-%m-%d"), tz_name=tz_name)
+            start_ts_sec = s_dt.timestamp()
+            end_ts_sec = e_dt.timestamp()
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+
+    try:
+        from backend.app.ml.canary_router import canary_router
+        _, route_info = canary_router.get_pipeline_for_user(user_id)
+        user_model_version = route_info.get("model_version")
+    except Exception:
+        user_model_version = model_registry.get_active_version()
+
+    items, total_count = user_email_cache.query_emails(
+        user_id=user_id,
+        priority=priority,
+        search=search,
+        page=page,
+        page_size=page_size,
+        sort_order=sort,
+        action_required=None,
+        model_version=user_model_version if analyzed is True else None,
+        start_ts=start_ts_sec,
+        end_ts=end_ts_sec,
+        is_analyzed=analyzed
+    )
+
+    total_pages = max(1, (total_count + page_size - 1) // page_size) if total_count > 0 else 1
+
+    return {
+        "status": "success",
+        "data": {
+            "items": items,
+            "pagination": {
+                "page": page,
+                "page_size": page_size,
+                "total_items": total_count,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        }
+    }
+
+
+
+
+# -----------------------------------------------------------------------------
 # Classified Emails Query & Display Pagination
 # -----------------------------------------------------------------------------
 

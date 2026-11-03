@@ -33,14 +33,13 @@ TOKEN_FILE = (
 MODEL_PATH = os.path.join(BASE_DIR, "dataset", "models", "tfidf_logistic_baseline.joblib")
 TEST_CSV_PATH = os.path.join(BASE_DIR, "dataset", "processed", "test.csv")
 
-# Streamlit frontend URL & allowed origins
-STREAMLIT_APP_URL = os.getenv("STREAMLIT_APP_URL", "http://localhost:8501").strip().rstrip("/")
-FRONTEND_URL = os.getenv("FRONTEND_URL") or STREAMLIT_APP_URL
+# React frontend URL & allowed origins
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://mail-mind-ten-chi.vercel.app").strip().rstrip("/")
 
 # Gmail Read-Only OAuth Scope
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
-# Base CORS allowed origins (Local development + Streamlit/Vite defaults + custom origins)
+# Base CORS allowed origins (Local development + React/Vite defaults + custom origins)
 _DEFAULT_ORIGINS: List[str] = [
     "http://127.0.0.1:8501",
     "http://localhost:8501",

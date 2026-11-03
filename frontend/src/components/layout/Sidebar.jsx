@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Zap, X, Settings, RefreshCw, RefreshCcw, LogOut, ShieldCheck, User, Sun, Moon } from 'lucide-react';
+import { Mail, Zap, History, X, Settings, RefreshCw, RefreshCcw, LogOut, ShieldCheck, User, Sun, Moon } from 'lucide-react';
 import { MailMindLogo } from '../brand/MailMindLogo';
 
 function SidebarComponent({
@@ -37,10 +37,17 @@ function SidebarComponent({
     },
     {
       key: 'ALL',
-      label: 'All Mail',
+      label: 'Recent Mail',
       icon: <Mail size={17} />,
       count: totalCount || 0,
-      tooltip: `${(totalCount || 0).toLocaleString()} synchronized messages in mailbox`,
+      tooltip: `${(totalCount || 0).toLocaleString()} emails in active analysis period`,
+    },
+    {
+      key: 'HISTORY',
+      label: 'All History',
+      icon: <History size={17} />,
+      count: stats?.total_emails || totalCount || 0,
+      tooltip: 'Browse all older synchronized messages with date filtering',
     },
   ];
 

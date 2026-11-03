@@ -10,6 +10,14 @@ import {
   snoozeAction,
   unsnoozeAction,
   fetchActionQueue,
+  fetchAnalysisConfig,
+  updateAnalysisConfig,
+  fetchAnalysisSummary,
+  startIncrementalAnalysis,
+  fetchAnalysisStatus,
+  fetchRecentEmails,
+  fetchHistoryEmails,
+  fetchAttentionActions,
 } from '../services/api';
 
 export function useEmails(isAuthenticated = false, user = null) {
@@ -37,6 +45,50 @@ export function useEmails(isAuthenticated = false, user = null) {
   const [isShowingCached, setIsShowingCached] = useState(false);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [cachedTimestamp, setCachedTimestamp] = useState(null);
+
+  // Analysis Period & Incremental Processing State
+  const [analysisPeriod, setAnalysisPeriod] = useState(() => {
+    try {
+      return localStorage.getItem('mailmind_analysis_period') || 'last_3_months';
+    } catch {
+      return 'last_3_months';
+    }
+  });
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    try {
+      return localStorage.getItem('mailmind_custom_start') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => {
+    try {
+      return localStorage.getItem('mailmind_custom_end') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [analysisSummary, setAnalysisSummary] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const analysisPollTimerRef = useRef(null);
+
+  // History Mailbox State
+  const [historyEmails, setHistoryEmails] = useState([]);
+  const [historyPagination, setHistoryPagination] = useState({
+    page: 1,
+    page_size: 50,
+    total_items: 0,
+    total_pages: 1,
+    has_next: false,
+    has_prev: false,
+  });
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyFilter, setHistoryFilterState] = useState({
+    startDate: '',
+    endDate: '',
+    query: '',
+    analyzedOnly: false,
+  });
 
   // Default to Needs Attention for productivity, with preference fallback
   const [activeFilter, setActiveFilterState] = useState(() => {
@@ -585,6 +637,130 @@ export function useEmails(isAuthenticated = false, user = null) {
     }
   }, [loadActionQueue]);
 
+  // Load analysis configuration and summary from backend
+  const loadAnalysisConfigAndSummary = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const [cfgRes, sumRes] = await Promise.all([
+        fetchAnalysisConfig().catch(() => null),
+        fetchAnalysisSummary().catch(() => null),
+      ]);
+      if (cfgRes?.data?.period) {
+        setAnalysisPeriod(cfgRes.data.period);
+        setCustomStartDate(cfgRes.data.custom_start_date || '');
+        setCustomEndDate(cfgRes.data.custom_end_date || '');
+      }
+      if (sumRes?.data) {
+        setAnalysisSummary(sumRes.data);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch analysis config/summary:', e);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadAnalysisConfigAndSummary();
+    }
+  }, [isAuthenticated, loadAnalysisConfigAndSummary]);
+
+  // Handle changing analysis period
+  const changeAnalysisPeriod = useCallback(async (newPeriod, newCustomStart, newCustomEnd) => {
+    if (!isAuthenticated) return;
+    setAnalysisPeriod(newPeriod);
+    if (newCustomStart !== undefined) setCustomStartDate(newCustomStart);
+    if (newCustomEnd !== undefined) setCustomEndDate(newCustomEnd);
+    try {
+      localStorage.setItem('mailmind_analysis_period', newPeriod);
+      if (newCustomStart) localStorage.setItem('mailmind_custom_start', newCustomStart);
+      if (newCustomEnd) localStorage.setItem('mailmind_custom_end', newCustomEnd);
+    } catch {}
+
+    setIsAnalyzing(true);
+    try {
+      await updateAnalysisConfig({
+        period: newPeriod,
+        custom_start_date: newCustomStart,
+        custom_end_date: newCustomEnd,
+      });
+
+      await startIncrementalAnalysis({
+        period: newPeriod,
+        custom_start_date: newCustomStart,
+        custom_end_date: newCustomEnd,
+      });
+
+      if (analysisPollTimerRef.current) clearInterval(analysisPollTimerRef.current);
+      analysisPollTimerRef.current = setInterval(async () => {
+        try {
+          const statusRes = await fetchAnalysisStatus();
+          if (statusRes?.data) {
+            setAnalysisSummary(statusRes.data);
+            if (statusRes.data.status === 'completed' || statusRes.data.status === 'failed') {
+              clearInterval(analysisPollTimerRef.current);
+              analysisPollTimerRef.current = null;
+              setIsAnalyzing(false);
+              loadDataRef.current();
+            }
+          }
+        } catch {
+          clearInterval(analysisPollTimerRef.current);
+          analysisPollTimerRef.current = null;
+          setIsAnalyzing(false);
+        }
+      }, 1500);
+
+      loadDataRef.current();
+    } catch (err) {
+      console.error('Error changing analysis period:', err);
+      setIsAnalyzing(false);
+    }
+  }, [isAuthenticated]);
+
+  // History Mailbox Loader
+  const loadHistoryData = useCallback(async (customPage, customFilters) => {
+    if (!isAuthenticated) return;
+    const pToUse = customPage !== undefined ? customPage : historyPagination.page;
+    const fToUse = customFilters !== undefined ? customFilters : historyFilter;
+    setHistoryLoading(true);
+    try {
+      const res = await fetchHistoryEmails({
+        page: pToUse,
+        pageSize: 50,
+        query: fToUse.query || '',
+        startDate: fToUse.startDate || '',
+        endDate: fToUse.endDate || '',
+        analyzedOnly: Boolean(fToUse.analyzedOnly),
+      });
+      if (res?.data?.items) {
+        setHistoryEmails(res.data.items);
+        setHistoryPagination(res.data.pagination || {
+          page: pToUse,
+          page_size: 50,
+          total_items: res.data.items.length,
+          total_pages: 1,
+          has_next: false,
+          has_prev: false,
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to load history emails:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [isAuthenticated, historyPagination.page, historyFilter]);
+
+  const setHistoryFilter = useCallback((newFilter) => {
+    setHistoryFilterState((prev) => ({ ...prev, ...newFilter }));
+    loadHistoryData(1, { ...historyFilter, ...newFilter });
+  }, [historyFilter, loadHistoryData]);
+
+  useEffect(() => {
+    if (isAuthenticated && activeFilter === 'HISTORY') {
+      loadHistoryData(1);
+    }
+  }, [isAuthenticated, activeFilter, loadHistoryData]);
+
   const isInitialLoading = isLoading && emails.length === 0;
   const isRefreshing = isLoading && emails.length > 0;
 
@@ -636,5 +812,17 @@ export function useEmails(isAuthenticated = false, user = null) {
     unsnoozeEmail: handleUnsnooze,
     recentlyResolved,
     clearRecentlyResolved: () => setRecentlyResolved(null),
+    analysisPeriod,
+    customStartDate,
+    customEndDate,
+    changeAnalysisPeriod,
+    analysisSummary,
+    isAnalyzing,
+    historyEmails,
+    historyPagination,
+    historyLoading,
+    historyFilter,
+    setHistoryFilter,
+    loadHistoryData,
   };
 }

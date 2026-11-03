@@ -52,6 +52,12 @@ export function AppShell({
         onToggleTheme={onToggleTheme}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onToggleMobileMenu={() => setIsSidebarOpenMobile(!isSidebarOpenMobile)}
+        analysisPeriod={emailsHook.analysisPeriod}
+        customStartDate={emailsHook.customStartDate}
+        customEndDate={emailsHook.customEndDate}
+        onChangePeriod={emailsHook.changeAnalysisPeriod}
+        analysisSummary={emailsHook.analysisSummary}
+        isAnalyzing={emailsHook.isAnalyzing}
       />
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>

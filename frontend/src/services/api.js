@@ -312,3 +312,123 @@ export async function fetchActionSummary(thresholdDays = 8.0) {
   return res.json();
 }
 
+
+// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Date-Based Analysis & Multi-View Mailbox Endpoints
+// -----------------------------------------------------------------------------
+
+export async function fetchAnalysisConfig() {
+  const res = await apiFetch('/api/analysis/config');
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Authentication required');
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to fetch analysis config: HTTP ' + res.status));
+  }
+  return res.json();
+}
+
+export async function updateAnalysisConfig({ period, custom_start_date, custom_end_date, timezone } = {}) {
+  const payload = {
+    period,
+    ...(custom_start_date ? { custom_start_date } : {}),
+    ...(custom_end_date ? { custom_end_date } : {}),
+    ...(timezone ? { timezone } : {}),
+  };
+  const res = await apiFetch('/api/analysis/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to update analysis config: HTTP ' + res.status));
+  }
+  return res.json();
+}
+
+export async function fetchAnalysisSummary() {
+  const res = await apiFetch('/api/analysis/summary');
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Authentication required');
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to fetch analysis summary: HTTP ' + res.status));
+  }
+  return res.json();
+}
+
+export async function startIncrementalAnalysis({ period, custom_start_date, custom_end_date, force_rescan = false } = {}) {
+  const payload = {
+    ...(period ? { period } : {}),
+    ...(custom_start_date ? { custom_start_date } : {}),
+    ...(custom_end_date ? { custom_end_date } : {}),
+    force_rescan,
+  };
+  const res = await apiFetch('/api/analysis/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to start analysis: HTTP ' + res.status));
+  }
+  return res.json();
+}
+
+export async function fetchAnalysisStatus() {
+  const res = await apiFetch('/api/analysis/status');
+  if (!res.ok) {
+    if (res.status === 401) throw new Error('Authentication required');
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to fetch analysis status: HTTP ' + res.status));
+  }
+  return res.json();
+}
+
+export async function fetchRecentEmails({ page = 1, pageSize = 50, priority = '', query = '', sortBy = 'date_desc' } = {}) {
+  const params = new URLSearchParams();
+  if (page) params.append('page', String(page));
+  if (pageSize) params.append('page_size', String(pageSize));
+  if (priority && priority !== 'ALL') params.append('priority', priority);
+  if (query) params.append('query', query);
+  if (sortBy) params.append('sort_by', sortBy);
+
+  const res = await apiFetch('/api/emails/recent?' + params.toString());
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to fetch recent emails: HTTP ' + res.status));
+  }
+  return res.json();
+}
+
+export async function fetchHistoryEmails({ page = 1, pageSize = 50, query = '', startDate = '', endDate = '', analyzedOnly = false, sortBy = 'date_desc' } = {}) {
+  const params = new URLSearchParams();
+  if (page) params.append('page', String(page));
+  if (pageSize) params.append('page_size', String(pageSize));
+  if (query) params.append('query', query);
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
+  if (analyzedOnly) params.append('analyzed_only', 'true');
+  if (sortBy) params.append('sort_by', sortBy);
+
+  const res = await apiFetch('/api/emails/history?' + params.toString());
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to fetch historical emails: HTTP ' + res.status));
+  }
+  return res.json();
+}
+
+export async function fetchAttentionActions({ status = 'pending', thresholdDays = 8.0 } = {}) {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  if (thresholdDays) params.append('threshold_days', String(thresholdDays));
+
+  const res = await apiFetch('/api/actions/attention?' + params.toString());
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.message || ('Failed to fetch attention actions: HTTP ' + res.status));
+  }
+  return res.json();
+}

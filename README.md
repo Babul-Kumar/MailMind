@@ -6,16 +6,16 @@
 
 [![Live Frontend](https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://mail-mind-ten-chi.vercel.app)
 [![Live Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://mailmind-api-xzu8.onrender.com)
-[![Pytest Suite](https://img.shields.io/badge/Tests-659%20Passed-success?style=for-the-badge&logo=pytest&logoColor=white)](reports/TEST_RESULTS.md)
+[![Pytest Suite](https://img.shields.io/badge/Tests-682%20Passed-success?style=for-the-badge&logo=pytest&logoColor=white)](reports/TEST_RESULTS.md)
 [![Frontend Tests](https://img.shields.io/badge/Node%20Tests-14%20Passed-success?style=for-the-badge&logo=nodedotjs&logoColor=white)](reports/TEST_RESULTS.md)
 [![Production Model](https://img.shields.io/badge/ML%20Model-priority--v5.1-8A2BE2?style=for-the-badge&logo=scikitlearn&logoColor=white)](dataset/models/priority-v5.1-candidate/model.joblib)
 [![OAuth Scope](https://img.shields.io/badge/OAuth%20Scope-gmail.readonly-F4B400?style=for-the-badge&logo=gmail&logoColor=white)](https://developers.google.com/gmail/api/auth/scopes)
 
 <p align="center">
-  <b>Enterprise-grade email triage engine combining frozen high-dimensional NLP classification with real-time dynamic priority aging, deadline extraction, and sub-millisecond local SQLite caching.</b>
+  <b>Enterprise-grade email triage engine combining frozen high-dimensional NLP classification with date-scoped incremental analysis, dynamic priority aging, deadline extraction, and sub-millisecond local SQLite caching.</b>
 </p>
 
-[Live Application](https://mail-mind-ten-chi.vercel.app) • [Interactive API Docs](https://mailmind-api-xzu8.onrender.com/docs) • [Master Notebook](index.ipynb) • [Architecture Guide](docs/architecture.md) • [Model Card](docs/model_card.md)
+[Live Application](https://mail-mind-ten-chi.vercel.app) • [Interactive API Docs](https://mailmind-api-xzu8.onrender.com/docs) • [Master Notebook](index.ipynb) • [Architecture Guide](docs/architecture.md) • [Date Analysis Report](docs/date_analysis.md) • [Model Card](docs/model_card.md) • [Deployment Runbook](docs/deployment.md)
 
 </div>
 
@@ -26,8 +26,13 @@
 **MailMind** is a production-grade AI email triage platform designed to solve notification fatigue and operational triage bottlenecks. Connecting securely to Gmail via read-only OAuth 2.0 (`gmail.readonly`), MailMind analyzes thousands of incoming messages in real time, classifies each into standardized operational priority tiers (**P1–P4**), dynamically ages priorities based on real-world deadlines, attributes interpretable feature explanations, and surfaces actionable items in a persistent **Smart Action Queue**.
 
 ### Core Architectural Principles
-- **Strictly Frozen ML Invariance:** The production classification model is version-controlled and frozen (`priority-v5.1`), preventing runtime model drift or unvetted parameter corruption.
-- **Dynamic Priority-Aging Engine:** Time-sensitive emails automatically age: expired OTPs and passed deadlines immediately leave critical active views, and emails without explicit deadlines automatically demote from P1 to P2 after 7 days from their original received timestamp.
+- **Strictly Frozen ML Invariance:** The production classification model is version-controlled and frozen (`priority-v5.1`, SHA-256: `8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06`), preventing runtime model drift or unvetted parameter corruption.
+- **Date-Scoped Incremental Analysis:** Users select their analysis period (`last_3_months` by default, `this_month`, `last_1_year`, `all_time`, or `custom`). When switching periods, previously analyzed emails are reused from cache with **zero redundant ML inference**, and newly discovered emails are analyzed incrementally.
+- **Multi-View Mailbox Separation:**
+  - **Recent Mail:** Displays emails strictly within the active analysis window with priority filtering (P1–P4), search, and pagination.
+  - **All History:** Provides unbounded access to older synchronized mailbox messages with date range filters, search, and clear visual `Unanalyzed` status badges.
+  - **Needs Attention:** Date-invariant smart action queue where actionable tasks, upcoming deadlines, and unresolved security incidents remain permanently visible regardless of the active date window.
+- **Dynamic Priority-Aging Engine:** Time-sensitive emails automatically age: expired OTPs (10-minute validity) and passed deadlines immediately leave critical active views, and emails without explicit deadlines automatically demote from P1 to P2 after 7 days from their original received timestamp.
 - **Decoupled Actionability Architecture:** Priority classification (statistical importance) is decoupled from action requirements. Routine informational announcements (P3) containing critical tasks (e.g. document download or hall ticket) surface in *Needs Attention* without altering the statistical priority model.
 - **Sub-Millisecond Multi-Tier Persistence:** Combines an in-memory bounded LRU cache (capped at 500 items per user) with an indexed SQLite WAL store (`(user_id, message_id, model_version)`), supporting 50,000+ emails per user with a baseline memory footprint of $< 105$ MB RAM.
 - **Privacy & Least Privilege:** Authenticates solely through Gmail read-only permissions; all authentication tokens remain protected via secure, HTTP-only, SameSite cookies with zero client-side token exposure.
@@ -77,7 +82,7 @@ Incoming correspondence is mapped into four operational tiers grounded in urgenc
 flowchart TD
     subgraph Client ["Client Layer (Vercel Edge CDN)"]
         Browser["User Browser"]
-        ReactApp["React 18 + Vite SPA<br/>(Tailwind CSS & Lucide)"]
+        ReactApp["React 18 + Vite SPA<br/>(Tailwind CSS & Lucide Icons)"]
         Browser <--> ReactApp
     end
 
@@ -86,14 +91,16 @@ flowchart TD
         Handoff["Atomic Code Exchange<br/>(Single-Use, 60s TTL)"]
         ReactApp -->|1. Sign in with Google| GoogleAuth
         GoogleAuth -->|2. Auth Code Redirect| Handoff
-        Handoff -->|3. Set HTTP-Only Cookie| Browser
+        Handoff -->|3. Set First-Party Cookie| Browser
     end
 
     subgraph Backend ["FastAPI Backend (Render Cloud Platform)"]
         API["FastAPI REST Application<br/>(backend/app/main.py)"]
         SessionMgr["Session Manager<br/>(Path-Traversal Hardened)"]
-        ScanEngine["Mailbox Sync Engine<br/>(Streaming Batches of 25)"]
+        DateEngine["Date Range Engine<br/>(backend/app/core/date_utils.py)"]
+        ScanEngine["Incremental Sync Engine<br/>(Streaming Batches of 25)"]
         API --> SessionMgr
+        API --> DateEngine
         API --> ScanEngine
     end
 
@@ -111,11 +118,13 @@ flowchart TD
 
     subgraph Storage ["Multi-Tier Isolated Storage"]
         L1Cache["L1 LRU Memory Pool<br/>(Bounded: 500 items/user)"]
-        L2SQLite["L2 SQLite WAL Store<br/>(Indexed Compound PK)"]
-        ActionStore["SQLite Action Store<br/>(Resolve / Snooze / Dismiss)"]
+        L2SQLite["L2 SQLite Store (mailmind_cache.db)<br/>(Compound PK: user_id, message_id)"]
+        JobStore["Job & Preferences Store<br/>(analysis_preferences, analysis_jobs)"]
+        ActionStore["Action Queue Store<br/>(Resolve / Snooze / Dismiss)"]
         
         AgingEngine --> L1Cache
         AgingEngine --> L2SQLite
+        API --> JobStore
         API --> ActionStore
     end
 
@@ -162,30 +171,35 @@ cse472/
 ├── assets/                            # Brand assets (vector logo.svg)
 ├── backend/                           # Production FastAPI application
 │   └── app/
-│       ├── api/                       # REST routes (emails, actions, auth, health, monitoring)
-│       ├── core/                      # Settings, CORS, session manager, cache, action policy
-│       ├── gmail/                     # Read-only Gmail API client, MIME parser, streaming engine
+│       ├── api/                       # REST routes (emails, actions, analysis, auth, health, monitoring)
+│       ├── core/                      # Settings, CORS, session manager, cache, date_utils, action policy
+│       ├── gmail/                     # Read-only Gmail API client, MIME parser, incremental scan engine
 │       ├── ml/                        # Production predictor, feature explainer, canary router
 │       └── schemas/                   # Pydantic domain models & response contracts
 ├── dataset/                           # Version-controlled datasets & models
 │   ├── models/                        # Serialized frozen model artifacts (priority-v5.1)
 │   └── processed/                     # Human-adjudicated splits (train.csv, validation.csv, test.csv)
-├── docs/                              # Architecture specs, runbooks, and oral defense guides
+├── dataset-v3/ ... dataset-v5.1/      # Candidate benchmark iterations & validation splits
+├── docs/                              # Technical documentation, architecture, and runbooks
+│   ├── api_contracts.md               # OpenAPI specification & REST endpoints
 │   ├── architecture.md                # System topology & signal decomposition
-│   ├── deployment.md                  # ASGI configuration & reverse-proxy guidelines
+│   ├── date_analysis.md               # Date-based analysis & incremental processing report
+│   ├── demo_walkthrough.md            # Live demonstration & presentation guide
+│   ├── deployment.md                  # Render (Backend) & Vercel (Frontend) deployment runbook
 │   ├── model_card.md                  # Comprehensive ML governance & performance card
 │   ├── project_summary.md             # End-to-end engineering methodology summary
-│   ├── RENDER_DEPLOYMENT.md           # Cloud deployment runbook for Render
+│   ├── rollback.md                    # Production rollback & disaster recovery SOP
 │   ├── security.md                    # Threat model & least-privilege matrix
 │   └── viva_questions.md              # Technical defense & examination questions
-├── frontend/                          # React 18 + Vite + Tailwind CSS Single-Page Application
-│   ├── src/                           # Modern React components, hooks, and API client
+├── frontend/                          # Pure React 18 + Vite + Tailwind CSS Single-Page Application
+│   ├── src/                           # Modern React components, hooks, views, and API client
 │   └── dist/                          # Production static build bundle
 ├── reports/                           # Quality assurance logs & automated test evidence
-│   ├── QA_REPORT.md                   # Formal Senior QA Audit Report (Release v5.5.0)
+│   ├── audit/                         # Phase audits (Date analysis, data model, implementation plan)
 │   ├── BUG_LEDGER.md                  # Production defect remediation ledger (BUG-001..007)
-│   └── TEST_RESULTS.md                # Automated test execution evidence
-├── tests/                             # Automated test suites (659 tests, 100% passing)
+│   ├── QA_REPORT.md                   # Formal Senior QA Audit Report
+│   └── TEST_RESULTS.md                # Automated test execution evidence (682 passed)
+├── tests/                             # Automated test suites (684 tests, 100% runnable pass rate)
 ├── .env.example                       # Documented environment template
 ├── .gitignore                         # Security & environment exclusion rules
 ├── index.ipynb                        # Master Jupyter Notebook (Research, training, validation)
@@ -250,7 +264,7 @@ cd ..
 python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-**Terminal 2 — Frontend Application:**
+**Terminal 2 — React Frontend:**
 ```bash
 cd frontend
 npm run dev
@@ -262,20 +276,24 @@ Navigate your browser to `http://localhost:5173`.
 
 ## 8. REST API Reference
 
-Interactive OpenAPI documentation is hosted locally at `http://127.0.0.1:8000/docs` and on the live backend at `https://mailmind-api-xzu8.onrender.com/docs`.
+Interactive OpenAPI documentation is hosted locally at `http://127.0.0.1:8000/docs` and on the live backend at `https://mailmind-api-xzu8.onrender.com/docs`. Complete contract details are documented in [`docs/api_contracts.md`](docs/api_contracts.md).
 
 ### Key Endpoints
 
 | Method | Endpoint | Description |
 |:---|:---|:---|
 | `GET` | `/api/health` | Comprehensive health probe & model status verification |
-| `GET` | `/api/model-info` | Active production model metadata, features, and SHA-256 hash |
-| `GET` | `/api/emails` | Paginated mailbox emails with dynamic aging & priority filtering |
-| `GET` | `/api/stats` | Fast aggregate mailbox priority distribution & attention counters |
-| `POST` | `/api/scan/start` | Initiates background incremental or complete mailbox scan |
-| `GET` | `/api/scan/status` | Current scan progress, analyzed count, and API pacing telemetry |
-| `POST` | `/api/actions/{email_id}` | Mutates action status (resolve, snooze, dismiss) in Smart Action Queue |
-| `POST` | `/api/feedback` | Records user priority corrections for candidate audit queues |
+| `GET` | `/api/analysis/config` | Retrieves persisted analysis period, custom boundaries, and timezone |
+| `PUT` | `/api/analysis/config` | Updates user analysis period with strict date boundary validation |
+| `GET` | `/api/analysis/summary` | Period-scoped metrics, total eligible, and cache hit reuse counters |
+| `POST` | `/api/analysis/start` | Initiates incremental background ML analysis for selected period |
+| `GET` | `/api/analysis/status` | Real-time progress tracking for incremental analysis jobs |
+| `GET` | `/api/emails/recent` | Recent Mail list strictly within the active analysis period |
+| `GET` | `/api/emails/history` | All History list across all synchronized messages with `is_analyzed` flags |
+| `GET` | `/api/actions/attention` | Date-invariant active action queue (urgent items, deadlines, alerts) |
+| `POST` | `/api/actions/resolve` | Marks actionable email as resolved with optional audit note |
+| `POST` | `/api/actions/snooze` | Snoozes action until specified future timestamp |
+| `POST` | `/api/feedback` | Ingests user priority corrections for candidate audit queues |
 
 ---
 
@@ -289,7 +307,7 @@ pytest tests/ -v
 ```
 
 ```text
-======================= 659 passed, 2 skipped in 45.12s =======================
+======================= 682 passed, 2 skipped in 43.10s =======================
 ```
 
 ```bash
@@ -307,7 +325,7 @@ cd frontend && npm run build
 ```
 
 ```text
-✓ built in 4.99s (dist/index.html, dist/assets/index-DqU7T20P.css, dist/assets/index-B1DOcCy5.js)
+✓ built in 4.95s (dist/index.html, dist/assets/index-DqU7T20P.css, dist/assets/index-DRBpf_Vw.js)
 ```
 
 ---

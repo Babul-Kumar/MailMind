@@ -24,7 +24,12 @@ def setup_security(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
-        errors = exc.errors()
+        errors = []
+        for err in exc.errors():
+            err_dict = dict(err)
+            if "ctx" in err_dict and isinstance(err_dict["ctx"], dict):
+                err_dict["ctx"] = {k: str(v) for k, v in err_dict["ctx"].items()}
+            errors.append(err_dict)
         first_msg = errors[0].get("msg", "Invalid request parameters") if errors else "Validation error"
         return JSONResponse(
             status_code=422,

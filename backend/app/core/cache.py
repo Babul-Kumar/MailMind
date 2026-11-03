@@ -14,6 +14,7 @@ from backend.app.core.config import DATA_DIR
 CACHE_DIR = os.path.join(DATA_DIR, "cache")
 DB_PATH = os.path.join(CACHE_DIR, "mailmind_cache.db")
 MAX_L1_PER_USER = 500  # Strict memory ceiling per user (~2-5MB) preventing OOM on 512MB RAM containers
+ACTIVE_MODEL_HASH = "8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06"
 
 
 def compute_content_hash(subject: Optional[str], snippet: Optional[str], body: Optional[str]) -> str:
@@ -147,6 +148,55 @@ class UserEmailCache:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_attention ON user_email_cache(user_id, needs_attention);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_version ON user_email_cache(user_id, model_version);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_thread ON user_email_cache(user_id, thread_id);")
+
+            # Extended fields for date analysis, provenance, and historical email status
+            cache_cols = [c[1] for c in conn.execute("PRAGMA table_info(user_email_cache);").fetchall()]
+            if "is_analyzed" not in cache_cols:
+                conn.execute("ALTER TABLE user_email_cache ADD COLUMN is_analyzed INTEGER DEFAULT 1;")
+            if "model_artifact_hash" not in cache_cols:
+                conn.execute("ALTER TABLE user_email_cache ADD COLUMN model_artifact_hash TEXT DEFAULT '8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06';")
+
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_date_stale ON user_email_cache(user_id, is_stale, internal_date DESC);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_user_analyzed ON user_email_cache(user_id, is_analyzed, internal_date DESC);")
+
+            # Create analysis_preferences table
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS analysis_preferences (
+                user_id TEXT NOT NULL,
+                gmail_account_id TEXT NOT NULL,
+                selected_period TEXT NOT NULL DEFAULT 'last_3_months',
+                custom_start_date TEXT,
+                custom_end_date TEXT,
+                timezone TEXT NOT NULL DEFAULT 'UTC',
+                updated_at REAL NOT NULL,
+                PRIMARY KEY (user_id, gmail_account_id)
+            );
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_pref_user ON analysis_preferences(user_id);")
+
+            # Create analysis_jobs table
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS analysis_jobs (
+                job_id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                gmail_account_id TEXT NOT NULL,
+                period TEXT NOT NULL,
+                start_date TEXT,
+                end_date TEXT,
+                status TEXT NOT NULL,
+                total_eligible INTEGER DEFAULT 0,
+                already_analyzed INTEGER DEFAULT 0,
+                processed_count INTEGER DEFAULT 0,
+                failed_count INTEGER DEFAULT 0,
+                reused_from_cache INTEGER DEFAULT 0,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                completed_at REAL,
+                error TEXT
+            );
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_status ON analysis_jobs(user_id, status);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_created ON analysis_jobs(user_id, created_at DESC);")
             conn.commit()
 
     def _l1_get(self, user_id: str, key: Any) -> Optional[Dict[str, Any]]:
@@ -254,6 +304,8 @@ class UserEmailCache:
                     internal_date = int(now * 1000)
 
                 item_copy = dict(item)
+                item_copy["id"] = mid
+                item_copy["email_id"] = mid
                 item_copy["_cached_at"] = now
                 item_copy["content_hash"] = c_hash
                 item_copy["model_version"] = model_ver
@@ -265,6 +317,9 @@ class UserEmailCache:
                 if "action_evidence" in item:
                     item_copy["action_evidence"] = item["action_evidence"]
 
+                item_copy["is_analyzed"] = True
+                item_copy["model_artifact_hash"] = ACTIVE_MODEL_HASH
+
                 self._l1_put(user_id, (mid, model_ver), item_copy)
                 if model_ver == active_ver or not self._l1_get(user_id, mid):
                     self._l1_put(user_id, mid, item_copy)
@@ -275,7 +330,7 @@ class UserEmailCache:
                     item.get("sender", ""), item.get("recipients", ""),
                     subject, snippet, body, c_hash, model_ver, priority,
                     action_req, deadline_det, deadline_disp, needs_att,
-                    ref_app, confidence, topic, data_json, now, 0
+                    ref_app, confidence, topic, data_json, now, 0, 1, ACTIVE_MODEL_HASH
                 ))
 
         if not rows:
@@ -290,10 +345,74 @@ class UserEmailCache:
                     content_hash, model_version, predicted_priority,
                     action_required, deadline_detected, deadline_display,
                     needs_attention, refinement_applied, confidence, topic,
-                    data_json, analyzed_at, is_stale
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    data_json, analyzed_at, is_stale, is_analyzed, model_artifact_hash
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, rows)
             conn.commit()
+
+    def store_raw_history_batch(self, user_id: str, items: List[Dict[str, Any]]):
+        """Stores synchronized email headers/metadata into cache without running ML prediction."""
+        if not user_id or not items:
+            return
+        now = time.time()
+        rows = []
+        with self._lock:
+            conn = self._get_connection()
+            item_mids = [it.get("email_id") or it.get("id") or it.get("message_id") for it in items if (it.get("email_id") or it.get("id") or it.get("message_id"))]
+            analyzed_mids = set()
+            if item_mids:
+                for chunk_idx in range(0, len(item_mids), 500):
+                    chunk = item_mids[chunk_idx:chunk_idx + 500]
+                    placeholders = ",".join("?" for _ in chunk)
+                    cur = conn.execute(
+                        f"SELECT message_id FROM user_email_cache WHERE user_id = ? AND message_id IN ({placeholders}) AND is_analyzed = 1",
+                        [user_id] + chunk
+                    )
+                    analyzed_mids.update(r[0] for r in cur.fetchall())
+
+            for item in items:
+                mid = item.get("email_id") or item.get("id") or item.get("message_id") or ""
+                if not mid or mid in analyzed_mids:
+                    continue
+                subject = item.get("subject", "")
+                snippet = item.get("snippet", "")
+                body = item.get("body", "")
+                c_hash = item.get("content_hash") or compute_content_hash(subject, snippet, body)
+                thread_id = item.get("thread_id", "")
+                date_str = item.get("date", "")
+                internal_date = item.get("internal_date") or int(now * 1000)
+
+                item_copy = dict(item)
+                item_copy["id"] = mid
+                item_copy["email_id"] = mid
+                item_copy["_cached_at"] = now
+                item_copy["content_hash"] = c_hash
+                item_copy["model_version"] = "none"
+                item_copy["thread_id"] = thread_id
+                item_copy["is_analyzed"] = False
+                item_copy["predicted_priority"] = None
+                item_copy["final_priority"] = None
+
+                data_json = json.dumps(item_copy)
+                rows.append((
+                    user_id, mid, thread_id, int(internal_date), date_str,
+                    item.get("sender", ""), item.get("recipients", ""),
+                    subject, snippet, body, c_hash, "none", None,
+                    0, 0, None, 0, 0, 0.0, "other", data_json, None, 0, 0, None
+                ))
+
+            if rows:
+                conn.executemany("""
+                    INSERT OR IGNORE INTO user_email_cache (
+                        user_id, message_id, thread_id, internal_date, date_str,
+                        sender, recipients, subject, snippet, body,
+                        content_hash, model_version, predicted_priority,
+                        action_required, deadline_detected, deadline_display,
+                        needs_attention, refinement_applied, confidence, topic,
+                        data_json, analyzed_at, is_stale, is_analyzed, model_artifact_hash
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, rows)
+                conn.commit()
 
     def get_batch(
         self,
@@ -413,13 +532,15 @@ class UserEmailCache:
         return {r["message_id"] for r in cur.fetchall()}
 
     def clear_user(self, user_id: str):
-        """Clears all cached emails for a specific user."""
+        """Clears all cached emails, preferences, and jobs for a specific user."""
         if not user_id:
             return
         with self._lock:
             self._mem_cache.pop(user_id, None)
             conn = self._get_connection()
             conn.execute("DELETE FROM user_email_cache WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM analysis_preferences WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM analysis_jobs WHERE user_id = ?", (user_id,))
             conn.commit()
 
     def clear_user_cache(self, user_id: str):
@@ -478,9 +599,12 @@ class UserEmailCache:
         sort_order: str = "desc",
         action_required: Optional[bool] = None,
         model_version: Optional[str] = None,
-        now_ts: Optional[float] = None
+        now_ts: Optional[float] = None,
+        start_ts: Optional[float] = None,
+        end_ts: Optional[float] = None,
+        is_analyzed: Optional[bool] = None
     ) -> Tuple[List[Dict[str, Any]], int]:
-        """Queries cached emails with streaming pagination and dynamic priority aging."""
+        """Queries cached emails with streaming pagination, date-range bounding, and dynamic priority aging."""
         if not user_id:
             return [], 0
 
@@ -496,6 +620,21 @@ class UserEmailCache:
         if model_version:
             where_clauses.append("model_version = ?")
             params.append(model_version)
+
+        if start_ts is not None:
+            s_ms = int(start_ts if start_ts > 1e11 else start_ts * 1000)
+            where_clauses.append("internal_date >= ?")
+            params.append(s_ms)
+
+        if end_ts is not None:
+            e_ms = int(end_ts if end_ts > 1e11 else end_ts * 1000)
+            where_clauses.append("internal_date <= ?")
+            params.append(e_ms)
+
+        if is_analyzed is True:
+            where_clauses.append("(is_analyzed = 1 OR (is_analyzed IS NULL AND predicted_priority IS NOT NULL))")
+        elif is_analyzed is False:
+            where_clauses.append("(is_analyzed = 0 OR (is_analyzed IS NULL AND predicted_priority IS NULL))")
 
         target_priority = None
         if priority and priority.strip():
@@ -525,7 +664,7 @@ class UserEmailCache:
         order_dir = "ASC" if sort_order.lower() == "asc" else "DESC"
 
         query_sql = f"""
-            SELECT data_json, thread_id, predicted_priority
+            SELECT data_json, message_id, thread_id, predicted_priority, is_analyzed
             FROM user_email_cache
             WHERE {where_sql}
             ORDER BY internal_date {order_dir}, analyzed_at {order_dir}, message_id {order_dir}
@@ -538,6 +677,24 @@ class UserEmailCache:
                 em = json.loads(r["data_json"])
                 if not em.get("thread_id") and r["thread_id"]:
                     em["thread_id"] = r["thread_id"]
+
+                mid = em.get("id") or em.get("email_id") or em.get("message_id") or r["message_id"]
+                em["id"] = mid
+                em["email_id"] = mid
+
+                raw_is_analyzed = r["is_analyzed"] if "is_analyzed" in r.keys() else 1
+                if raw_is_analyzed == 0 or (not em.get("predicted_priority") and not r["predicted_priority"]):
+                    em["is_analyzed"] = False
+                    em["original_priority"] = None
+                    em["effective_priority"] = None
+                    em["final_priority"] = None
+                    em["action_status"] = None
+                    if target_priority:
+                        continue
+                    all_candidates.append(em)
+                    continue
+
+                em["is_analyzed"] = True
                 orig_p = em.get("original_priority") or em.get("model_priority") or r["predicted_priority"] or em.get("final_priority") or em.get("predicted_priority") or "P4"
                 em["original_priority"] = orig_p
                 aging = evaluate_priority_aging(em, now_ts=now_ts)
@@ -567,11 +724,17 @@ class UserEmailCache:
         offset = max(0, (page - 1) * page_size)
         return all_candidates[offset : offset + page_size], total_count
 
-    def get_mailbox_stats(self, user_id: str, model_version: Optional[str] = None) -> Dict[str, Any]:
+    def get_mailbox_stats(
+        self,
+        user_id: str,
+        model_version: Optional[str] = None,
+        start_ts: Optional[float] = None,
+        end_ts: Optional[float] = None
+    ) -> Dict[str, Any]:
         """
         Fast aggregate mailbox stats.
-        Uses direct SQL for totals, P3, and P4. Only runs aging evaluation on P1/P2 items,
-        reducing memory allocations by >90%.
+        Supports date-range bounding and uses direct SQL for totals, P3, and P4.
+        Only runs aging evaluation on P1/P2 items, reducing memory allocations by >90%.
         """
         if not user_id:
             return self._empty_stats()
@@ -582,6 +745,16 @@ class UserEmailCache:
         if model_version:
             where_sql += " AND model_version = ?"
             params.append(model_version)
+
+        if start_ts is not None:
+            s_ms = int(start_ts if start_ts > 1e11 else start_ts * 1000)
+            where_sql += " AND internal_date >= ?"
+            params.append(s_ms)
+
+        if end_ts is not None:
+            e_ms = int(end_ts if end_ts > 1e11 else end_ts * 1000)
+            where_sql += " AND internal_date <= ?"
+            params.append(e_ms)
 
         cur = conn.execute(f"""
             SELECT
@@ -665,6 +838,181 @@ class UserEmailCache:
             affected = cur.rowcount
             conn.commit()
             return affected
+
+    def get_analysis_preference(self, user_id: str, gmail_account_id: Optional[str] = None) -> Dict[str, Any]:
+        """Returns the user's saved analysis preference or default 'last_3_months'."""
+        if not user_id:
+            return {
+                "period": "last_3_months",
+                "timezone": "UTC",
+                "custom_start_date": None,
+                "custom_end_date": None,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+        conn = self._get_connection()
+        if gmail_account_id:
+            cur = conn.execute(
+                "SELECT selected_period, custom_start_date, custom_end_date, timezone, updated_at FROM analysis_preferences WHERE user_id = ? AND gmail_account_id = ?",
+                (user_id, gmail_account_id)
+            )
+        else:
+            cur = conn.execute(
+                "SELECT selected_period, custom_start_date, custom_end_date, timezone, updated_at FROM analysis_preferences WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1",
+                (user_id,)
+            )
+        row = cur.fetchone()
+        if row:
+            up_str = datetime.fromtimestamp(row["updated_at"], timezone.utc).isoformat() if row["updated_at"] else datetime.now(timezone.utc).isoformat()
+            return {
+                "period": row["selected_period"] or "last_3_months",
+                "timezone": row["timezone"] or "UTC",
+                "custom_start_date": row["custom_start_date"],
+                "custom_end_date": row["custom_end_date"],
+                "updated_at": up_str
+            }
+        return {
+            "period": "last_3_months",
+            "timezone": "UTC",
+            "custom_start_date": None,
+            "custom_end_date": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+
+    def set_analysis_preference(
+        self,
+        user_id: str,
+        gmail_account_id: str,
+        period: str,
+        timezone_str: str = "UTC",
+        custom_start_date: Optional[str] = None,
+        custom_end_date: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Saves or updates user date analysis preference."""
+        now = time.time()
+        with self._lock:
+            conn = self._get_connection()
+            conn.execute("""
+                INSERT OR REPLACE INTO analysis_preferences (
+                    user_id, gmail_account_id, selected_period, custom_start_date, custom_end_date, timezone, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, gmail_account_id, period, custom_start_date, custom_end_date, timezone_str, now))
+            conn.commit()
+
+        return {
+            "period": period,
+            "timezone": timezone_str,
+            "custom_start_date": custom_start_date,
+            "custom_end_date": custom_end_date,
+            "updated_at": datetime.fromtimestamp(now, timezone.utc).isoformat()
+        }
+
+    def create_or_get_analysis_job(
+        self,
+        user_id: str,
+        gmail_account_id: str,
+        period: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        total_eligible: int = 0,
+        already_analyzed: int = 0,
+        reused_from_cache: int = 0
+    ) -> Tuple[Dict[str, Any], bool]:
+        """
+        Idempotently returns an active job if one is already running for this user and period/scope,
+        or creates a new job record.
+        Returns (job_dict, is_new).
+        """
+        import uuid
+        now = time.time()
+        with self._lock:
+            conn = self._get_connection()
+            cur = conn.execute(
+                "SELECT * FROM analysis_jobs WHERE user_id = ? AND period = ? AND status IN ('queued', 'running') ORDER BY created_at DESC LIMIT 1",
+                (user_id, period)
+            )
+            row = cur.fetchone()
+            if row:
+                return dict(row), False
+
+            job_id = f"job_{uuid.uuid4().hex[:12]}"
+            status = "completed" if total_eligible > 0 and already_analyzed >= total_eligible else "running"
+            completed_at = now if status == "completed" else None
+
+            conn.execute("""
+                INSERT INTO analysis_jobs (
+                    job_id, user_id, gmail_account_id, period, start_date, end_date,
+                    status, total_eligible, already_analyzed, processed_count, failed_count,
+                    reused_from_cache, created_at, updated_at, completed_at, error
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                job_id, user_id, gmail_account_id, period, start_date, end_date,
+                status, total_eligible, already_analyzed, already_analyzed, 0,
+                reused_from_cache, now, now, completed_at, None
+            ))
+            conn.commit()
+
+            cur = conn.execute("SELECT * FROM analysis_jobs WHERE job_id = ?", (job_id,))
+            return dict(cur.fetchone()), True
+
+    def update_analysis_job(
+        self,
+        job_id: str,
+        status: Optional[str] = None,
+        processed_count: Optional[int] = None,
+        failed_count: Optional[int] = None,
+        already_analyzed: Optional[int] = None,
+        total_eligible: Optional[int] = None,
+        reused_from_cache: Optional[int] = None,
+        error: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Updates job progress and status atomically."""
+        now = time.time()
+        with self._lock:
+            conn = self._get_connection()
+            cur = conn.execute("SELECT * FROM analysis_jobs WHERE job_id = ?", (job_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+
+            new_status = status or row["status"]
+            new_processed = processed_count if processed_count is not None else row["processed_count"]
+            new_failed = failed_count if failed_count is not None else row["failed_count"]
+            new_already = already_analyzed if already_analyzed is not None else row["already_analyzed"]
+            new_total = total_eligible if total_eligible is not None else row["total_eligible"]
+            new_reused = reused_from_cache if reused_from_cache is not None else row["reused_from_cache"]
+            new_error = error if error is not None else row["error"]
+            completed_at = row["completed_at"]
+            if new_status in ("completed", "failed", "cancelled") and not completed_at:
+                completed_at = now
+
+            conn.execute("""
+                UPDATE analysis_jobs
+                SET status = ?, processed_count = ?, failed_count = ?, already_analyzed = ?,
+                    total_eligible = ?, reused_from_cache = ?, error = ?, updated_at = ?, completed_at = ?
+                WHERE job_id = ?
+            """, (
+                new_status, new_processed, new_failed, new_already,
+                new_total, new_reused, new_error, now, completed_at, job_id
+            ))
+            conn.commit()
+
+            cur = conn.execute("SELECT * FROM analysis_jobs WHERE job_id = ?", (job_id,))
+            return dict(cur.fetchone())
+
+    def get_analysis_job(self, job_id: str) -> Optional[Dict[str, Any]]:
+        conn = self._get_connection()
+        cur = conn.execute("SELECT * FROM analysis_jobs WHERE job_id = ?", (job_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+    def get_latest_analysis_job(self, user_id: str) -> Optional[Dict[str, Any]]:
+        conn = self._get_connection()
+        cur = conn.execute(
+            "SELECT * FROM analysis_jobs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1",
+            (user_id,)
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
 
     def _empty_stats(self) -> Dict[str, Any]:
         return {

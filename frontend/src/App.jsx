@@ -199,6 +199,18 @@ export function App() {
           error={emailsHook.error}
           recentlyResolved={emailsHook.recentlyResolved}
           onClearRecentlyResolved={emailsHook.clearRecentlyResolved}
+          analysisPeriod={emailsHook.analysisPeriod}
+          customStartDate={emailsHook.customStartDate}
+          customEndDate={emailsHook.customEndDate}
+          onChangePeriod={emailsHook.changeAnalysisPeriod}
+          analysisSummary={emailsHook.analysisSummary}
+          isAnalyzing={emailsHook.isAnalyzing}
+          historyEmails={emailsHook.historyEmails}
+          historyPagination={emailsHook.historyPagination}
+          historyLoading={emailsHook.historyLoading}
+          historyFilter={emailsHook.historyFilter}
+          setHistoryFilter={emailsHook.setHistoryFilter}
+          loadHistoryData={emailsHook.loadHistoryData}
         />
       )}
     </AppShell>
