@@ -3,40 +3,47 @@
   --accent: #6366f1;
   --accent-hover: #4f46e5;
   --accent-light: rgba(99, 102, 241, 0.12);
+  --accent-glow: rgba(99, 102, 241, 0.28);
   --sparkle-color: #818cf8;
 
-  /* Priority Badges - Sophisticated Productivity Palette */
-  --p1-color: #f43f5e;
-  --p1-bg: rgba(244, 63, 94, 0.08);
-  --p1-border: rgba(244, 63, 94, 0.22);
+  /* Priority Badges - High-Aesthetic Productivity Palette */
+  --p1-color: #ff3366;
+  --p1-bg: rgba(255, 51, 102, 0.10);
+  --p1-border: rgba(255, 51, 102, 0.28);
+  --p1-glow: rgba(255, 51, 102, 0.35);
 
   --p2-color: #f59e0b;
-  --p2-bg: rgba(245, 158, 11, 0.08);
-  --p2-border: rgba(245, 158, 11, 0.22);
+  --p2-bg: rgba(245, 158, 11, 0.10);
+  --p2-border: rgba(245, 158, 11, 0.28);
+  --p2-glow: rgba(245, 158, 11, 0.30);
 
-  --p3-color: #3b82f6;
-  --p3-bg: rgba(59, 130, 246, 0.08);
-  --p3-border: rgba(59, 130, 246, 0.2);
+  --p3-color: #38bdf8;
+  --p3-bg: rgba(56, 189, 248, 0.10);
+  --p3-border: rgba(56, 189, 248, 0.25);
+  --p3-glow: rgba(56, 189, 248, 0.25);
 
-  --p4-color: #64748b;
-  --p4-bg: rgba(100, 116, 139, 0.06);
-  --p4-border: rgba(100, 116, 139, 0.16);
+  --p4-color: #94a3b8;
+  --p4-bg: rgba(148, 163, 184, 0.08);
+  --p4-border: rgba(148, 163, 184, 0.20);
+  --p4-glow: rgba(148, 163, 184, 0.15);
 
   /* Radius & Shadows */
   --radius-xs: 4px;
   --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.15);
-  --shadow-drawer: -6px 0 24px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.18), 0 2px 6px -2px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.28), 0 8px 12px -4px rgba(0, 0, 0, 0.18);
+  --shadow-glow: 0 0 24px rgba(99, 102, 241, 0.25);
+  --shadow-drawer: -8px 0 32px rgba(0, 0, 0, 0.45);
 
   --transition-fast: 0.16s cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-normal: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* Mobile Safe Area & Touch Ergonomics */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -52,41 +59,55 @@
   --mobile-card-pad: 14px;
 }
 
-/* Dark Theme (Default on :root) */
+/* Dark Theme (Default on :root) - Deep Obsidian with Atmospheric Violet/Indigo Tint */
 :root,
 [data-theme="dark"] {
-  --bg-app: #0b0f19;
-  --bg-main: #0b0f19;
-  --bg-surface: #111827;
-  --bg-surface-hover: #1e293b;
-  --bg-surface-selected: #1e2538;
-  --bg-input: #0d1322;
-  --bg-card: #151d30;
-  --border-subtle: #242f48;
-  --border-divider: #1b2337;
+  --bg-app: #080b12;
+  --bg-main: #080b12;
+  --bg-surface: #0f1523;
+  --bg-surface-hover: #162035;
+  --bg-surface-selected: #1a2540;
+  --bg-input: #0a0e19;
+  --bg-card: #121a2c;
+  --bg-card-hover: #17223a;
+  
+  --border-subtle: #1e293b;
+  --border-divider: #151d30;
   --border-focus: #6366f1;
+  --border-glow: rgba(99, 102, 241, 0.35);
+
+  --glass-bg: rgba(15, 21, 35, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.08);
 
   --text-main: #f8fafc;
   --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-muted: #8492a6;
+  --text-dim: #55657e;
 
   --badge-bg: rgba(255, 255, 255, 0.06);
   --badge-text: #cbd5e1;
+
+  --ambient-gradient: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, rgba(8, 11, 18, 0) 55%);
 }
 
-/* Light Theme */
+/* Light Theme - Clean Pearl with Crisp Contrast */
 [data-theme="light"] {
-  --bg-app: #f1f5f9;
-  --bg-main: #f1f5f9;
+  --bg-app: #f4f6fa;
+  --bg-main: #f4f6fa;
   --bg-surface: #ffffff;
-  --bg-surface-hover: #f8fafc;
-  --bg-surface-selected: #eef2ff;
+  --bg-surface-hover: #f1f5f9;
+  --bg-surface-selected: #e0e7ff;
   --bg-input: #ffffff;
   --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  
   --border-subtle: #cbd5e1;
   --border-divider: #e2e8f0;
   --border-focus: #6366f1;
+  --border-glow: rgba(99, 102, 241, 0.25);
+
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.08);
 
   --text-main: #0f172a;
   --text-secondary: #334155;
@@ -95,4 +116,6 @@
 
   --badge-bg: rgba(15, 23, 42, 0.06);
   --badge-text: #334155;
+
+  --ambient-gradient: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, rgba(244, 246, 250, 0) 55%);
 }

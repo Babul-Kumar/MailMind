@@ -5,7 +5,18 @@
 
 @keyframes pulseGlow {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.95); }
+  50% { opacity: 0.6; transform: scale(0.96); }
+}
+
+@keyframes pulseP1 {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.45);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 51, 102, 0);
+    opacity: 0.85;
+  }
 }
 
 @keyframes shimmer {
@@ -19,7 +30,7 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -28,12 +39,34 @@
   to { opacity: 1; }
 }
 
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(99, 102, 241, 0.65));
+  }
+}
+
 .animate-spin {
   animation: spin 0.8s linear infinite;
 }
 
 .animate-pulse {
   animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.animate-pulse-p1 {
+  animation: pulseP1 2.2s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: floatGentle 3s ease-in-out infinite;
 }
 
 .animate-shimmer {
@@ -48,11 +81,11 @@
 }
 
 .animate-slide-in {
-  animation: slideInRight 0.20s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-backdrop-in {
@@ -60,8 +93,8 @@
 }
 
 @keyframes logoPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.62; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(0.98); }
 }
 
 .logo-scanning {
@@ -78,4 +111,3 @@
     scroll-behavior: auto !important;
   }
 }
-

@@ -1,9 +1,42 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { PriorityBadge } from '../priority/PriorityBadge';
 import { formatEmailDate, cleanSenderName, extractSnippet, getDeadlineState } from '../../utils/formatting';
+import { ExternalLink, Eye, Clock, AlertTriangle, Check } from 'lucide-react';
+
+function getSenderInitials(name) {
+  if (!name) return 'M';
+  const clean = name.replace(/<[^>]+>/g, '').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase() || 'M';
+}
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  'linear-gradient(135deg, #ec4899, #f43f5e)',
+  'linear-gradient(135deg, #06b6d4, #3b82f6)',
+  'linear-gradient(135deg, #10b981, #059669)',
+  'linear-gradient(135deg, #f59e0b, #d97706)',
+  'linear-gradient(135deg, #8b5cf6, #d946ef)',
+  'linear-gradient(135deg, #0ea5e9, #2563eb)',
+];
+
+function getAvatarGradient(str) {
+  let hash = 0;
+  for (let i = 0; i < (str || '').length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+}
 
 function EmailRowComponent({ email, isSelected, onClick }) {
+  const [isHovered, setIsHovered] = useState(false);
   const senderDisplay = useMemo(() => cleanSenderName(email.sender), [email.sender]);
+  const senderInitials = useMemo(() => getSenderInitials(senderDisplay), [senderDisplay]);
+  const avatarBg = useMemo(() => getAvatarGradient(email.sender || senderDisplay), [email.sender, senderDisplay]);
   const dateDisplay = useMemo(() => formatEmailDate(email.date), [email.date]);
   const snippet = useMemo(() => extractSnippet(email.body, email.subject), [email.body, email.subject]);
   const priority = email.effective_priority || email.final_priority || email.predicted_priority;
@@ -43,8 +76,8 @@ function EmailRowComponent({ email, isSelected, onClick }) {
         deadlineLabel = deadlineState.label;
         deadlinePillStyle = {
           color: 'var(--p1-color)',
-          bg: 'rgba(239, 68, 68, 0.08)',
-          border: 'rgba(239, 68, 68, 0.22)',
+          bg: 'rgba(255, 51, 102, 0.10)',
+          border: 'rgba(255, 51, 102, 0.28)',
           icon: '⚠',
         };
       }
@@ -67,6 +100,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
     }
   }
 
+  const isP1 = priority === 'P1';
   const isP4 = priority === 'P4';
   const hasActionLine = Boolean(deadlineState || actionRequired);
 
@@ -74,9 +108,16 @@ function EmailRowComponent({ email, isSelected, onClick }) {
     onClick?.(email);
   }, [onClick, email]);
 
+  const handleOpenGmail = (e) => {
+    e.stopPropagation();
+    window.open(`https://mail.google.com/mail/u/0/#all/${email.email_id || ''}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div
       onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           handleClick();
@@ -84,15 +125,37 @@ function EmailRowComponent({ email, isSelected, onClick }) {
       }}
       role="button"
       tabIndex={0}
-      className={`email-row ${isP4 ? 'p4-row' : ''} ${isSelected ? 'is-selected' : ''}`}
+      className={`email-row ${isP1 ? 'p1-row' : ''} ${isP4 ? 'p4-row' : ''} ${isSelected ? 'is-selected' : ''}`}
+      style={{
+        position: 'relative',
+        borderLeft: isP1 ? '3px solid var(--p1-color)' : isSelected ? '3px solid var(--accent)' : '3px solid transparent',
+        backgroundColor: isSelected ? 'var(--bg-surface-selected)' : isHovered ? 'var(--bg-surface-hover)' : 'transparent',
+      }}
     >
-      {/* Mobile Top Row: Sender & Date on one line */}
+      {/* Mobile Top Row */}
       <div className="email-row-mobile-top-line" style={{ display: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
+          <div
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '50%',
+              background: avatarBg,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+          >
+            {senderInitials}
+          </div>
           <PriorityBadge priority={priority} showLabel={false} size="sm" />
           <span
             style={{
-              fontSize: '0.9rem',
+              fontSize: '0.88rem',
               fontWeight: isP4 ? 600 : 700,
               color: isP4 ? 'var(--text-secondary)' : 'var(--text-main)',
               overflow: 'hidden',
@@ -113,11 +176,42 @@ function EmailRowComponent({ email, isSelected, onClick }) {
         <PriorityBadge priority={priority} showLabel={false} size="sm" />
       </div>
 
-      {/* Desktop Column 2: Sender Name */}
+      {/* Desktop Column 2: Sender Avatar */}
+      <div
+        className="email-row-col-avatar"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: '30px',
+            height: '30px',
+            borderRadius: '50%',
+            background: avatarBg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+            letterSpacing: '0.02em',
+            flexShrink: 0,
+          }}
+          title={senderDisplay}
+        >
+          {senderInitials}
+        </div>
+      </div>
+
+      {/* Desktop Column 3: Sender Name */}
       <div
         className="email-row-col-sender"
         style={{
-          fontSize: '0.84rem',
+          fontSize: '0.86rem',
           fontWeight: isP4 ? 500 : 600,
           color: isP4 ? 'var(--text-muted)' : 'var(--text-main)',
           whiteSpace: 'nowrap',
@@ -143,7 +237,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            fontSize: '0.85rem',
+            fontSize: '0.86rem',
             minWidth: 0,
           }}
         >
@@ -156,7 +250,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               flexShrink: 0,
-              maxWidth: '55%',
+              maxWidth: '52%',
             }}
           >
             {email.subject || '(No Subject)'}
@@ -177,7 +271,7 @@ function EmailRowComponent({ email, isSelected, onClick }) {
           </span>
         </div>
 
-        {/* Action + Deadline Status line (Only rendered when meaningful signals exist) */}
+        {/* Action + Deadline Status line */}
         {hasActionLine && (
           <div
             className="email-row-action-line"
@@ -193,8 +287,9 @@ function EmailRowComponent({ email, isSelected, onClick }) {
                   gap: '0.25rem',
                   backgroundColor: deadlinePillStyle.bg,
                   border: `1px solid ${deadlinePillStyle.border}`,
-                  padding: '0.06rem 0.45rem',
+                  padding: '0.08rem 0.5rem',
                   borderRadius: 'var(--radius-xs)',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
                 }}
               >
                 <span>{deadlinePillStyle.icon}</span> {deadlineLabel}
@@ -209,9 +304,9 @@ function EmailRowComponent({ email, isSelected, onClick }) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.25rem',
-                  backgroundColor: email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(244, 63, 94, 0.08)' : 'rgba(99, 102, 241, 0.08)',
-                  border: `1px solid ${email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(244, 63, 94, 0.22)' : 'rgba(99, 102, 241, 0.22)'}`,
-                  padding: '0.06rem 0.45rem',
+                  backgroundColor: email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(255, 51, 102, 0.10)' : 'rgba(99, 102, 241, 0.10)',
+                  border: `1px solid ${email.action_reason === 'Account security action' || email.action_reason === 'Immediate verification required' ? 'rgba(255, 51, 102, 0.28)' : 'rgba(99, 102, 241, 0.28)'}`,
+                  padding: '0.08rem 0.5rem',
                   borderRadius: 'var(--radius-xs)',
                 }}
               >
@@ -222,16 +317,87 @@ function EmailRowComponent({ email, isSelected, onClick }) {
         )}
       </div>
 
-      {/* Desktop Date */}
+      {/* Desktop Column 5: Date OR Quick Action Buttons on Hover */}
       <div
         className="email-row-col-date"
         style={{
-          color: deadlineState ? 'var(--text-dim)' : 'var(--text-muted)',
-          opacity: deadlineState ? 0.6 : 0.85,
-          fontSize: '0.74rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          minWidth: '85px',
         }}
       >
-        {dateDisplay}
+        {isHovered ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleOpenGmail}
+              title="Open message in Gmail"
+              aria-label="Open in Gmail"
+              style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-muted)',
+                padding: '4px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all var(--transition-fast)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-main)';
+                e.currentTarget.style.borderColor = 'var(--accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
+              }}
+            >
+              <ExternalLink size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={handleClick}
+              title="View Priority Intelligence"
+              aria-label="View Intelligence"
+              style={{
+                background: 'var(--accent-light)',
+                border: '1px solid var(--accent)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--accent)',
+                padding: '4px 6px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                transition: 'all var(--transition-fast)',
+              }}
+            >
+              <Eye size={12} />
+              <span>AI</span>
+            </button>
+          </div>
+        ) : (
+          <span
+            style={{
+              color: deadlineState ? 'var(--text-dim)' : 'var(--text-muted)',
+              fontSize: '0.75rem',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {dateDisplay}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -250,3 +416,5 @@ export const EmailRow = React.memo(EmailRowComponent, (prevProps, nextProps) => 
     prevProps.email.deadline_status === nextProps.email.deadline_status
   );
 });
+
+export default EmailRow;

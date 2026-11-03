@@ -127,3 +127,4 @@ main().catch((err) => {
   console.error('\x1b[31m[mailmind error]\x1b[0m Failed to launch development workspace:', err);
   cleanupAndExit(1);
 });
+

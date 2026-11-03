@@ -110,13 +110,13 @@ body.mobile-drawer-open {
 /* Email Row Desktop */
 .email-row {
   display: grid;
-  grid-template-columns: 56px 160px 1fr 75px;
+  grid-template-columns: 46px 36px 155px 1fr 92px;
   align-items: center;
   gap: 0.85rem;
   padding: 0.75rem 1.15rem;
   border-bottom: 1px solid var(--border-divider);
   cursor: pointer;
-  transition: background-color var(--transition-fast), border-left-color var(--transition-fast);
+  transition: all var(--transition-fast);
   user-select: none;
   border-left: 3px solid transparent;
 }
@@ -127,7 +127,16 @@ body.mobile-drawer-open {
 
 .email-row.is-selected {
   background-color: var(--bg-surface-selected);
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--accent) !important;
+}
+
+.email-row.p1-row {
+  border-left: 3px solid var(--p1-color) !important;
+  background-color: rgba(255, 51, 102, 0.02);
+}
+
+.email-row.p1-row:hover {
+  background-color: rgba(255, 51, 102, 0.06) !important;
 }
 
 /* P4 Quiet Visual State: reduced contrast, calmer typography */
@@ -180,7 +189,8 @@ body.mobile-drawer-open {
     width: 100% !important;
   }
 
-  .email-row-col-badge {
+  .email-row-col-badge,
+  .email-row-col-avatar {
     display: none !important;
   }
 
@@ -450,10 +460,24 @@ body.mobile-drawer-open {
 }
 
 .sidebar-nav-btn.is-active {
-  background-color: var(--bg-surface-selected);
+  background: linear-gradient(90deg, var(--bg-surface-selected) 0%, rgba(99, 102, 241, 0.08) 100%);
   color: var(--text-main);
   font-weight: 600;
-  border-color: var(--border-subtle);
+  border-color: rgba(99, 102, 241, 0.28);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  position: relative;
+}
+
+.sidebar-nav-btn.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
 }
 
 /* Mobile TopBar Buttons & Indicators */
@@ -852,9 +876,11 @@ body.mobile-drawer-open {
 
 .scan-status-fill {
   height: 100%;
-  background-color: var(--accent);
+  background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  background-size: 200% 100%;
   border-radius: 99px;
-  transition: width 0.3s ease;
+  transition: width 0.35s ease;
+  animation: shimmer 2s infinite linear;
 }
 
 .scan-status-meta-line {

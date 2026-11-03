@@ -7,7 +7,7 @@ export function SearchBar({ value, onChange, matchCount = null, placeholder = 'S
   return (
     <div className={`searchbar-container ${isFocused ? 'is-focused' : ''}`}>
       <Search
-        size={18}
+        size={17}
         className="searchbar-icon"
       />
       <input
@@ -28,7 +28,7 @@ export function SearchBar({ value, onChange, matchCount = null, placeholder = 'S
           </span>
         )}
 
-        {value && (
+        {value ? (
           <button
             type="button"
             onClick={() => onChange('')}
@@ -36,10 +36,31 @@ export function SearchBar({ value, onChange, matchCount = null, placeholder = 'S
             title="Clear search"
             aria-label="Clear search"
           >
-            <X size={16} />
+            <X size={15} />
           </button>
+        ) : (
+          !isFocused && (
+            <kbd
+              style={{
+                fontSize: '11px',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                backgroundColor: 'var(--bg-surface-hover)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-dim)',
+                fontFamily: 'monospace',
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+              title="Press / to focus search"
+            >
+              /
+            </kbd>
+          )
         )}
       </div>
     </div>
   );
 }
+
+export default SearchBar;

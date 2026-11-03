@@ -136,9 +136,14 @@ export function Inbox({
 
   return (
     <div style={{ width: '100%' }}>
-      {/* Mailbox Intelligence Overview (Only in All Mail) */}
-      {!searchQuery && activeFilter === 'ALL' && (
-        <PrioritySummary emails={allEmails.length ? allEmails : emails} stats={stats} onSelectFilter={onSelectFilter} />
+      {/* Mailbox Intelligence Overview */}
+      {!searchQuery && (
+        <PrioritySummary
+          emails={allEmails.length ? allEmails : emails}
+          stats={stats}
+          onSelectFilter={onSelectFilter}
+          activeFilter={activeFilter}
+        />
       )}
 
       {/* Background Mailbox Scan Notification Card */}
