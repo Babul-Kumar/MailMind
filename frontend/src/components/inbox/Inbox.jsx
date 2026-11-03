@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PrioritySummary } from '../priority/PrioritySummary';
 import { EmailList } from './EmailList';
 import { EmailDetail } from './EmailDetail';
-import { NeedsAttentionQueue } from './NeedsAttentionQueue';
+
 import { HistoryView } from './HistoryView';
 import { PeriodSelector } from './PeriodSelector';
 import { Zap } from 'lucide-react';
@@ -114,10 +114,7 @@ export function Inbox({
   // Title and description for active view
   let viewTitle = 'Recent Mail';
   let viewDescription = '';
-  if (activeFilter === 'NEEDS_ATTENTION') {
-    viewTitle = 'Needs Attention';
-    viewDescription = 'Emails that need action or have an active deadline.';
-  } else if (activeFilter === 'IMPORTANT') {
+  if (activeFilter === 'IMPORTANT') {
     viewTitle = 'Important';
     viewDescription = 'High-importance emails classified by the priority model.';
   } else if (activeFilter === 'P1') {
@@ -342,7 +339,6 @@ export function Inbox({
       {/* Mobile Horizontal Priority Filter Bar */}
       <div className="mobile-priority-bar" role="tablist" aria-label="Filter by priority">
         {[
-          { key: 'NEEDS_ATTENTION', label: 'Needs Attention', count: stats?.needs_attention_count || 0, isAttention: true },
           { key: 'ALL', label: 'All Mail', count: totalCount },
           { key: 'P1', label: 'P1', count: stats?.counts?.P1 || 0, dotColor: 'var(--p1-color)' },
           { key: 'P2', label: 'P2', count: stats?.counts?.P2 || 0, dotColor: 'var(--p2-color)' },
@@ -355,10 +351,7 @@ export function Inbox({
               key={tab.key}
               role="tab"
               aria-selected={isActive}
-              onClick={() => {
-                onToggleFocusMode(false);
-                onSelectFilter(tab.key);
-              }}
+              onClick={() => onSelectFilter(tab.key)}
               className={`mobile-priority-chip ${isActive ? 'is-active' : ''}`}
             >
               {tab.dotColor && (
@@ -377,24 +370,7 @@ export function Inbox({
         })}
       </div>
 
-      {activeFilter === 'NEEDS_ATTENTION' ? (
-        <NeedsAttentionQueue
-          actionQueue={actionQueue}
-          isLoading={isLoading || actionQueueLoading}
-          sortBy={actionSortBy || 'urgent'}
-          onSortChange={onActionSortChange}
-          olderSortBy={olderSortBy || 'oldest'}
-          onOlderSortChange={onOlderSortChange}
-          onSelectEmail={setSelectedEmail}
-          onResolve={onResolve}
-          onUnresolve={onUnresolve}
-          onSnooze={onSnooze}
-          onUnsnooze={onUnsnooze}
-          recentlyResolved={recentlyResolved}
-          onClearRecentlyResolved={onClearRecentlyResolved}
-          onNavigateAllMail={() => onSelectFilter?.('ALL')}
-        />
-      ) : activeFilter === 'HISTORY' ? (
+      {activeFilter === 'HISTORY' ? (
         <HistoryView
           emails={historyEmails}
           pagination={historyPagination}

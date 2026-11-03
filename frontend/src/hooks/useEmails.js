@@ -90,12 +90,13 @@ export function useEmails(isAuthenticated = false, user = null) {
     analyzedOnly: false,
   });
 
-  // Default to Needs Attention for productivity, with preference fallback
+  // Default to ALL for clear priority-based triage
   const [activeFilter, setActiveFilterState] = useState(() => {
     try {
-      return localStorage.getItem('mailmind_preferred_view') || 'NEEDS_ATTENTION';
+      const stored = localStorage.getItem('mailmind_preferred_view');
+      return stored && stored !== 'NEEDS_ATTENTION' ? stored : 'ALL';
     } catch {
-      return 'NEEDS_ATTENTION';
+      return 'ALL';
     }
   });
   const [actionFilter, setActionFilterState] = useState('ALL');
@@ -121,9 +122,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     setActionFilterState('ALL');
     setPage(1);
     try {
-      if (newFilter === 'NEEDS_ATTENTION' || newFilter === 'ALL') {
-        localStorage.setItem('mailmind_preferred_view', newFilter);
-      }
+      localStorage.setItem('mailmind_preferred_view', newFilter);
     } catch {
       // Ignore localStorage write errors in private mode
     }

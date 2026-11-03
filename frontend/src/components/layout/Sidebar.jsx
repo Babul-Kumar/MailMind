@@ -26,16 +26,8 @@ function SidebarComponent({
 
   const mailboxItems = [
     {
-      key: 'NEEDS_ATTENTION',
-      label: 'Needs Attention',
-      icon: <Zap size={17} />,
-      count: effectiveAttentionCount || 0,
-      color: 'var(--accent)',
-      tooltip: 'Emails that require action or have a meaningful deadline.',
-    },
-    {
       key: 'ALL',
-      label: 'Recent Mail',
+      label: 'All Mail',
       icon: <Mail size={17} />,
       count: totalCount || 0,
       tooltip: `${(totalCount || 0).toLocaleString()} emails in active analysis period`,
@@ -57,7 +49,6 @@ function SidebarComponent({
   ];
 
   const handleSelect = (key) => {
-    onToggleFocusMode(false);
     onSelectFilter(key);
     if (isOpenMobile) onCloseMobile?.();
   };

@@ -1,42 +1,15 @@
 import React from 'react';
-import { Zap } from 'lucide-react';
-import { isNeedsAttention } from '../../utils/priority';
 
 function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter }) {
   const totalAnalyzed = stats?.total_analyzed ?? emails.length;
   if (!totalAnalyzed) return null;
 
-  const count = stats?.needs_attention_count ?? (emails.length > 0 ? emails.filter(isNeedsAttention).length : 0);
   const counts = stats?.counts || { P1: 0, P2: 0, P3: 0, P4: 0 };
 
   return (
     <div className="priority-summary-card">
-      {/* Primary: Needs Attention Metric */}
-      <div
-        className="priority-summary-hero"
-        onClick={() => onSelectFilter?.('NEEDS_ATTENTION')}
-        role="button"
-        tabIndex={0}
-        title="View emails requiring action or with active deadlines"
-      >
-        <div className="priority-summary-header-row">
-          <div className="priority-summary-icon-badge">
-            <Zap size={16} />
-          </div>
-          <span className="priority-summary-label">Needs Attention</span>
-        </div>
-
-        <div className="priority-summary-metric">
-          {count.toLocaleString()}
-        </div>
-
-        <div className="priority-summary-subtext">
-          Action required or active deadline
-        </div>
-      </div>
-
-      {/* Secondary: Priority Breakdown Chips */}
-      <div className="priority-summary-breakdown">
+      {/* Priority Breakdown: P1 to P4 */}
+      <div className="priority-summary-breakdown" style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', flex: 1 }}>
         <button
           type="button"
           onClick={() => onSelectFilter?.('P1')}
@@ -58,9 +31,31 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter })
           <span className="priority-chip-title">P2 Important</span>
           <span className="priority-chip-num p2-num">{(counts.P2 || 0).toLocaleString()}</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => onSelectFilter?.('P3')}
+          className="priority-breakdown-chip"
+          title="Filter P3 Routine emails"
+        >
+          <span className="priority-chip-dot" style={{ backgroundColor: 'var(--p3-color, #3b82f6)' }} />
+          <span className="priority-chip-title">P3 Routine</span>
+          <span className="priority-chip-num">{(counts.P3 || 0).toLocaleString()}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onSelectFilter?.('P4')}
+          className="priority-breakdown-chip"
+          title="Filter P4 Low priority emails"
+        >
+          <span className="priority-chip-dot" style={{ backgroundColor: 'var(--p4-color, #64748b)' }} />
+          <span className="priority-chip-title">P4 Low</span>
+          <span className="priority-chip-num">{(counts.P4 || 0).toLocaleString()}</span>
+        </button>
       </div>
 
-      {/* Tertiary: Subtle Background Processing Metadata */}
+      {/* Background Processing Metadata */}
       <div
         className="priority-summary-meta"
         onClick={() => onSelectFilter?.('ALL')}
@@ -76,4 +71,3 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter })
 }
 
 export const PrioritySummary = React.memo(PrioritySummaryComponent);
-
