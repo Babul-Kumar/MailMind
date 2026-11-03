@@ -4,7 +4,6 @@ import { PRIORITY_CONFIG, isNeedsAttention } from '../utils/priority';
 export function useSearch(emails, options = {}) {
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const [internalActiveFilter, setInternalActiveFilter] = useState('ALL');
-  const [focusMode, setFocusMode] = useState(false);
   const [sortBy, setSortBy] = useState('date_desc');
 
   const activeFilter = options.activeFilter !== undefined ? options.activeFilter : internalActiveFilter;
@@ -19,9 +18,7 @@ export function useSearch(emails, options = {}) {
     let list = [...emails];
 
     // Strict filter guards (applied both for client-side and serverFiltered modes)
-    if (focusMode) {
-      list = list.filter(isNeedsAttention);
-    } else if (activeFilter === 'NEEDS_ATTENTION') {
+    if (activeFilter === 'NEEDS_ATTENTION') {
       list = list.filter(isNeedsAttention);
     } else if (activeFilter === 'IMPORTANT') {
       list = list.filter((e) => (e.effective_priority || e.final_priority || e.predicted_priority) === 'P2');
@@ -76,7 +73,7 @@ export function useSearch(emails, options = {}) {
     }
 
     return list;
-  }, [emails, activeFilter, searchQuery, focusMode, sortBy, options.serverFiltered]);
+  }, [emails, activeFilter, searchQuery, sortBy, options.serverFiltered]);
 
   const attentionCount = useMemo(() => {
     if (!emails) return 0;
@@ -90,8 +87,6 @@ export function useSearch(emails, options = {}) {
     setActiveFilter,
     actionFilter,
     setActionFilter,
-    focusMode,
-    setFocusMode,
     sortBy,
     setSortBy,
     filteredEmails,

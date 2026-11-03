@@ -5,8 +5,6 @@ import { MailMindLogo } from '../brand/MailMindLogo';
 function SidebarComponent({
   activeFilter,
   onSelectFilter,
-  focusMode,
-  onToggleFocusMode,
   stats,
   totalCount,
   attentionCount = 0,
@@ -130,7 +128,7 @@ function SidebarComponent({
             Mailbox
           </div>
           {mailboxItems.map((item) => {
-            const isActive = !focusMode && activeFilter === item.key;
+            const isActive = activeFilter === item.key;
             const hasAttentionCount = item.key === 'NEEDS_ATTENTION' && item.count > 0;
             const formattedCount = typeof item.count === 'number' ? item.count.toLocaleString() : (item.count || '0');
             return (
@@ -174,7 +172,7 @@ function SidebarComponent({
             Priority
           </div>
           {priorityItems.map((item) => {
-            const isActive = !focusMode && activeFilter === item.key;
+            const isActive = activeFilter === item.key;
             const isP1WithCount = item.key === 'P1' && item.count > 0;
             const isP4 = item.key === 'P4';
             const formattedCount = typeof item.count === 'number' ? item.count.toLocaleString() : (item.count || '0');

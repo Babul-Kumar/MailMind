@@ -368,8 +368,16 @@ class MailboxScanJob:
     def _persist(self):
         try:
             os.makedirs(self.scans_dir, exist_ok=True)
+            # Memory and disk optimization: compact checkpoints to prevent large JSON bloat
+            state_to_save = dict(self.state)
+            if len(state_to_save.get("discovered_ids", [])) > 200:
+                state_to_save["discovered_ids"] = state_to_save["discovered_ids"][:200]
+            if len(state_to_save.get("remaining_ids", [])) > 200:
+                state_to_save["remaining_ids"] = state_to_save["remaining_ids"][:200]
+            if len(state_to_save.get("processed_ids", [])) > 200:
+                state_to_save["processed_ids"] = state_to_save["processed_ids"][-200:]
             with open(self._checkpoint_path(), "w", encoding="utf-8") as f:
-                json.dump(self.state, f, indent=2)
+                json.dump(state_to_save, f, indent=2)
         except Exception as e:
             logger.warning(f"Could not persist scan checkpoint: {e}")
 
@@ -593,6 +601,10 @@ class MailboxScanJob:
 
                 _update()
                 del parsed_messages
+                if 'valid_parsed' in locals():
+                    del valid_parsed
+                if 'predictions' in locals():
+                    del predictions
                 gc.collect()
 
             if self.stop_event.is_set():

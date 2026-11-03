@@ -11,8 +11,10 @@ from dateutil.relativedelta import relativedelta
 
 
 SUPPORTED_PERIODS = {
-    "this_month": "This month",
+    "last_1_month": "Last 1 month",
+    "last_2_months": "Last 2 months",
     "last_3_months": "Last 3 months",
+    "this_month": "This month",
     "last_1_year": "Last 1 year",
     "all_time": "All time",
     "custom": "Custom date range"
@@ -124,6 +126,16 @@ def calculate_period_boundaries(
         # First day of the current calendar month at 00:00:00 in user timezone
         first_of_month = now_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         start_utc = first_of_month.astimezone(timezone.utc)
+
+    elif period_clean == "last_1_month":
+        # Current time minus 1 calendar month preserving time of day
+        one_month_ago = now_local - relativedelta(months=1)
+        start_utc = one_month_ago.astimezone(timezone.utc)
+
+    elif period_clean == "last_2_months":
+        # Current time minus 2 calendar months preserving time of day
+        two_months_ago = now_local - relativedelta(months=2)
+        start_utc = two_months_ago.astimezone(timezone.utc)
 
     elif period_clean == "last_3_months":
         # Current time minus 3 calendar months preserving time of day

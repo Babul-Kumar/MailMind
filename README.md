@@ -6,7 +6,7 @@
 
 [![Live Frontend](https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://mail-mind-ten-chi.vercel.app)
 [![Live Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://mailmind-api-xzu8.onrender.com)
-[![Pytest Suite](https://img.shields.io/badge/Tests-682%20Passed-success?style=for-the-badge&logo=pytest&logoColor=white)](reports/TEST_RESULTS.md)
+[![Pytest Suite](https://img.shields.io/badge/Tests-684%20Passed-success?style=for-the-badge&logo=pytest&logoColor=white)](reports/TEST_RESULTS.md)
 [![Frontend Tests](https://img.shields.io/badge/Node%20Tests-14%20Passed-success?style=for-the-badge&logo=nodedotjs&logoColor=white)](reports/TEST_RESULTS.md)
 [![Production Model](https://img.shields.io/badge/ML%20Model-priority--v5.1-8A2BE2?style=for-the-badge&logo=scikitlearn&logoColor=white)](dataset/models/priority-v5.1-candidate/model.joblib)
 [![OAuth Scope](https://img.shields.io/badge/OAuth%20Scope-gmail.readonly-F4B400?style=for-the-badge&logo=gmail&logoColor=white)](https://developers.google.com/gmail/api/auth/scopes)
@@ -198,8 +198,8 @@ cse472/
 │   ├── audit/                         # Phase audits (Date analysis, data model, implementation plan)
 │   ├── BUG_LEDGER.md                  # Production defect remediation ledger (BUG-001..007)
 │   ├── QA_REPORT.md                   # Formal Senior QA Audit Report
-│   └── TEST_RESULTS.md                # Automated test execution evidence (682 passed)
-├── tests/                             # Automated test suites (684 tests, 100% runnable pass rate)
+│   └── TEST_RESULTS.md                # Automated test execution evidence (684 passed)
+├── tests/                             # Automated test suites (686 tests, 100% runnable pass rate)
 ├── .env.example                       # Documented environment template
 ├── .gitignore                         # Security & environment exclusion rules
 ├── index.ipynb                        # Master Jupyter Notebook (Research, training, validation)
@@ -307,7 +307,7 @@ pytest tests/ -v
 ```
 
 ```text
-======================= 682 passed, 2 skipped in 43.10s =======================
+======================= 684 passed, 2 skipped in 43.10s =======================
 ```
 
 ```bash

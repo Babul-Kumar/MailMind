@@ -23,8 +23,6 @@ export function Inbox({
   onSelectFilter,
   actionFilter = 'ALL',
   onSelectActionFilter,
-  focusMode,
-  onToggleFocusMode,
   sortBy,
   onSortChange,
   onRefresh,
@@ -116,10 +114,7 @@ export function Inbox({
   // Title and description for active view
   let viewTitle = 'Recent Mail';
   let viewDescription = '';
-  if (focusMode) {
-    viewTitle = 'Focus Mode';
-    viewDescription = 'Emails that require action or have an active deadline.';
-  } else if (activeFilter === 'NEEDS_ATTENTION') {
+  if (activeFilter === 'NEEDS_ATTENTION') {
     viewTitle = 'Needs Attention';
     viewDescription = 'Emails that need action or have an active deadline.';
   } else if (activeFilter === 'IMPORTANT') {
@@ -145,7 +140,7 @@ export function Inbox({
   return (
     <div style={{ width: '100%' }}>
       {/* Mailbox Intelligence Overview (Only in All Mail) */}
-      {!focusMode && !searchQuery && activeFilter === 'ALL' && (
+      {!searchQuery && activeFilter === 'ALL' && (
         <PrioritySummary emails={allEmails.length ? allEmails : emails} stats={stats} onSelectFilter={onSelectFilter} />
       )}
 
@@ -159,7 +154,11 @@ export function Inbox({
                 {scanStatus.status === 'SCANNING'
                   ? 'Scanning Gmail Messages'
                   : scanStatus.status === 'ANALYZING'
-                  ? (scanStatus.period === 'this_month' || analysisPeriod === 'this_month'
+                  ? (scanStatus.period === 'last_1_month' || analysisPeriod === 'last_1_month'
+                      ? 'Analyzing Last 1 Month'
+                      : scanStatus.period === 'last_2_months' || analysisPeriod === 'last_2_months'
+                      ? 'Analyzing Last 2 Months'
+                      : scanStatus.period === 'this_month' || analysisPeriod === 'this_month'
                       ? 'Analyzing This Month'
                       : scanStatus.period === 'last_3_months' || analysisPeriod === 'last_3_months'
                       ? 'Analyzing Last 3 Months'
@@ -338,45 +337,7 @@ export function Inbox({
         </div>
       )}
 
-      {/* Focus Mode Notification Banner */}
-      {focusMode && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.65rem 1rem',
-            backgroundColor: 'rgba(245, 158, 11, 0.08)',
-            border: '1px solid rgba(245, 158, 11, 0.22)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1rem',
-            color: 'var(--p2-color)',
-            fontSize: '0.82rem',
-            fontWeight: 500,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <Zap size={15} />
-            <span>Focus Mode · Showing emails that require action or have an active deadline.</span>
-          </div>
-          <button
-            onClick={() => onToggleFocusMode(false)}
-            style={{
-              fontSize: '0.78rem',
-              color: 'var(--p2-color)',
-              fontWeight: 600,
-              padding: '0.2rem 0.55rem',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              backgroundColor: 'rgba(245, 158, 11, 0.1)',
-              cursor: 'pointer',
-              transition: 'background-color var(--transition-fast)',
-            }}
-          >
-            Exit Focus Mode
-          </button>
-        </div>
-      )}
+
 
       {/* Mobile Horizontal Priority Filter Bar */}
       <div className="mobile-priority-bar" role="tablist" aria-label="Filter by priority">
@@ -388,7 +349,7 @@ export function Inbox({
           { key: 'P3', label: 'P3', count: stats?.counts?.P3 || 0, dotColor: 'var(--p3-color)' },
           { key: 'P4', label: 'P4', count: stats?.counts?.P4 || 0, dotColor: 'var(--p4-color)' },
         ].map((tab) => {
-          const isActive = !focusMode && activeFilter === tab.key;
+          const isActive = activeFilter === tab.key;
           return (
             <button
               key={tab.key}
@@ -498,18 +459,8 @@ export function Inbox({
           </div>
         )}
 
-        {/* Controls Row: Focus Mode Toggle & Sort Dropdown */}
-        <div className="inbox-controls-row">
-          <button
-            type="button"
-            onClick={() => onToggleFocusMode(!focusMode)}
-            className={`inbox-focus-btn ${focusMode ? 'is-active' : ''}`}
-            title="Show only emails that require action or have an active deadline."
-          >
-            <Zap size={14} />
-            <span>{focusMode ? 'Exit Focus Mode' : 'Focus Mode'}</span>
-          </button>
-
+        {/* Controls Row: Sort Dropdown */}
+        <div className="inbox-controls-row" style={{ justifyContent: 'flex-end' }}>
           <div className="inbox-sort-group">
             <span className="inbox-sort-label">Sort:</span>
             <select
@@ -538,7 +489,7 @@ export function Inbox({
           isLoading={isLoading}
           isRefreshing={isRefreshing}
           isInitialLoading={isInitialLoading}
-          emptyType={searchQuery.trim() ? 'search' : (focusMode ? 'focus' : 'inbox')}
+          emptyType={searchQuery.trim() ? 'search' : 'inbox'}
           onRefresh={onRefresh}
         />
 

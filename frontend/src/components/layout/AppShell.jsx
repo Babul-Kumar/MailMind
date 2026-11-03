@@ -64,8 +64,6 @@ export function AppShell({
         <Sidebar
           activeFilter={searchHook.activeFilter}
           onSelectFilter={searchHook.setActiveFilter}
-          focusMode={searchHook.focusMode}
-          onToggleFocusMode={searchHook.setFocusMode}
           stats={emailsHook.stats}
           totalCount={emailsHook.stats?.total_analyzed || emailsHook.pagination?.total_emails || emailsHook.emails.length}
           attentionCount={emailsHook.stats?.needs_attention_count ?? searchHook.attentionCount}

@@ -2,8 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronDown, Check, Clock, Sparkles } from 'lucide-react';
 
 const PERIOD_LABELS = {
-  this_month: 'This month',
+  last_1_month: 'Last 1 month',
+  last_2_months: 'Last 2 months',
   last_3_months: 'Last 3 months',
+  this_month: 'This month',
   last_1_year: 'Last 1 year',
   all_time: 'All time',
   custom: 'Custom range',

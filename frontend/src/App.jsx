@@ -91,17 +91,15 @@ export function App() {
     emailsHook.setSearchQuery('');
     emailsHook.setActiveFilter('ALL');
     emailsHook.setActionFilter('ALL');
-    searchHook.setFocusMode(false);
     await auth.switchAccount();
-  }, [emailsHook, searchHook, auth]);
+  }, [emailsHook, auth]);
 
   const handleLogout = useCallback(async () => {
     emailsHook.setSearchQuery('');
     emailsHook.setActiveFilter('ALL');
     emailsHook.setActionFilter('ALL');
-    searchHook.setFocusMode(false);
     await auth.logout();
-  }, [emailsHook, searchHook, auth]);
+  }, [emailsHook, auth]);
 
   const authWrapper = useMemo(
     () => ({
@@ -177,8 +175,6 @@ export function App() {
           onSelectFilter={searchHook.setActiveFilter}
           actionFilter={searchHook.actionFilter}
           onSelectActionFilter={searchHook.setActionFilter}
-          focusMode={searchHook.focusMode}
-          onToggleFocusMode={searchHook.setFocusMode}
           sortBy={searchHook.sortBy}
           onSortChange={searchHook.setSortBy}
           onRefresh={emailsHook.refresh}

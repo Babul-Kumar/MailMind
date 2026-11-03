@@ -87,6 +87,18 @@ class TestDateRangeEngine:
         # Nov 1 00:00 IST is Oct 31 18:30 UTC
         assert b["start_iso"].startswith("2026-10-31T18:30:00")
 
+    def test_last_1_month_calendar_subtraction(self):
+        fixed_now = datetime(2026, 11, 3, 12, 0, 0, tzinfo=timezone.utc)
+        b = calculate_period_boundaries(period="last_1_month", tz_name="UTC", now=fixed_now)
+        assert b["start_iso"].startswith("2026-10-03T12:00:00")
+        assert b["end_iso"].startswith("2026-11-03T12:00:00")
+
+    def test_last_2_months_calendar_subtraction(self):
+        fixed_now = datetime(2026, 11, 3, 12, 0, 0, tzinfo=timezone.utc)
+        b = calculate_period_boundaries(period="last_2_months", tz_name="UTC", now=fixed_now)
+        assert b["start_iso"].startswith("2026-09-03T12:00:00")
+        assert b["end_iso"].startswith("2026-11-03T12:00:00")
+
     def test_last_3_months_calendar_subtraction(self):
         fixed_now = datetime(2026, 11, 3, 12, 0, 0, tzinfo=timezone.utc)
         b = calculate_period_boundaries(period="last_3_months", tz_name="UTC", now=fixed_now)
