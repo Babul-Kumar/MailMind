@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Sparkles, Layers } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, BarChart3 } from 'lucide-react';
 
 function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, activeFilter = 'ALL' }) {
   const totalAnalyzed = stats?.total_analyzed ?? emails.length;
@@ -12,10 +12,19 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
   const p4 = counts.P4 || 0;
   const sum = p1 + p2 + p3 + p4 || totalAnalyzed || 1;
 
-  const p1Pct = ((p1 / sum) * 100).toFixed(1);
-  const p2Pct = ((p2 / sum) * 100).toFixed(1);
-  const p3Pct = ((p3 / sum) * 100).toFixed(1);
-  const p4Pct = ((p4 / sum) * 100).toFixed(1);
+  const p1Pct = Number(((p1 / sum) * 100).toFixed(1));
+  const p2Pct = Number(((p2 / sum) * 100).toFixed(1));
+  const p3Pct = Number(((p3 / sum) * 100).toFixed(1));
+  const p4Pct = Number(((p4 / sum) * 100).toFixed(1));
+
+  const [hoveredTier, setHoveredTier] = useState(null);
+
+  const tiers = [
+    { key: 'P1', label: 'Critical', count: p1, pct: p1Pct, color: 'var(--p1-color)', bg: 'rgba(255, 51, 102, 0.12)', desc: 'Immediate action or deadline' },
+    { key: 'P2', label: 'Important', count: p2, pct: p2Pct, color: 'var(--p2-color)', bg: 'rgba(245, 158, 11, 0.12)', desc: 'Important business correspondence' },
+    { key: 'P3', label: 'Routine', count: p3, pct: p3Pct, color: 'var(--p3-color)', bg: 'rgba(56, 189, 248, 0.12)', desc: 'Informational & standard operations' },
+    { key: 'P4', label: 'Low', count: p4, pct: p4Pct, color: 'var(--p4-color)', bg: 'rgba(148, 163, 184, 0.12)', desc: 'Promotional, bulk updates & newsletters' },
+  ];
 
   return (
     <div
@@ -23,285 +32,185 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.85rem',
-        padding: '0.95rem 1.25rem',
+        gap: '0.8rem',
+        padding: '0.9rem 1.25rem',
         backgroundColor: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-lg)',
         boxShadow: 'var(--shadow-sm)',
         marginBottom: '1rem',
-        transition: 'all var(--transition-fast)',
+        transition: 'border-color var(--transition-fast)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-        {/* Priority Breakdown Chips */}
-        <div className="priority-summary-breakdown" style={{ display: 'flex', gap: '0.55rem', flexWrap: 'wrap', flex: 1, alignItems: 'center' }}>
-          {/* P1 Critical */}
-          <button
-            type="button"
-            onClick={() => onSelectFilter?.(activeFilter === 'P1' ? 'ALL' : 'P1')}
-            className={`priority-breakdown-chip ${activeFilter === 'P1' ? 'active-chip' : ''}`}
+      {/* Top Header: Stream Title & Total Analyzed */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+          <div
             style={{
-              display: 'inline-flex',
+              width: '28px',
+              height: '28px',
+              borderRadius: 'var(--radius-md)',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.18))',
+              display: 'flex',
               alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: activeFilter === 'P1' ? '1px solid var(--p1-color)' : '1px solid var(--p1-border)',
-              backgroundColor: activeFilter === 'P1' ? 'var(--p1-bg)' : 'var(--bg-card)',
-              color: 'var(--p1-color)',
-              boxShadow: activeFilter === 'P1' ? '0 0 12px var(--p1-glow)' : 'none',
-              transition: 'all var(--transition-fast)',
+              justifyContent: 'center',
+              color: 'var(--accent)',
             }}
-            title="Filter P1 Critical emails"
           >
-            <span
-              className={p1 > 0 ? 'animate-pulse-p1' : ''}
-              style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--p1-color)',
-                display: 'inline-block',
-              }}
-            />
-            <span>P1 Critical</span>
+            <Sparkles size={15} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+              Priority Intelligence Distribution
+            </span>
             <span
               style={{
-                marginLeft: '0.2rem',
-                padding: '0.05rem 0.4rem',
-                borderRadius: 'var(--radius-xs)',
-                backgroundColor: 'rgba(255, 51, 102, 0.15)',
-                fontWeight: 700,
-                fontSize: '0.74rem',
+                fontSize: '0.70rem',
+                padding: '0.12rem 0.5rem',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(99, 102, 241, 0.10)',
+                color: 'var(--accent)',
+                fontWeight: 600,
+                border: '1px solid rgba(99, 102, 241, 0.22)',
               }}
             >
-              {p1.toLocaleString()}
+              Model v5.1
             </span>
-          </button>
-
-          {/* P2 Important */}
-          <button
-            type="button"
-            onClick={() => onSelectFilter?.(activeFilter === 'P2' ? 'ALL' : 'P2')}
-            className={`priority-breakdown-chip ${activeFilter === 'P2' ? 'active-chip' : ''}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: activeFilter === 'P2' ? '1px solid var(--p2-color)' : '1px solid var(--p2-border)',
-              backgroundColor: activeFilter === 'P2' ? 'var(--p2-bg)' : 'var(--bg-card)',
-              color: 'var(--p2-color)',
-              boxShadow: activeFilter === 'P2' ? '0 0 12px var(--p2-glow)' : 'none',
-              transition: 'all var(--transition-fast)',
-            }}
-            title="Filter P2 Important emails"
-          >
-            <span
-              style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--p2-color)',
-                display: 'inline-block',
-              }}
-            />
-            <span>P2 Important</span>
-            <span
-              style={{
-                marginLeft: '0.2rem',
-                padding: '0.05rem 0.4rem',
-                borderRadius: 'var(--radius-xs)',
-                backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                fontWeight: 700,
-                fontSize: '0.74rem',
-              }}
-            >
-              {p2.toLocaleString()}
-            </span>
-          </button>
-
-          {/* P3 Routine */}
-          <button
-            type="button"
-            onClick={() => onSelectFilter?.(activeFilter === 'P3' ? 'ALL' : 'P3')}
-            className={`priority-breakdown-chip ${activeFilter === 'P3' ? 'active-chip' : ''}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: activeFilter === 'P3' ? '1px solid var(--p3-color)' : '1px solid var(--p3-border)',
-              backgroundColor: activeFilter === 'P3' ? 'var(--p3-bg)' : 'var(--bg-card)',
-              color: 'var(--p3-color)',
-              boxShadow: activeFilter === 'P3' ? '0 0 12px var(--p3-glow)' : 'none',
-              transition: 'all var(--transition-fast)',
-            }}
-            title="Filter P3 Routine emails"
-          >
-            <span
-              style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--p3-color)',
-                display: 'inline-block',
-              }}
-            />
-            <span>P3 Routine</span>
-            <span
-              style={{
-                marginLeft: '0.2rem',
-                padding: '0.05rem 0.4rem',
-                borderRadius: 'var(--radius-xs)',
-                backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                fontWeight: 700,
-                fontSize: '0.74rem',
-              }}
-            >
-              {p3.toLocaleString()}
-            </span>
-          </button>
-
-          {/* P4 Low */}
-          <button
-            type="button"
-            onClick={() => onSelectFilter?.(activeFilter === 'P4' ? 'ALL' : 'P4')}
-            className={`priority-breakdown-chip ${activeFilter === 'P4' ? 'active-chip' : ''}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: activeFilter === 'P4' ? '1px solid var(--p4-color)' : '1px solid var(--p4-border)',
-              backgroundColor: activeFilter === 'P4' ? 'var(--p4-bg)' : 'var(--bg-card)',
-              color: 'var(--p4-color)',
-              boxShadow: activeFilter === 'P4' ? '0 0 10px var(--p4-glow)' : 'none',
-              transition: 'all var(--transition-fast)',
-            }}
-            title="Filter P4 Low priority emails"
-          >
-            <span
-              style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--p4-color)',
-                display: 'inline-block',
-              }}
-            />
-            <span>P4 Low</span>
-            <span
-              style={{
-                marginLeft: '0.2rem',
-                padding: '0.05rem 0.4rem',
-                borderRadius: 'var(--radius-xs)',
-                backgroundColor: 'rgba(148, 163, 184, 0.15)',
-                fontWeight: 700,
-                fontSize: '0.74rem',
-              }}
-            >
-              {p4.toLocaleString()}
-            </span>
-          </button>
+          </div>
         </div>
 
-        {/* Total Analyzed Status Badge */}
-        <div
-          onClick={() => onSelectFilter?.('ALL')}
-          role="button"
-          tabIndex={0}
-          title="Reset filter to view all emails in mailbox"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.3rem 0.65rem',
-            borderRadius: 'var(--radius-sm)',
-            backgroundColor: activeFilter === 'ALL' ? 'var(--accent-light)' : 'var(--bg-card)',
-            border: activeFilter === 'ALL' ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
-            color: activeFilter === 'ALL' ? 'var(--accent)' : 'var(--text-muted)',
-            fontSize: '0.76rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all var(--transition-fast)',
-          }}
-        >
-          <Sparkles size={13} style={{ color: 'var(--accent)' }} />
-          <span>{totalAnalyzed.toLocaleString()} emails analyzed</span>
-          {activeFilter !== 'ALL' && (
-            <span style={{ fontSize: '0.7rem', color: 'var(--accent)', marginLeft: '0.2rem' }}>
-              (Show all)
-            </span>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span
+            style={{
+              fontSize: '0.76rem',
+              color: 'var(--text-muted)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              padding: '0.22rem 0.6rem',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: 500,
+            }}
+          >
+            <BarChart3 size={13} style={{ color: 'var(--accent)' }} />
+            <strong style={{ color: 'var(--text-main)' }}>{totalAnalyzed.toLocaleString()}</strong> emails analyzed
+          </span>
         </div>
       </div>
 
-      {/* Visual Priority Distribution Bar */}
+      {/* Visual Continuous Priority Distribution Spectrum Bar */}
       <div
         style={{
           display: 'flex',
-          height: '4px',
+          height: '7px',
           width: '100%',
           borderRadius: 'var(--radius-full)',
           overflow: 'hidden',
           backgroundColor: 'var(--border-divider)',
-          gap: '1px',
+          gap: '2px',
         }}
         title={`Distribution: P1 ${p1Pct}% · P2 ${p2Pct}% · P3 ${p3Pct}% · P4 ${p4Pct}%`}
       >
-        {p1 > 0 && (
-          <div
-            style={{
-              width: `${p1Pct}%`,
-              backgroundColor: 'var(--p1-color)',
-              transition: 'width 0.4s ease',
-            }}
-          />
-        )}
-        {p2 > 0 && (
-          <div
-            style={{
-              width: `${p2Pct}%`,
-              backgroundColor: 'var(--p2-color)',
-              transition: 'width 0.4s ease',
-            }}
-          />
-        )}
-        {p3 > 0 && (
-          <div
-            style={{
-              width: `${p3Pct}%`,
-              backgroundColor: 'var(--p3-color)',
-              transition: 'width 0.4s ease',
-            }}
-          />
-        )}
-        {p4 > 0 && (
-          <div
-            style={{
-              width: `${p4Pct}%`,
-              backgroundColor: 'var(--p4-color)',
-              transition: 'width 0.4s ease',
-            }}
-          />
-        )}
+        {tiers.map((t) => (
+          t.pct > 0 && (
+            <div
+              key={t.key}
+              onMouseEnter={() => setHoveredTier(t.key)}
+              onMouseLeave={() => setHoveredTier(null)}
+              onClick={() => onSelectFilter?.(activeFilter === t.key ? 'ALL' : t.key)}
+              style={{
+                width: `${t.pct}%`,
+                backgroundColor: t.color,
+                opacity: hoveredTier === null || hoveredTier === t.key ? 1 : 0.45,
+                transition: 'opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease',
+                transform: hoveredTier === t.key ? 'scaleY(1.3)' : 'scaleY(1)',
+                filter: hoveredTier === t.key ? `drop-shadow(0 0 4px ${t.color})` : 'none',
+                cursor: 'pointer',
+              }}
+              title={`Click to filter by ${t.key} ${t.label}: ${t.count.toLocaleString()} emails (${t.pct}%)`}
+            />
+          )
+        ))}
+      </div>
+
+      {/* Legend & Proportion Ratio Metrics (Clear display without duplicate buttons) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          paddingTop: '0.15rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.15rem', flexWrap: 'wrap' }}>
+          {tiers.map((t) => {
+            const isHovered = hoveredTier === t.key;
+            const isActive = activeFilter === t.key;
+            return (
+              <div
+                key={t.key}
+                onMouseEnter={() => setHoveredTier(t.key)}
+                onMouseLeave={() => setHoveredTier(null)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.42rem',
+                  fontSize: '0.78rem',
+                  color: isHovered || isActive ? 'var(--text-main)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)',
+                }}
+                onClick={() => onSelectFilter?.(activeFilter === t.key ? 'ALL' : t.key)}
+                title={`Filter by ${t.key} ${t.label}`}
+              >
+                <span
+                  style={{
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    backgroundColor: t.color,
+                    boxShadow: isHovered || isActive ? `0 0 8px ${t.color}` : 'none',
+                    transition: 'box-shadow var(--transition-fast)',
+                  }}
+                />
+                <span style={{ fontWeight: isActive ? 700 : 600 }}>{t.key} · {t.label}</span>
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: isHovered || isActive ? t.color : 'var(--text-secondary)',
+                  }}
+                >
+                  {t.count.toLocaleString()}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                  ({t.pct}%)
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div
+          style={{
+            fontSize: '0.74rem',
+            color: 'var(--text-dim)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+          }}
+        >
+          {hoveredTier ? (
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+              {tiers.find((t) => t.key === hoveredTier)?.desc}
+            </span>
+          ) : (
+            <span>Hover spectrum for triage details</span>
+          )}
+        </div>
       </div>
     </div>
   );

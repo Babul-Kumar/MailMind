@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { PriorityBadge } from '../priority/PriorityBadge';
 import { formatEmailDate, cleanSenderName, extractSnippet, getDeadlineState } from '../../utils/formatting';
-import { ExternalLink, Eye, Clock, AlertTriangle, Check } from 'lucide-react';
+import { Clock, AlertTriangle, Check } from 'lucide-react';
 
 function getSenderInitials(name) {
   if (!name) return 'M';
@@ -108,10 +108,6 @@ function EmailRowComponent({ email, isSelected, onClick }) {
     onClick?.(email);
   }, [onClick, email]);
 
-  const handleOpenGmail = (e) => {
-    e.stopPropagation();
-    window.open(`https://mail.google.com/mail/u/0/#all/${email.email_id || ''}`, '_blank', 'noopener,noreferrer');
-  };
 
   return (
     <div
@@ -317,87 +313,27 @@ function EmailRowComponent({ email, isSelected, onClick }) {
         )}
       </div>
 
-      {/* Desktop Column 5: Date OR Quick Action Buttons on Hover */}
+      {/* Desktop Column 5: Date Display */}
       <div
         className="email-row-col-date"
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          minWidth: '85px',
+          minWidth: '80px',
         }}
       >
-        {isHovered ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-            }}
-          >
-            <button
-              type="button"
-              onClick={handleOpenGmail}
-              title="Open message in Gmail"
-              aria-label="Open in Gmail"
-              style={{
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--text-muted)',
-                padding: '4px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all var(--transition-fast)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-main)';
-                e.currentTarget.style.borderColor = 'var(--accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-muted)';
-                e.currentTarget.style.borderColor = 'var(--border-subtle)';
-              }}
-            >
-              <ExternalLink size={13} />
-            </button>
-            <button
-              type="button"
-              onClick={handleClick}
-              title="View Priority Intelligence"
-              aria-label="View Intelligence"
-              style={{
-                background: 'var(--accent-light)',
-                border: '1px solid var(--accent)',
-                borderRadius: 'var(--radius-sm)',
-                color: 'var(--accent)',
-                padding: '4px 6px',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '2px',
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                transition: 'all var(--transition-fast)',
-              }}
-            >
-              <Eye size={12} />
-              <span>AI</span>
-            </button>
-          </div>
-        ) : (
-          <span
-            style={{
-              color: deadlineState ? 'var(--text-dim)' : 'var(--text-muted)',
-              fontSize: '0.75rem',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {dateDisplay}
-          </span>
-        )}
+        <span
+          style={{
+            color: isHovered ? 'var(--text-main)' : deadlineState ? 'var(--text-dim)' : 'var(--text-muted)',
+            fontSize: '0.78rem',
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+            transition: 'color var(--transition-fast)',
+          }}
+        >
+          {dateDisplay}
+        </span>
       </div>
     </div>
   );
