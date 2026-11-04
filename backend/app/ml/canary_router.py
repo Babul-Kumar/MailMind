@@ -197,7 +197,14 @@ class CanaryRouter:
                 raise FileNotFoundError(f"Model artifact for '{model_version}' not found at {abs_path}")
 
             import joblib
-            pipeline = joblib.load(abs_path)
+            import warnings
+            with warnings.catch_warnings():
+                try:
+                    from sklearn.exceptions import InconsistentVersionWarning
+                    warnings.simplefilter("ignore", category=InconsistentVersionWarning)
+                except ImportError:
+                    pass
+                pipeline = joblib.load(abs_path)
             setattr(pipeline, "_model_version", model_version)
             self._pipeline_cache[model_version] = pipeline
             return pipeline

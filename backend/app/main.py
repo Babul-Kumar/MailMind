@@ -1,4 +1,13 @@
 import os
+import warnings
+
+# Filter harmless sklearn patch-version unpickling warnings for the frozen model
+try:
+    from sklearn.exceptions import InconsistentVersionWarning
+    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+except ImportError:
+    pass
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
@@ -53,31 +62,18 @@ app.include_router(adjudication_router)
 app.include_router(actions_router)
 app.include_router(analysis_router)
 
-# Mount frontend static assets if built dist exists
-_frontend_assets_dir = os.path.join(BASE_DIR, "frontend", "dist", "assets")
-if os.path.exists(_frontend_assets_dir):
-    app.mount("/assets", StaticFiles(directory=_frontend_assets_dir), name="assets")
+# Mount React static build if available
+frontend_dist = os.path.join(BASE_DIR, "frontend", "dist")
+if os.path.exists(frontend_dist):
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
 
-
-@app.get("/", include_in_schema=False)
-def serve_root():
-    return HTMLResponse(
-        """<!DOCTYPE html>
-        <html>
-        <head><title>MailMind | AI Email Priority Intelligence</title></head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 60px 20px; background: #0b0f19; color: #f8fafc;">
-          <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">✦ MailMind</h1>
-          <p style="font-size: 1.1rem; color: #94a3b8; margin-bottom: 2rem;">AI Email Priority Intelligence & Action Lifecycle API</p>
-          <div style="display: inline-block; background: #131b2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1.5rem 2rem; text-align: left; max-width: 500px;">
-            <p style="margin: 0.5rem 0;">🚀 <strong>React App:</strong> <a href="https://mail-mind-ten-chi.vercel.app" style="color: #818cf8; text-decoration: none;">https://mail-mind-ten-chi.vercel.app</a></p>
-            <p style="margin: 0.5rem 0;">📖 <strong>API Documentation:</strong> <a href="/docs" style="color: #38bdf8; text-decoration: none;">/docs</a></p>
-            <p style="margin: 0.5rem 0;">🔍 <strong>Health Status:</strong> <a href="/health" style="color: #34d399; text-decoration: none;">/health</a></p>
-          </div>
-        </body></html>"""
-    )
-
-
-if __name__ == "__main__":
-    import uvicorn
-    print("Starting MailMind Backend on http://127.0.0.1:8000...")
-    uvicorn.run("backend.app.main:app", host="127.0.0.1", port=8000, reload=True)
+    @app.get("/{full_path:path}", response_class=HTMLResponse, include_in_schema=False)
+    async def serve_spa(full_path: str):
+        # Exclude API endpoints from SPA fallback
+        if full_path.startswith("api/") or full_path == "api":
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        index_file = os.path.join(frontend_dist, "index.html")
+        if os.path.exists(index_file):
+            with open(index_file, "r", encoding="utf-8") as f:
+                return f.read()
+        return "<h1>Frontend build available, but index.html is missing.</h1>"

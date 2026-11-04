@@ -26,6 +26,7 @@ import sqlite3
 import hashlib
 import logging
 import threading
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional, Set, Tuple
 
@@ -99,7 +100,13 @@ def load_shadow_model():
             return None
 
         try:
-            pipeline = joblib.load(path)
+            with warnings.catch_warnings():
+                try:
+                    from sklearn.exceptions import InconsistentVersionWarning
+                    warnings.simplefilter("ignore", category=InconsistentVersionWarning)
+                except ImportError:
+                    pass
+                pipeline = joblib.load(path)
             setattr(pipeline, "_model_version", shadow_version)
             _CACHED_SHADOW_PIPELINE = pipeline
             _CACHED_SHADOW_VERSION = shadow_version

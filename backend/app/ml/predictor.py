@@ -1,6 +1,13 @@
 import os
+import warnings
 import joblib
 import numpy as np
+
+try:
+    from sklearn.exceptions import InconsistentVersionWarning
+    warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+except ImportError:
+    pass
 from typing import Dict, Any, List, Optional
 from backend.app.core.config import MODEL_PATH
 from backend.app.ml.priority import PRIORITY_MAPPING
@@ -40,7 +47,13 @@ def load_model(model_path: Optional[str] = None):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Model artifact not found at: {path}")
 
-    pipeline = joblib.load(path)
+    with warnings.catch_warnings():
+        try:
+            from sklearn.exceptions import InconsistentVersionWarning
+            warnings.simplefilter("ignore", category=InconsistentVersionWarning)
+        except ImportError:
+            pass
+        pipeline = joblib.load(path)
     setattr(pipeline, "_model_version", active_version)
 
     if model_path is None:
