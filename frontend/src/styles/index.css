@@ -1,6 +1,10 @@
 @import './tokens.css';
 @import './animations.css';
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
   margin: 0;
