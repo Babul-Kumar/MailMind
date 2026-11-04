@@ -393,7 +393,7 @@ function TopBarComponent({
               } else if (!scanStatus || scanStatus.total === 0) {
                 onStartScan?.({ scope: 'mailbox', mode: 'full' });
               } else {
-                onStartScan?.({ scope: 'mailbox', mode: 'incremental' });
+                onRefresh?.();
               }
             }}
             disabled={!isAuthenticated}

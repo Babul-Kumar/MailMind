@@ -650,7 +650,10 @@ def get_classified_emails(
                 custom_end_date=pref.get("custom_end_date")
             )
             start_ts_sec = boundaries["start_ts_sec"] if boundaries["start_ts_sec"] > 0 else None
-            end_ts_sec = boundaries["end_ts_sec"]
+            if active_period == "custom" and pref.get("custom_end_date"):
+                end_ts_sec = boundaries["end_ts_sec"]
+            else:
+                end_ts_sec = None
 
     stats_db = user_email_cache.get_mailbox_stats(
         user_id,
@@ -714,13 +717,13 @@ def get_classified_emails(
     # Incremental incoming check: If user already has cached emails, check Gmail for new arrivals
     if not has_explicit_max and total_cached > 0 and (page == 1 or sync) and not has_explicit_query:
         try:
-            auto_q = auto_query if "auto_query" in locals() and auto_query else None
+            sync_query = boundaries.get("gmail_query") if "boundaries" in locals() and boundaries else None
             new_synced = sync_incoming_emails(
                 user_id=user_id,
                 service=service,
                 pipeline=pipeline,
                 model_version=user_model_version,
-                query=auto_q,
+                query=sync_query,
                 limit=25,
                 force=sync
             )

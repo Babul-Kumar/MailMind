@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, BarChart3 } from 'lucide-react';
 
-function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, activeFilter = 'ALL' }) {
+function PrioritySummaryComponent({ emails = [], stats = null, activeFilter = 'ALL' }) {
   const totalAnalyzed = stats?.total_analyzed ?? emails.length;
   if (!totalAnalyzed) return null;
 
@@ -20,10 +20,10 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
   const [hoveredTier, setHoveredTier] = useState(null);
 
   const tiers = [
-    { key: 'P1', label: 'Critical', count: p1, pct: p1Pct, color: 'var(--p1-color)', bg: 'rgba(255, 51, 102, 0.12)', desc: 'Immediate action or deadline' },
-    { key: 'P2', label: 'Important', count: p2, pct: p2Pct, color: 'var(--p2-color)', bg: 'rgba(245, 158, 11, 0.12)', desc: 'Important business correspondence' },
-    { key: 'P3', label: 'Routine', count: p3, pct: p3Pct, color: 'var(--p3-color)', bg: 'rgba(56, 189, 248, 0.12)', desc: 'Informational & standard operations' },
-    { key: 'P4', label: 'Low', count: p4, pct: p4Pct, color: 'var(--p4-color)', bg: 'rgba(148, 163, 184, 0.12)', desc: 'Promotional, bulk updates & newsletters' },
+    { key: 'P1', label: 'Critical', count: p1, pct: p1Pct, color: 'var(--p1-color)', desc: 'Immediate action or deadline' },
+    { key: 'P2', label: 'Important', count: p2, pct: p2Pct, color: 'var(--p2-color)', desc: 'Important business correspondence' },
+    { key: 'P3', label: 'Routine', count: p3, pct: p3Pct, color: 'var(--p3-color)', desc: 'Informational & standard operations' },
+    { key: 'P4', label: 'Low', count: p4, pct: p4Pct, color: 'var(--p4-color)', desc: 'Promotional, bulk updates & newsletters' },
   ];
 
   return (
@@ -32,8 +32,8 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.8rem',
-        padding: '0.9rem 1.25rem',
+        gap: '0.75rem',
+        padding: '0.85rem 1.25rem',
         backgroundColor: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-lg)',
@@ -42,13 +42,13 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
         transition: 'border-color var(--transition-fast)',
       }}
     >
-      {/* Top Header: Stream Title & Total Analyzed */}
+      {/* Top Header: Title & Total Analyzed */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
           <div
             style={{
-              width: '28px',
-              height: '28px',
+              width: '26px',
+              height: '26px',
               borderRadius: 'var(--radius-md)',
               background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.18))',
               display: 'flex',
@@ -57,16 +57,16 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
               color: 'var(--accent)',
             }}
           >
-            <Sparkles size={15} />
+            <Sparkles size={14} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
-              Priority Intelligence Distribution
+            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>
+              Priority Distribution
             </span>
             <span
               style={{
-                fontSize: '0.70rem',
-                padding: '0.12rem 0.5rem',
+                fontSize: '0.68rem',
+                padding: '0.1rem 0.45rem',
                 borderRadius: 'var(--radius-full)',
                 background: 'rgba(99, 102, 241, 0.10)',
                 color: 'var(--accent)',
@@ -82,20 +82,20 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span
             style={{
-              fontSize: '0.76rem',
+              fontSize: '0.74rem',
               color: 'var(--text-muted)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.35rem',
               backgroundColor: 'var(--bg-card)',
               border: '1px solid var(--border-subtle)',
-              padding: '0.22rem 0.6rem',
+              padding: '0.2rem 0.55rem',
               borderRadius: 'var(--radius-sm)',
               fontWeight: 500,
             }}
           >
-            <BarChart3 size={13} style={{ color: 'var(--accent)' }} />
-            <strong style={{ color: 'var(--text-main)' }}>{totalAnalyzed.toLocaleString()}</strong> emails analyzed
+            <BarChart3 size={12} style={{ color: 'var(--accent)' }} />
+            <strong style={{ color: 'var(--text-main)' }}>{totalAnalyzed.toLocaleString()}</strong> analyzed
           </span>
         </div>
       </div>
@@ -104,7 +104,7 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
       <div
         style={{
           display: 'flex',
-          height: '7px',
+          height: '6px',
           width: '100%',
           borderRadius: 'var(--radius-full)',
           overflow: 'hidden',
@@ -119,23 +119,20 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
               key={t.key}
               onMouseEnter={() => setHoveredTier(t.key)}
               onMouseLeave={() => setHoveredTier(null)}
-              onClick={() => onSelectFilter?.(activeFilter === t.key ? 'ALL' : t.key)}
               style={{
                 width: `${t.pct}%`,
                 backgroundColor: t.color,
                 opacity: hoveredTier === null || hoveredTier === t.key ? 1 : 0.45,
                 transition: 'opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease',
-                transform: hoveredTier === t.key ? 'scaleY(1.3)' : 'scaleY(1)',
+                transform: hoveredTier === t.key ? 'scaleY(1.4)' : 'scaleY(1)',
                 filter: hoveredTier === t.key ? `drop-shadow(0 0 4px ${t.color})` : 'none',
-                cursor: 'pointer',
               }}
-              title={`Click to filter by ${t.key} ${t.label}: ${t.count.toLocaleString()} emails (${t.pct}%)`}
             />
           )
         ))}
       </div>
 
-      {/* Legend & Proportion Ratio Metrics (Clear display without duplicate buttons) */}
+      {/* Clean Descriptive Metrics (Clear display without duplicating filter buttons) */}
       <div
         style={{
           display: 'flex',
@@ -143,13 +140,12 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '0.75rem',
-          paddingTop: '0.15rem',
+          paddingTop: '0.1rem',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.15rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
           {tiers.map((t) => {
             const isHovered = hoveredTier === t.key;
-            const isActive = activeFilter === t.key;
             return (
               <div
                 key={t.key}
@@ -158,35 +154,32 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.42rem',
-                  fontSize: '0.78rem',
-                  color: isHovered || isActive ? 'var(--text-main)' : 'var(--text-muted)',
-                  cursor: 'pointer',
+                  gap: '0.4rem',
+                  fontSize: '0.76rem',
+                  color: isHovered ? 'var(--text-main)' : 'var(--text-muted)',
                   transition: 'all var(--transition-fast)',
                 }}
-                onClick={() => onSelectFilter?.(activeFilter === t.key ? 'ALL' : t.key)}
-                title={`Filter by ${t.key} ${t.label}`}
               >
                 <span
                   style={{
-                    width: '7px',
-                    height: '7px',
+                    width: '6px',
+                    height: '6px',
                     borderRadius: '50%',
                     backgroundColor: t.color,
-                    boxShadow: isHovered || isActive ? `0 0 8px ${t.color}` : 'none',
+                    boxShadow: isHovered ? `0 0 6px ${t.color}` : 'none',
                     transition: 'box-shadow var(--transition-fast)',
                   }}
                 />
-                <span style={{ fontWeight: isActive ? 700 : 600 }}>{t.key} · {t.label}</span>
+                <span style={{ fontWeight: 600 }}>{t.key} · {t.label}</span>
                 <span
                   style={{
                     fontWeight: 700,
-                    color: isHovered || isActive ? t.color : 'var(--text-secondary)',
+                    color: isHovered ? t.color : 'var(--text-secondary)',
                   }}
                 >
                   {t.count.toLocaleString()}
                 </span>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                <span style={{ fontSize: '0.70rem', color: 'var(--text-dim)' }}>
                   ({t.pct}%)
                 </span>
               </div>
@@ -196,7 +189,7 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
 
         <div
           style={{
-            fontSize: '0.74rem',
+            fontSize: '0.72rem',
             color: 'var(--text-dim)',
             display: 'flex',
             alignItems: 'center',
@@ -208,7 +201,7 @@ function PrioritySummaryComponent({ emails = [], stats = null, onSelectFilter, a
               {tiers.find((t) => t.key === hoveredTier)?.desc}
             </span>
           ) : (
-            <span>Hover spectrum for triage details</span>
+            <span>Continuous intelligence triage</span>
           )}
         </div>
       </div>
