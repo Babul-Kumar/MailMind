@@ -121,22 +121,21 @@ export function PeriodSelector({
 
       {isOpen && (
         <div
-          className="period-dropdown-menu"
+          className="period-dropdown-menu animate-slide-down"
           style={{
             position: 'absolute',
-            top: 'calc(100% + 6px)',
+            top: 'calc(100% + 8px)',
             left: 0,
-            minWidth: '220px',
+            minWidth: '228px',
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-md)',
-            padding: '0.45rem',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-lg), 0 0 0 1px rgba(99, 102, 241, 0.08)',
+            padding: '0.5rem',
             zIndex: 1400,
             display: 'flex',
             flexDirection: 'column',
             gap: '0.2rem',
-            animation: 'fadeIn 0.15s ease',
           }}
         >
           <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', padding: '0.35rem 0.5rem 0.2rem' }}>

@@ -1327,3 +1327,68 @@ button:focus-visible,
   color: var(--text-main);
 }
 
+
+/* Drawer interactive buttons */
+.drawer-close-x {
+  transition: all var(--transition-fast) !important;
+}
+
+.drawer-close-x:hover {
+  background-color: var(--bg-surface-hover) !important;
+  color: var(--text-main) !important;
+}
+
+.drawer-back-btn {
+  transition: all var(--transition-fast) !important;
+}
+
+.drawer-back-btn:hover {
+  background-color: var(--bg-surface-hover) !important;
+  color: var(--text-main) !important;
+}
+
+.detail-open-gmail-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4) !important;
+}
+
+.detail-open-gmail-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.detail-resolve-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35) !important;
+}
+
+.detail-resolve-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.detail-snooze-btn:hover {
+  background-color: var(--bg-surface-hover) !important;
+  color: var(--text-main) !important;
+}
+
+/* Period selector button styling */
+.period-selector-btn:hover:not([disabled]) {
+  background-color: var(--bg-surface-hover) !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Inbox sort select focus */
+.inbox-sort-select {
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+}
+
+.inbox-sort-select:focus {
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 2px var(--accent-light) !important;
+}
+
+.inbox-sort-select:hover {
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}

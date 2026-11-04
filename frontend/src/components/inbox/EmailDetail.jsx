@@ -373,6 +373,7 @@ export function EmailDetail({ email, onClose, onResolve, onUnresolve, onSnooze }
             href={gmailUrl}
             target="_blank"
             rel="noopener noreferrer"
+            className="detail-open-gmail-btn"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -380,14 +381,15 @@ export function EmailDetail({ email, onClose, onResolve, onUnresolve, onSnooze }
               gap: '0.5rem',
               padding: '0.65rem 1rem',
               minHeight: '44px',
-              borderRadius: 'var(--radius-sm)',
+              borderRadius: 'var(--radius-md)',
               backgroundColor: 'var(--accent)',
               color: '#ffffff',
               fontSize: '0.88rem',
               fontWeight: 600,
               textDecoration: 'none',
               marginTop: '0.35rem',
-              transition: 'background-color var(--transition-fast)',
+              boxShadow: '0 2px 10px rgba(99, 102, 241, 0.25)',
+              transition: 'all var(--transition-fast)',
             }}
           >
             <span>Open in Gmail</span>
