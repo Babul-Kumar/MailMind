@@ -316,30 +316,36 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
                 padding: '3px',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-subtle)',
-                gap: '3px',
+                gap: '2px',
               }}
             >
-              {['P1', 'P2', 'P3', 'P4'].map((tierKey) => (
-                <button
-                  key={tierKey}
-                  type="button"
-                  onClick={() => setActiveDemoTier(tierKey)}
-                  style={{
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    transition: 'all var(--transition-fast)',
-                    backgroundColor: activeDemoTier === tierKey ? 'var(--accent)' : 'transparent',
-                    color: activeDemoTier === tierKey ? '#ffffff' : 'var(--text-muted)',
-                    boxShadow: activeDemoTier === tierKey ? '0 2px 8px rgba(99, 102, 241, 0.4)' : 'none',
-                  }}
-                >
-                  {tierKey}
-                </button>
-              ))}
+              {['P1', 'P2', 'P3', 'P4'].map((tierKey) => {
+                const colorMap = { P1: 'var(--p1-color)', P2: 'var(--p2-color)', P3: 'var(--p3-color)', P4: 'var(--p4-color)' };
+                const bgMap = { P1: 'var(--p1-bg)', P2: 'var(--p2-bg)', P3: 'var(--p3-bg)', P4: 'var(--p4-bg)' };
+                const isActive = activeDemoTier === tierKey;
+                return (
+                  <button
+                    key={tierKey}
+                    type="button"
+                    onClick={() => setActiveDemoTier(tierKey)}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: 'none',
+                      transition: 'all var(--transition-fast)',
+                      backgroundColor: isActive ? 'var(--accent)' : 'transparent',
+                      color: isActive ? '#ffffff' : 'var(--text-muted)',
+                      boxShadow: isActive ? '0 2px 8px rgba(99, 102, 241, 0.4)' : 'none',
+                      transform: isActive ? 'scale(1.02)' : 'scale(1)',
+                    }}
+                  >
+                    {tierKey}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -471,65 +477,59 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
             width: '100%',
           }}
         >
-          <div
-            style={{
-              padding: '1.25rem',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-lg)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.45rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent)', fontWeight: 700, fontSize: '0.92rem' }}>
-              <Zap size={18} />
-              <span>Sub-Millisecond Inference</span>
+          {[
+            {
+              icon: <Zap size={18} />,
+              color: 'var(--accent)',
+              title: 'Sub-Millisecond Inference',
+              body: 'Evaluates emails in 1.35ms without CPU starvation. Entire mailboxes sync incrementally without memory bloat.',
+            },
+            {
+              icon: <Clock size={18} />,
+              color: '#10b981',
+              title: 'Dynamic Priority Aging',
+              body: 'Expired OTPs and passed deadlines automatically de-escalate so your critical view stays current and actionable.',
+            },
+            {
+              icon: <Shield size={18} />,
+              color: '#818cf8',
+              title: 'Strict Privacy By Design',
+              body: 'Read-only Gmail scope (gmail.readonly). We never modify messages, train external LLMs, or resell user data.',
+            },
+          ].map((card, i) => (
+            <div
+              key={i}
+              style={{
+                padding: '1.25rem',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-lg)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                transition: 'all var(--transition-normal)',
+                cursor: 'default',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.14)';
+                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: card.color, fontWeight: 700, fontSize: '0.92rem' }}>
+                {card.icon}
+                <span>{card.title}</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                {card.body}
+              </p>
             </div>
-            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-              Evaluates emails in 1.35ms without CPU starvation. Entire mailboxes sync incrementally without memory bloat.
-            </p>
-          </div>
-
-          <div
-            style={{
-              padding: '1.25rem',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-lg)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.45rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontWeight: 700, fontSize: '0.92rem' }}>
-              <Clock size={18} />
-              <span>Dynamic Priority Aging</span>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-              Expired OTPs and passed deadlines automatically de-escalate so your critical view stays current and actionable.
-            </p>
-          </div>
-
-          <div
-            style={{
-              padding: '1.25rem',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-lg)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.45rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#818cf8', fontWeight: 700, fontSize: '0.92rem' }}>
-              <Shield size={18} />
-              <span>Strict Privacy By Design</span>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-              Read-only Gmail scope (`gmail.readonly`). We never modify messages, train external LLMs, or resell user data.
-            </p>
-          </div>
+          ))}
         </div>
       </div>
     </div>

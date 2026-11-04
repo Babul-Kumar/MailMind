@@ -55,8 +55,8 @@ body.mobile-drawer-open {
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -64,12 +64,13 @@ body.mobile-drawer-open {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
+  background: rgba(99, 102, 241, 0.25);
   border-radius: var(--radius-full);
+  transition: background var(--transition-fast);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: rgba(99, 102, 241, 0.5);
 }
 
 /* Responsive email detail drawer */
@@ -116,32 +117,52 @@ body.mobile-drawer-open {
   padding: 0.75rem 1.15rem;
   border-bottom: 1px solid var(--border-divider);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   user-select: none;
   border-left: 3px solid transparent;
+  position: relative;
+}
+
+.email-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  border-radius: 0;
 }
 
 .email-row:hover {
   background-color: var(--bg-surface-hover);
+  transform: translateX(2px);
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.06);
+}
+
+.email-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .email-row.is-selected {
   background-color: var(--bg-surface-selected);
   border-left: 3px solid var(--accent) !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.15);
 }
 
 .email-row.p1-row {
   border-left: 3px solid var(--p1-color) !important;
-  background-color: rgba(255, 51, 102, 0.02);
+  background-color: rgba(255, 51, 102, 0.025);
 }
 
 .email-row.p1-row:hover {
-  background-color: rgba(255, 51, 102, 0.06) !important;
+  background-color: rgba(255, 51, 102, 0.07) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 51, 102, 0.1);
 }
 
 /* P4 Quiet Visual State: reduced contrast, calmer typography */
 .email-row.p4-row {
-  opacity: 0.82;
+  opacity: 0.78;
 }
 
 .email-row.p4-row:hover {
@@ -308,13 +329,16 @@ body.mobile-drawer-open {
 .topbar-header {
   display: flex;
   flex-direction: column;
-  padding: 0.75rem 1.5rem;
+  padding: 0.65rem 1.5rem;
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
   z-index: 1300;
   transition: padding var(--transition-fast);
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .topbar-desktop-row {
@@ -435,23 +459,39 @@ body.mobile-drawer-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.55rem 0.85rem;
-  min-height: 44px;
+  padding: 0.52rem 0.75rem;
+  min-height: 42px;
   border-radius: var(--radius-md);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 500;
   color: var(--text-secondary);
   background-color: transparent;
   border: 1px solid transparent;
-  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   cursor: pointer;
   width: 100%;
   text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-nav-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: var(--accent);
+  opacity: 0;
+  border-radius: 0 2px 2px 0;
+  transition: width var(--transition-fast), opacity var(--transition-fast);
 }
 
 .sidebar-nav-btn:hover {
   background-color: var(--bg-surface-hover);
   color: var(--text-main);
+  transform: translateX(1px);
 }
 
 .sidebar-nav-btn:active {
@@ -460,24 +500,25 @@ body.mobile-drawer-open {
 }
 
 .sidebar-nav-btn.is-active {
-  background: linear-gradient(90deg, var(--bg-surface-selected) 0%, rgba(99, 102, 241, 0.08) 100%);
+  background: linear-gradient(90deg, var(--bg-surface-selected) 0%, rgba(99, 102, 241, 0.06) 100%);
   color: var(--text-main);
   font-weight: 600;
-  border-color: rgba(99, 102, 241, 0.28);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  position: relative;
+  border-color: rgba(99, 102, 241, 0.22);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(99, 102, 241, 0.1);
+  transform: none;
 }
 
 .sidebar-nav-btn.is-active::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 6px;
-  bottom: 6px;
+  top: 7px;
+  bottom: 7px;
   width: 3px;
   border-radius: 0 3px 3px 0;
   background-color: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  opacity: 1;
 }
 
 /* Mobile TopBar Buttons & Indicators */
@@ -549,7 +590,7 @@ body.mobile-drawer-open {
 
 .searchbar-input {
   width: 100%;
-  height: 48px;
+  height: 44px;
   box-sizing: border-box;
   padding: 0 44px 0 42px;
   background-color: var(--bg-input);
@@ -559,7 +600,7 @@ body.mobile-drawer-open {
   font-size: 0.88rem;
   line-height: normal;
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
 
 @media (max-width: 768px) {
@@ -570,7 +611,8 @@ body.mobile-drawer-open {
 
 .searchbar-input:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 2px var(--accent-light);
+  box-shadow: 0 0 0 3px var(--accent-light), 0 1px 4px rgba(99, 102, 241, 0.15);
+  background-color: var(--bg-surface);
 }
 
 .searchbar-actions {
@@ -621,12 +663,17 @@ body.mobile-drawer-open {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 0.75rem 1.15rem;
-  background-color: var(--bg-surface);
+  padding: 0.85rem 1.15rem;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-card) 100%);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   margin-bottom: 1rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(99, 102, 241, 0.04);
+  transition: box-shadow var(--transition-fast);
+}
+
+.priority-summary-card:hover {
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(99, 102, 241, 0.08);
 }
 
 .priority-summary-hero {
@@ -824,11 +871,13 @@ body.mobile-drawer-open {
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
-  background-color: rgba(99, 102, 241, 0.06);
-  border: 1px solid rgba(99, 102, 241, 0.22);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.07) 0%, rgba(168, 85, 247, 0.04) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
   border-radius: var(--radius-lg);
   margin-bottom: 14px;
   color: var(--accent);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.08);
+  animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .scan-status-header {
@@ -932,8 +981,8 @@ body.mobile-drawer-open {
   align-items: center;
   gap: 6px;
   padding: 0 14px;
-  height: 44px;
-  min-height: 44px;
+  height: 40px;
+  min-height: 40px;
   border-radius: var(--radius-full);
   font-size: 0.82rem;
   font-weight: 500;
@@ -945,10 +994,11 @@ body.mobile-drawer-open {
   transition: all var(--transition-fast);
   flex-shrink: 0;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .mobile-priority-chip:active {
-  transform: scale(0.96);
+  transform: scale(0.94);
 }
 
 .mobile-priority-chip.is-active {
@@ -956,6 +1006,7 @@ body.mobile-drawer-open {
   color: var(--text-main);
   font-weight: 600;
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 2px 8px rgba(99, 102, 241, 0.15);
 }
 
 .mobile-chip-dot {
@@ -1046,16 +1097,25 @@ body.mobile-drawer-open {
   transition: all var(--transition-fast);
 }
 
+.inbox-sub-chip:hover {
+  color: var(--text-secondary);
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-divider);
+}
+
 .inbox-sub-chip.is-active {
   background-color: var(--bg-surface-selected);
   color: var(--text-main);
   font-weight: 600;
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .inbox-sub-chip.action-required.is-active {
   background-color: var(--accent-light);
   color: var(--accent);
   border-color: var(--accent);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.2);
 }
 
 .inbox-controls-row {
@@ -1136,5 +1196,134 @@ body.mobile-drawer-open {
     width: auto;
     justify-content: flex-end;
   }
+}
+
+/* ==========================================
+   GLOBAL POLISH & MICRO-INTERACTION LAYER
+   ========================================== */
+
+/* Topbar sync button enhancements */
+.topbar-sync-btn {
+  transition: all var(--transition-fast) !important;
+}
+
+.topbar-sync-btn:not([disabled]):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3) !important;
+}
+
+.topbar-sync-btn:not([disabled]):active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Theme toggle and settings buttons */
+.topbar-header button[title="Appearance"],
+.topbar-header button[title="Settings"] {
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.topbar-header button[title="Appearance"]:hover,
+.topbar-header button[title="Settings"]:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-main);
+}
+
+/* Mobile menu button hover */
+.mobile-menu-btn:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-main);
+}
+
+/* Focus ring improvements */
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Account menu dropdown animation enhancement */
+.account-menu-dropdown {
+  animation: slideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Sidebar brand section enhancement */
+.sidebar-container {
+  background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-surface) 85%, var(--bg-app) 100%);
+}
+
+/* Priority breakdown chip hover glow */
+.priority-breakdown-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.priority-breakdown-chip.p1-chip:hover {
+  box-shadow: 0 3px 10px var(--p1-glow);
+}
+
+.priority-breakdown-chip.p2-chip:hover {
+  box-shadow: 0 3px 10px var(--p2-glow);
+}
+
+/* Inbox view title area */
+.inbox-view-title {
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+/* Scan status fill animation improvement */
+.scan-status-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  background-size: 200% 100%;
+  border-radius: 99px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: shimmer 2.2s infinite linear;
+}
+
+/* Email list container entrance */
+.email-list-container > * {
+  animation: rowEntrance 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Priority badge glow on hover */
+.priority-badge-pill {
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.email-row:hover .priority-badge-pill {
+  transform: scale(1.05);
+}
+
+/* Load more button */
+.load-more-btn {
+  transition: all var(--transition-fast);
+}
+
+.load-more-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* App shell background ambiance */
+.app-shell-layout {
+  background: var(--bg-app);
+}
+
+[data-theme="dark"] .app-shell-layout {
+  background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.04) 0%, var(--bg-app) 60%);
+}
+
+/* Topbar mobile account button improved hover */
+.topbar-mobile-account-btn:hover,
+.topbar-mobile-theme-btn:hover {
+  background-color: var(--bg-surface-selected);
+  border-color: var(--border-focus);
+  color: var(--text-main);
 }
 

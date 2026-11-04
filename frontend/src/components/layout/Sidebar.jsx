@@ -41,10 +41,10 @@ function SidebarComponent({
   ];
 
   const priorityItems = [
-    { key: 'P1', label: 'P1 · Critical', count: counts.P1 || 0, dotColor: 'var(--p1-color)', glow: 'var(--p1-glow)', bg: 'rgba(255, 51, 102, 0.12)', tooltip: 'Immediate action, hard deadline, or critical operational consequence.' },
-    { key: 'P2', label: 'P2 · Important', count: counts.P2 || 0, dotColor: 'var(--p2-color)', glow: 'var(--p2-glow)', bg: 'rgba(245, 158, 11, 0.12)', tooltip: 'Important emails classified by the model; not all require action.' },
-    { key: 'P3', label: 'P3 · Routine', count: counts.P3 || 0, dotColor: 'var(--p3-color)', glow: 'var(--p3-glow)', bg: 'rgba(56, 189, 248, 0.12)', tooltip: 'Informational or routine operational correspondence.' },
-    { key: 'P4', label: 'P4 · Low', count: counts.P4 || 0, dotColor: 'var(--p4-color)', glow: 'var(--p4-glow)', bg: 'rgba(148, 163, 184, 0.10)', tooltip: 'Promotional, bulk notifications, or low priority.' },
+    { key: 'P1', label: 'P1 · Critical', count: counts.P1 || 0, dotColor: 'var(--p1-color)', glow: 'var(--p1-glow)', bg: 'rgba(255, 51, 102, 0.12)', activeBorder: 'rgba(255, 51, 102, 0.3)', activeBar: 'var(--p1-color)', tooltip: 'Immediate action, hard deadline, or critical operational consequence.' },
+    { key: 'P2', label: 'P2 · Important', count: counts.P2 || 0, dotColor: 'var(--p2-color)', glow: 'var(--p2-glow)', bg: 'rgba(245, 158, 11, 0.12)', activeBorder: 'rgba(245, 158, 11, 0.3)', activeBar: 'var(--p2-color)', tooltip: 'Important emails classified by the model; not all require action.' },
+    { key: 'P3', label: 'P3 · Routine', count: counts.P3 || 0, dotColor: 'var(--p3-color)', glow: 'var(--p3-glow)', bg: 'rgba(56, 189, 248, 0.12)', activeBorder: 'rgba(56, 189, 248, 0.25)', activeBar: 'var(--p3-color)', tooltip: 'Informational or routine operational correspondence.' },
+    { key: 'P4', label: 'P4 · Low', count: counts.P4 || 0, dotColor: 'var(--p4-color)', glow: 'var(--p4-glow)', bg: 'rgba(148, 163, 184, 0.10)', activeBorder: 'rgba(148, 163, 184, 0.2)', activeBar: 'var(--p4-color)', tooltip: 'Promotional, bulk notifications, or low priority.' },
   ];
 
   const handleSelect = (key) => {
@@ -64,6 +64,7 @@ function SidebarComponent({
         padding: '1.25rem 0.85rem',
         flexShrink: 0,
         overflowY: 'auto',
+        boxShadow: '2px 0 16px rgba(0,0,0,0.08)',
       }}
       aria-label="Sidebar navigation"
     >
@@ -217,10 +218,12 @@ function SidebarComponent({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.55rem 0.75rem',
+                  padding: '0.52rem 0.75rem',
                   borderRadius: 'var(--radius-md)',
                   opacity: isP4 ? 0.85 : 1,
                   transition: 'all var(--transition-fast)',
+                  background: isActive ? `linear-gradient(90deg, ${item.bg} 0%, transparent 100%)` : undefined,
+                  borderColor: isActive ? item.glow : undefined,
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -231,10 +234,16 @@ function SidebarComponent({
                       height: '8px',
                       borderRadius: '50%',
                       backgroundColor: item.dotColor,
-                      boxShadow: isActive ? `0 0 8px ${item.dotColor}` : 'none',
+                      boxShadow: isActive ? `0 0 10px ${item.dotColor}, 0 0 4px ${item.dotColor}` : isP1WithCount ? `0 0 6px ${item.dotColor}` : 'none',
+                      flexShrink: 0,
+                      transition: 'box-shadow var(--transition-fast)',
                     }}
                   />
-                  <span style={{ fontWeight: isActive ? 600 : 500, color: isP4 && !isActive ? 'var(--text-muted)' : 'var(--text-main)' }}>
+                  <span style={{
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? item.dotColor : isP4 && !isActive ? 'var(--text-muted)' : 'var(--text-secondary)',
+                    transition: 'color var(--transition-fast)',
+                  }}>
                     {item.label}
                   </span>
                 </div>
@@ -242,7 +251,7 @@ function SidebarComponent({
                   style={{
                     fontSize: '11px',
                     minWidth: '22px',
-                    height: '22px',
+                    height: '20px',
                     padding: '0 0.45rem',
                     borderRadius: '999px',
                     display: 'inline-flex',
@@ -250,7 +259,9 @@ function SidebarComponent({
                     justifyContent: 'center',
                     backgroundColor: isActive ? item.bg : isP1WithCount ? 'rgba(255, 51, 102, 0.15)' : 'var(--badge-bg)',
                     color: isActive || isP1WithCount ? item.dotColor : 'var(--text-muted)',
-                    fontWeight: item.count > 0 ? 600 : 500,
+                    fontWeight: item.count > 0 ? 700 : 500,
+                    border: isActive ? `1px solid ${item.glow}` : '1px solid transparent',
+                    transition: 'all var(--transition-fast)',
                   }}
                 >
                   {formattedCount}
@@ -268,26 +279,28 @@ function SidebarComponent({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.55rem',
-                padding: '0.45rem 0.65rem',
+                padding: '0.5rem 0.65rem',
                 borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--bg-card)',
+                background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(99, 102, 241, 0.05) 100%)',
                 border: '1px solid var(--border-subtle)',
                 marginBottom: '0.35rem',
+                boxShadow: 'var(--shadow-sm)',
               }}
             >
               <div
                 style={{
-                  width: '24px',
-                  height: '24px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, #6366f1, #a855f7)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '0.68rem',
+                  fontSize: '0.72rem',
                   fontWeight: 700,
                   flexShrink: 0,
+                  boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)',
                 }}
               >
                 {userEmail.slice(0, 1).toUpperCase()}
@@ -296,8 +309,9 @@ function SidebarComponent({
                 <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {userEmail}
                 </span>
-                <span style={{ fontSize: '0.66rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                  ● Active OAuth
+                <span style={{ fontSize: '0.63rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', boxShadow: '0 0 6px rgba(16, 185, 129, 0.5)' }} />
+                  Active · Read-Only
                 </span>
               </div>
             </div>

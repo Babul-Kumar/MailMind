@@ -184,7 +184,7 @@ function TopBarComponent({
                 <div
                   style={{
                     position: 'absolute',
-                    top: 'calc(100% + 6px)',
+                    top: 'calc(100% + 8px)',
                     right: 0,
                     width: '240px',
                     backgroundColor: 'var(--bg-surface)',
@@ -196,7 +196,6 @@ function TopBarComponent({
                     flexDirection: 'column',
                     gap: '0.25rem',
                     zIndex: 100,
-                    animation: 'fadeIn 0.15s ease',
                   }}
                 >
                   <div style={{ padding: '0.5rem 0.65rem', borderBottom: '1px solid var(--border-subtle)' }}>
