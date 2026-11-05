@@ -1,18 +1,40 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
+  Menu,
   Search,
-  Check,
-  Clock,
+  SlidersHorizontal,
   Sun,
   Moon,
-  ChevronDown,
-  Paperclip,
   RefreshCw,
-  Copy,
+  PenLine,
+  Inbox,
+  Star,
+  Clock,
+  Send,
+  Archive,
+  Tag,
+  Users,
+  Info,
+  Check,
+  CheckSquare,
+  Square,
+  MinusSquare,
   RotateCcw,
   ArrowLeft,
+  ExternalLink,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Paperclip,
+  Copy,
   LogOut,
-  ExternalLink
+  Columns,
+  Maximize2,
+  Minimize2,
+  X,
+  Mail,
+  MailOpen,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useEmails } from './hooks/useEmails';
@@ -48,7 +70,7 @@ const INITIAL_EMAILS = [
     sender: 'AWS CloudWatch',
     email: 'no-reply@amazonaws.com',
     initials: 'AW',
-    avatarBg: 'bg-stone-200/80 text-stone-700 dark-avatar-stone',
+    avatarBg: 'bg-stone-200/80 text-stone-700',
     subject: 'Elevated 5xx latency on production API',
     time: '10:42 AM',
     fullDate: 'Nov 5, 10:42 AM',
@@ -138,146 +160,31 @@ const INITIAL_EMAILS = [
   },
   {
     id: 'e5',
-    sender: 'Stripe',
-    email: 'receipts@stripe.com',
-    initials: 'ST',
-    avatarBg: 'bg-slate-200/80 text-slate-700',
-    subject: 'October cloud invoice #4829 ready for approval',
+    sender: 'ByteByteGo',
+    email: 'bytebytego@substack.com',
+    initials: 'BB',
+    avatarBg: 'bg-indigo-100/70 text-indigo-900',
+    subject: 'The Hidden Work Behind Every Database Request',
     time: 'Nov 3',
     fullDate: 'Nov 3, 2:10 PM',
     daysAgo: 2,
     unread: false,
     analyzed: true,
-    priority: 'P2',
-    needsAttention: true,
-    matched: 'invoice, approval, due',
-    note: 'Due Nov 10',
-    otp: null,
-    attachment: { name: 'Invoice_4829.pdf', size: '118 KB' },
-    paragraphs: [
-      'Your October infrastructure statement (#4829) for $19.00 USD has been generated.',
-      'Please verify your billing card on file before November 10 so automatic settlement completes without interruption.'
-    ]
-  },
-  {
-    id: 'e6',
-    sender: 'Linear',
-    email: 'changelog@linear.app',
-    initials: 'LN',
-    avatarBg: 'bg-zinc-200/80 text-zinc-700',
-    subject: 'Changelog: Faster sync and keyboard triage',
-    time: 'Nov 2',
-    fullDate: 'Nov 2, 11:00 AM',
-    daysAgo: 3,
-    unread: false,
-    analyzed: true,
     priority: 'P3',
     needsAttention: false,
-    matched: 'changelog, release notes',
-    note: 'Informational update',
+    matched: 'newsletter, architecture',
+    note: 'Tech digest',
     otp: null,
     attachment: null,
     paragraphs: [
-      'This week we shipped sub-millisecond local cache hydration and cleaner keyboard navigation across inbox views.',
-      'No action is needed—your workspace has already been updated automatically.'
-    ]
-  },
-  {
-    id: 'e7',
-    sender: 'Figma',
-    email: 'notifications@figma.com',
-    initials: 'FG',
-    avatarBg: 'bg-stone-200/80 text-stone-700',
-    subject: 'Weekly activity digest on MailMind Design System',
-    time: 'Oct 30',
-    fullDate: 'Oct 30, 6:00 PM',
-    daysAgo: 6,
-    unread: false,
-    analyzed: true,
-    priority: 'P3',
-    needsAttention: false,
-    matched: 'weekly digest, activity',
-    note: 'Routine summary',
-    otp: null,
-    attachment: null,
-    paragraphs: [
-      'Aarav and 2 teammates left resolved notes on the typography and color token frames earlier this week.',
-      'Open Figma anytime if you would like to review the archived version history.'
-    ]
-  },
-  {
-    id: 'e8',
-    sender: 'Coursera',
-    email: 'no-reply@coursera.org',
-    initials: 'CR',
-    avatarBg: 'bg-zinc-200/80 text-zinc-600',
-    subject: 'Save 40% on Applied Machine Learning specializations',
-    time: 'Oct 26',
-    fullDate: 'Oct 26, 9:00 AM',
-    daysAgo: 10,
-    unread: false,
-    analyzed: true,
-    priority: 'P4',
-    needsAttention: false,
-    matched: 'save 40%, promotional',
-    note: 'Filtered low priority',
-    otp: null,
-    attachment: null,
-    paragraphs: [
-      'Advance your career this autumn with hands-on courses from leading university partners at a seasonal discount.',
-      'You are receiving this email because you enrolled in an NLP course last semester.'
-    ]
-  },
-  {
-    id: 'e9',
-    sender: 'Dr. Vikram Sen',
-    email: 'vikram.sen@lpu.co.in',
-    initials: 'VS',
-    avatarBg: 'bg-emerald-100/60 text-emerald-900',
-    subject: 'Approved: Capstone proposal on email priority intelligence',
-    time: 'May 18',
-    fullDate: 'May 18, 2026',
-    daysAgo: 171,
-    unread: false,
-    analyzed: false,
-    priority: 'P2',
-    needsAttention: false,
-    matched: 'approved, capstone proposal',
-    note: 'Historical archive',
-    otp: null,
-    attachment: { name: 'Proposal_Approval.pdf', size: '190 KB' },
-    paragraphs: [
-      'Dear Babul, the department committee has approved your CSE472 capstone topic proposal for the 2026 academic term.',
-      'Keep a copy of the signed approval memo attached below for your final thesis submission.'
-    ]
-  },
-  {
-    id: 'e10',
-    sender: 'Vercel',
-    email: 'updates@vercel.com',
-    initials: 'VC',
-    avatarBg: 'bg-zinc-200/80 text-zinc-700',
-    subject: 'Spring platform update and edge region expansion',
-    time: 'Feb 12',
-    fullDate: 'Feb 12, 2026',
-    daysAgo: 266,
-    unread: false,
-    analyzed: false,
-    priority: 'P4',
-    needsAttention: false,
-    matched: 'platform update, newsletter',
-    note: 'Historical archive',
-    otp: null,
-    attachment: null,
-    paragraphs: [
-      'Explore faster static builds and new edge caching regions across South Asia in our seasonal platform roundup.',
-      'Thank you for building and deploying with Vercel.'
+      'When an application executes a simple SQL query, dozens of kernel and storage operations fire in parallel under the hood.',
+      'From buffer pool lookups and WAL synchronization to lock managers, understanding execution engine internals helps prevent database brownouts under peak loads.'
     ]
   }
 ];
 
 // ============================================================================
-// MINIMAL BRAND MARK
+// BRAND LOGO ICON
 // ============================================================================
 
 function BrandMark() {
@@ -285,7 +192,7 @@ function BrandMark() {
     <svg
       viewBox="0 0 20 20"
       fill="none"
-      className="w-4 h-4 shrink-0"
+      className="w-5 h-5 shrink-0"
       aria-hidden="true"
     >
       <rect
@@ -298,7 +205,7 @@ function BrandMark() {
         strokeWidth="1.6"
       />
       <path
-        d="M3.5 6L10 10.5L16.5 6"
+        d="M2.5 5.5L10 11.5L17.5 5.5"
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinecap="round"
@@ -310,14 +217,13 @@ function BrandMark() {
 
 function getSenderInitials(name) {
   if (!name) return 'M';
-  const clean = name.replace(/<[^>]+>/g, '').trim();
+  const clean = name.replace(/[^a-zA-Z\s]/g, '').trim();
   const parts = clean.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
   return clean.slice(0, 2).toUpperCase() || 'M';
 }
-
 
 // ============================================================================
 // RICH GMAIL-STYLE EMAIL CONTENT RENDERERS
@@ -477,7 +383,14 @@ function formatRealEmail(item, index) {
   const priority = item.effective_priority || item.final_priority || item.predicted_priority || 'P3';
   const time = formatEmailDate(item.date);
   const fullDate = item.date
-    ? new Date(item.date).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    ? new Date(item.date).toLocaleString([], {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      })
     : time;
 
   // Detect OTP from subject or body
@@ -508,7 +421,6 @@ function formatRealEmail(item, index) {
       ? { name: `${item.subject.slice(0, 20)}.pdf`, size: '180 KB' }
       : null;
 
-  // Days ago calculation
   let daysAgo = 0;
   if (item.date) {
     const diffMs = Date.now() - new Date(item.date).getTime();
@@ -602,24 +514,31 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Navigation & Filters
-  const [view, setView] = useState('attention'); // 'attention' | 'recent' | 'all'
-  const [subTab, setSubTab] = useState('active'); // 'active' | 'snoozed' | 'done'
+  // Visual Layout & Navigation State
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [layoutMode, setLayoutMode] = useState('table'); // 'table' | 'split'
+  const [view, setView] = useState('inbox'); // 'inbox' | 'attention' | 'starred' | 'snoozed' | 'done' | 'all'
+  const [categoryTab, setCategoryTab] = useState('primary'); // 'primary' | 'promotions' | 'social' | 'updates' | 'all'
+  const [readingEmailId, setReadingEmailId] = useState(null); // when null: table view; when id: open email view
+  const [selectedId, setSelectedId] = useState('e1');
   const [priorityFilter, setPriorityFilter] = useState(null); // null | 'P1' | 'P2' | 'P3' | 'P4'
   const [windowId, setWindowId] = useState('last_3_months');
   const [search, setSearch] = useState('');
   const [mobileReading, setMobileReading] = useState(false);
 
-  // Mailbox Data & Triage Status
-  const [selectedId, setSelectedId] = useState('e1');
+  // Checkbox selection & Starred State
+  const [checkedIds, setCheckedIds] = useState(() => new Set());
+  const [starredIds, setStarredIds] = useState(() => {
+    try {
+      const stored = localStorage.getItem('mailmind_starred_ids');
+      return stored ? new Set(JSON.parse(stored)) : new Set(['e1', 'e3']);
+    } catch {
+      return new Set(['e1', 'e3']);
+    }
+  });
+
+  // Triage and override maps
   const [statusMap, setStatusMap] = useState({}); // { [id]: { state: 'done' | 'snoozed', until?: string } }
-
-  // Cache for full email details (MIME HTML body, complete headers)
-  const [emailDetails, setEmailDetails] = useState({});
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const [viewMode, setViewMode] = useState('rich'); // 'rich' | 'plain'
-
-  // Overrides map for user-set priorities
   const [overridesMap, setOverridesMap] = useState({});
 
   // Floating Popovers & Feedback
@@ -628,10 +547,27 @@ export default function App() {
   const [snoozeMenuOpen, setSnoozeMenuOpen] = useState(false);
   const [windowMenuOpen, setWindowMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [selectMenuOpen, setSelectMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [toast, setToast] = useState(null);
 
+  // Quick Compose Dialog State
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeData, setComposeData] = useState({ to: '', subject: '', body: '' });
+
+  // Cache for full email details (MIME HTML body, complete headers)
+  const [emailDetails, setEmailDetails] = useState({});
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [viewMode, setViewMode] = useState('rich'); // 'rich' | 'plain'
+
   const rootRef = useRef(null);
+
+  // Save starred state
+  useEffect(() => {
+    try {
+      localStorage.setItem('mailmind_starred_ids', JSON.stringify(Array.from(starredIds)));
+    } catch {}
+  }, [starredIds]);
 
   // Sync background progress
   useEffect(() => {
@@ -671,7 +607,6 @@ export default function App() {
     }
   }, [emails, selectedId]);
 
-
   const triggerToast = useCallback((message, undo = null) => {
     setToast({ id: Date.now(), message, undo });
   }, []);
@@ -690,6 +625,7 @@ export default function App() {
         setSnoozeMenuOpen(false);
         setWindowMenuOpen(false);
         setUserMenuOpen(false);
+        setSelectMenuOpen(false);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -701,6 +637,7 @@ export default function App() {
     setSnoozeMenuOpen(false);
     setWindowMenuOpen(false);
     setUserMenuOpen(false);
+    setSelectMenuOpen(false);
   };
 
   // Active Window Cutoff
@@ -713,20 +650,65 @@ export default function App() {
     return emails.filter((e) => e.needsAttention && !statusMap[e.id]).length;
   }, [emails, statusMap]);
 
-  // Filtered List Items
+  // Category Counts for Gmail Category Tabs
+  const categoryCounts = useMemo(() => {
+    let primary = 0;
+    let updates = 0;
+    let promotions = 0;
+    let social = 0;
+
+    emails.forEach((item) => {
+      const text = `${item.subject} ${item.sender}`.toLowerCase();
+      if (item.priority === 'P1' || item.priority === 'P2' || item.needsAttention) {
+        primary++;
+      } else if (/offer|drop|price|sale|discount|deal|free|win|festive|reward|quiz|internship|hiring/i.test(text)) {
+        promotions++;
+      } else if (/quora|linkedin|twitter|facebook|connect|network|community|discussion/i.test(text)) {
+        social++;
+      } else {
+        updates++;
+      }
+    });
+
+    return { primary, updates, promotions, social };
+  }, [emails]);
+
+  // Filtered List Items (Meticulous Gmail Tab & Folder Filtering)
   const visibleEmails = useMemo(() => {
     return emails.filter((item) => {
       const st = statusMap[item.id]?.state;
+      const isStarred = starredIds.has(item.id);
 
-      if (view === 'attention') {
-        if (subTab === 'active' && (!item.needsAttention || st)) return false;
-        if (subTab === 'snoozed' && st !== 'snoozed') return false;
-        if (subTab === 'done' && st !== 'done') return false;
-      } else if (view === 'recent') {
-        if (item.daysAgo > cutoffDays) return false;
+      // Folder filtering
+      if (view === 'starred') {
+        if (!isStarred) return false;
+      } else if (view === 'attention') {
+        if (!item.needsAttention || st === 'done') return false;
+      } else if (view === 'snoozed') {
+        if (st !== 'snoozed') return false;
+      } else if (view === 'done') {
+        if (st !== 'done') return false;
+      } else if (view === 'inbox') {
         if (st === 'done') return false;
+
+        // Category Tab Filtering within Inbox
+        if (categoryTab !== 'all') {
+          const text = `${item.subject} ${item.sender}`.toLowerCase();
+          if (categoryTab === 'primary') {
+            if (item.priority !== 'P1' && item.priority !== 'P2' && !item.needsAttention) return false;
+          } else if (categoryTab === 'updates') {
+            const isUpdate = item.priority === 'P3' || /update|code|verify|digest|notification|security|system|admit|receipt/i.test(text);
+            if (!isUpdate) return false;
+          } else if (categoryTab === 'promotions') {
+            const isPromo = /offer|drop|price|sale|discount|deal|free|win|festive|reward|quiz|internship|hiring/i.test(text);
+            if (!isPromo) return false;
+          } else if (categoryTab === 'social') {
+            const isSocial = /quora|linkedin|twitter|facebook|connect|network|community|discussion/i.test(text);
+            if (!isSocial) return false;
+          }
+        }
       }
-      // 'all' shows everything in mailbox
+      // 'all' shows all emails
 
       if (priorityFilter) {
         if (!item.analyzed || item.priority !== priorityFilter) return false;
@@ -736,24 +718,31 @@ export default function App() {
         const q = search.toLowerCase();
         return (
           item.sender.toLowerCase().includes(q) ||
-          item.subject.toLowerCase().includes(q)
+          item.subject.toLowerCase().includes(q) ||
+          (item.paragraphs?.[0] || '').toLowerCase().includes(q)
         );
       }
 
       return true;
     });
-  }, [emails, view, subTab, statusMap, cutoffDays, priorityFilter, search]);
+  }, [emails, view, categoryTab, statusMap, starredIds, priorityFilter, search]);
 
+  // Active email
   const currentEmail = useMemo(() => {
+    const targetId = readingEmailId || selectedId;
     return (
-      visibleEmails.find((e) => e.id === selectedId) ||
+      visibleEmails.find((e) => e.id === targetId) ||
+      emails.find((e) => e.id === targetId) ||
       visibleEmails[0] ||
       null
     );
-  }, [visibleEmails, selectedId]);
+  }, [visibleEmails, emails, readingEmailId, selectedId]);
 
+  const detailedEmail = currentEmail ? (emailDetails[currentEmail.id] || currentEmail) : null;
+  const rawHtml = detailedEmail?.body_html || currentEmail?.body_html || '';
+  const rawBody = detailedEmail?.body || currentEmail?.body || '';
 
-  // On-demand fetch of complete MIME content & HTML body when email is selected
+  // On-demand fetch of complete MIME content & HTML body when email is selected or opened
   useEffect(() => {
     if (!currentEmail?.id) return;
     const emailId = currentEmail.id;
@@ -796,6 +785,9 @@ export default function App() {
 
   const selectEmail = (item) => {
     setSelectedId(item.id);
+    if (layoutMode === 'table') {
+      setReadingEmailId(item.id);
+    }
     setMobileReading(true);
     closeAllMenus();
   };
@@ -804,7 +796,10 @@ export default function App() {
     const idx = visibleEmails.findIndex((e) => e.id === actingId);
     if (idx === -1) return;
     const nextItem = visibleEmails[idx + 1] || visibleEmails[idx - 1];
-    if (nextItem) setSelectedId(nextItem.id);
+    if (nextItem) {
+      setSelectedId(nextItem.id);
+      if (readingEmailId) setReadingEmailId(nextItem.id);
+    }
   };
 
   const markDone = (item, e = null) => {
@@ -815,7 +810,6 @@ export default function App() {
     setStatusMap((map) => ({ ...map, [item.id]: { state: 'done' } }));
     closeAllMenus();
 
-    // Trigger backend resolve if real email
     if (item.raw?.email_id || item.raw?.id) {
       emailsHook.resolveEmail?.(item.raw.email_id || item.raw.id);
     }
@@ -827,91 +821,94 @@ export default function App() {
         else delete next[item.id];
         return next;
       });
-      setSelectedId(item.id);
-      if (item.raw?.email_id || item.raw?.id) {
-        emailsHook.unresolveEmail?.(item.raw.email_id || item.raw.id);
-      }
-    });
-  };
-
-  const snoozeItem = (item, untilLabel, e = null) => {
-    if (e) e.stopPropagation();
-    if (!item) return;
-    const prev = statusMap[item.id];
-    advanceSelection(item.id);
-    setStatusMap((map) => ({
-      ...map,
-      [item.id]: { state: 'snoozed', until: untilLabel }
-    }));
-    closeAllMenus();
-
-    if (item.raw?.email_id || item.raw?.id) {
-      const ms = untilLabel === 'Tomorrow' ? 86400000 : 7 * 86400000;
-      emailsHook.snoozeEmail?.(item.raw.email_id || item.raw.id, Date.now() + ms);
-    }
-
-    triggerToast(`Snoozed · ${untilLabel}`, () => {
-      setStatusMap((map) => {
-        const next = { ...map };
-        if (prev) next[item.id] = prev;
-        else delete next[item.id];
-        return next;
-      });
-      setSelectedId(item.id);
-      if (item.raw?.email_id || item.raw?.id) {
-        emailsHook.unsnoozeEmail?.(item.raw.email_id || item.raw.id);
-      }
     });
   };
 
   const restoreItem = (item, e = null) => {
     if (e) e.stopPropagation();
+    if (!item) return;
     setStatusMap((map) => {
       const next = { ...map };
       delete next[item.id];
       return next;
     });
-    closeAllMenus();
     if (item.raw?.email_id || item.raw?.id) {
       emailsHook.unresolveEmail?.(item.raw.email_id || item.raw.id);
     }
-    triggerToast('Moved to Active');
+    triggerToast('Restored to inbox');
   };
 
-  const changePriority = (item, newPriority) => {
-    setPriorityMenuOpen(false);
-    if (item.priority === newPriority) return;
-    const oldPriority = item.priority;
-
-    setOverridesMap((prev) => ({ ...prev, [item.id]: newPriority }));
-
-    // Send feedback override to backend
-    if (item.raw) {
-      submitFeedback({
-        message_id: item.raw.email_id || item.raw.id,
-        user_priority: newPriority,
-        predicted_priority: item.raw.predicted_priority || item.raw.final_priority || oldPriority,
-        confidence: item.raw.confidence || 0.9,
-        thread_id: item.raw.thread_id,
-        feedback_type: 'OVERRIDE',
-      }).catch(() => {});
-    }
-
-    triggerToast(`Set to ${PRIORITIES[newPriority].name}`, () => {
-      setOverridesMap((prev) => {
-        const next = { ...prev };
-        next[item.id] = oldPriority;
-        return next;
-      });
+  const toggleStarEmail = (id, e = null) => {
+    if (e) e.stopPropagation();
+    setStarredIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   };
 
-  const analyzeSingle = (item) => {
-    setSyncing(true);
+  const toggleCheckEmail = (id, e = null) => {
+    if (e) e.stopPropagation();
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (checkedIds.size === visibleEmails.length && visibleEmails.length > 0) {
+      setCheckedIds(new Set());
+    } else {
+      setCheckedIds(new Set(visibleEmails.map((e) => e.id)));
+    }
+  };
+
+  const handleBatchDone = () => {
+    if (checkedIds.size === 0) return;
+    const ids = Array.from(checkedIds);
+    setStatusMap((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => {
+        next[id] = { state: 'done' };
+      });
+      return next;
+    });
+    ids.forEach((id) => {
+      emailsHook.resolveEmail?.(id);
+    });
+    setCheckedIds(new Set());
+    triggerToast(`Marked ${ids.length} email(s) as done`);
+  };
+
+  const handleCopyOtp = (code, id) => {
+    if (!code) return;
+    navigator.clipboard?.writeText(code);
+    setCopiedId(id);
+    triggerToast(`Copied ${code}`);
     setTimeout(() => {
-      setSyncing(false);
-      triggerToast(`Classified · ${PRIORITIES[item.priority]?.name || 'Urgent'}`);
-    }, 450);
+      setCopiedId(null);
+    }, 2000);
+  };
+
+  const changePriority = (item, newPriority) => {
+    if (!item || !newPriority) return;
+    setOverridesMap((prev) => ({
+      ...prev,
+      [item.id]: newPriority
+    }));
+    setPriorityMenuOpen(false);
+
+    submitFeedback({
+      message_id: item.raw?.email_id || item.id,
+      suggested_priority: newPriority,
+      comment: 'User UI priority refinement',
+      original_priority: item.priority
+    }).catch(() => {});
+
+    triggerToast(`Priority changed to ${newPriority} · ${PRIORITIES[newPriority].name}`);
   };
 
   const selectWindow = (nextId) => {
@@ -932,118 +929,35 @@ export default function App() {
     }, 600);
   };
 
-  const handleCopyOtp = (code, id) => {
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(code).catch(() => {});
-    }
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+  // Next / Previous email in open view
+  const currentIdx = visibleEmails.findIndex((e) => e.id === currentEmail?.id);
+  const prevEmail = currentIdx > 0 ? visibleEmails[currentIdx - 1] : null;
+  const nextEmail = currentIdx >= 0 && currentIdx < visibleEmails.length - 1 ? visibleEmails[currentIdx + 1] : null;
 
-  // OAuth Callback Route
+  // Render OAuth callback
   if (currentPath === '/auth/callback') {
-    return (
-      <AuthCallback
-        exchangeHandoff={auth.exchangeHandoff}
-        onAuthenticationComplete={() => {
-          auth.refreshStatus?.();
-        }}
-        onSuccess={() => {
-          window.history.replaceState({}, document.title, '/');
-          setCurrentPath('/');
-          auth.refreshStatus?.();
-        }}
-        onCancel={() => {
-          window.history.replaceState({}, document.title, '/');
-          setCurrentPath('/');
-        }}
-      />
-    );
+    return <AuthCallback />;
   }
 
-  // ============================================================================
-  // MINIMAL CARDLESS GOOGLE SIGN-IN SCREEN
-  // ============================================================================
+  // Calculate Gmail pagination numbers
+  const totalEmails = emailsHook.pagination?.total_emails || emails.length;
+  const currentPage = emailsHook.pagination?.page || 1;
+  const pageSize = emailsHook.pagination?.page_size || 50;
+  const startNum = visibleEmails.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endNum = visibleEmails.length === 0 ? 0 : Math.min(startNum + visibleEmails.length - 1, totalEmails);
 
-  const signedIn = auth.isAuthenticated || (!auth.isLoading && emails.length > 0);
-
-  if (!signedIn && !auth.isLoading) {
-    return (
-      <div
-        className={`h-screen w-full flex flex-col items-center justify-center px-6 transition-colors duration-200 ${
-          dark ? 'bg-[#18181B] text-[#F4F4F5]' : 'bg-[#FFFFFF] text-[#18181B]'
-        }`}
-      >
-        <button
-          onClick={() => setDark((d) => !d)}
-          className={`fixed top-6 right-6 p-2 rounded-full transition cursor-pointer ${
-            dark
-              ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800'
-              : 'text-[#71717A] hover:text-[#18181B] hover:bg-zinc-100'
-          }`}
-          aria-label="Toggle theme"
-        >
-          {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
-
-        <div className="flex flex-col items-center text-center max-w-xs">
-          <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center mb-6 ${
-              dark ? 'bg-zinc-800 text-[#F4F4F5]' : 'bg-[#F5F5F4] text-[#18181B]'
-            }`}
-          >
-            <BrandMark />
-          </div>
-
-          <h1 className="text-xl font-semibold tracking-tight mb-2">
-            Calm priority for Gmail
-          </h1>
-          <p
-            className={`text-sm mb-8 ${
-              dark ? 'text-[#A1A1AA]' : 'text-[#71717A]'
-            }`}
-          >
-            Read-only triage. Zero clutter.
-          </p>
-
-          <button
-            onClick={() => auth.login()}
-            className={`px-5 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer ${
-              dark
-                ? 'bg-[#F4F4F5] text-[#18181B] hover:bg-zinc-200'
-                : 'bg-[#18181B] text-white hover:bg-zinc-800'
-            }`}
-          >
-            Continue with Google
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================================
-  // SEAMLESS 3-COLUMN WORKSPACE (ZERO BOX-IN-BOX)
-  // ============================================================================
-
-  const activeWindowLabel =
-    WINDOWS.find((w) => w.id === windowId)?.label || 'Last 3 months';
-  const detailedEmail = currentEmail ? (emailDetails[currentEmail.id] || currentEmail) : null;
-  const rawHtml = detailedEmail?.body_html || currentEmail?.body_html || '';
-  const rawBody = detailedEmail?.body || currentEmail?.body || '';
-
-  const currentPriority = currentEmail
-    ? PRIORITIES[currentEmail.priority] || PRIORITIES.P3
-    : null;
+  const activeWindowLabel = WINDOWS.find((w) => w.id === windowId)?.label || 'Last 3 months';
+  const currentPriority = currentEmail ? (PRIORITIES[currentEmail.priority] || PRIORITIES.P3) : null;
   const currentTriage = currentEmail ? statusMap[currentEmail.id] : null;
 
-  const userName = auth.user?.name || (auth.user?.email ? auth.user.email.split('@')[0] : 'Babul Kumar');
+  const userName = auth.user?.name || auth.user?.email?.split('@')[0] || 'User';
   const userInitials = auth.user?.name ? getSenderInitials(auth.user.name) : 'BK';
 
   return (
     <div
       ref={rootRef}
       onClick={closeAllMenus}
-      className={`h-screen w-full overflow-hidden flex relative select-none transition-colors duration-200 ${
+      className={`h-screen w-full overflow-hidden flex flex-col relative select-none transition-colors duration-200 ${
         dark ? 'bg-[#18181B] text-[#F4F4F5]' : 'bg-[#FFFFFF] text-[#18181B]'
       }`}
     >
@@ -1057,834 +971,1011 @@ export default function App() {
       </div>
 
       {/* ==================================================================== */}
-      {/* 1. LEFT SIDEBAR (w-56, SINGLE HAIRLINE BORDER, NO BOXED CARDS)       */}
+      {/* TOP BAR: GMAIL HEADER WITH EXPANSIVE PILL SEARCH, LOGO, USER AVATAR  */}
       {/* ==================================================================== */}
-      <aside
-        className={`w-56 hidden md:flex flex-col justify-between shrink-0 border-r px-3 py-4 ${
+      <header
+        className={`h-16 px-4 sm:px-6 flex items-center justify-between border-b shrink-0 z-20 ${
           dark
             ? 'bg-[#121214] border-[#27272A]'
             : 'bg-[#F5F5F4] border-[#E4E4E7]'
         }`}
       >
-        <div className="space-y-6">
-          {/* Brand + Theme Toggle */}
-          <div className="flex items-center justify-between px-2.5">
-            <div className="flex items-center gap-2 font-semibold text-[14px] tracking-tight">
-              <BrandMark />
-              <span>MailMind</span>
-            </div>
+        {/* Left: Hamburger + Logo */}
+        <div className="flex items-center gap-3 w-56 shrink-0">
+          <button
+            onClick={() => setSidebarOpen((o) => !o)}
+            className={`p-2 rounded-full transition cursor-pointer ${
+              dark
+                ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800'
+                : 'text-[#71717A] hover:text-black hover:bg-zinc-200'
+            }`}
+            title="Main menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setDark((d) => !d);
-              }}
-              className={`p-1.5 rounded-md transition cursor-pointer ${
-                dark
-                  ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800/70'
-                  : 'text-[#71717A] hover:text-[#18181B] hover:bg-zinc-200/60'
-              }`}
-              aria-label="Toggle theme"
-            >
-              {dark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-
-          {/* Primary Views */}
-          <nav className="space-y-0.5">
-            {[
-              { id: 'attention', label: 'Needs Attention', count: attentionCount },
-              { id: 'recent', label: 'Recent Mail', count: null },
-              { id: 'all', label: 'All Mail', count: null }
-            ].map((nav) => {
-              const active = view === nav.id;
-              return (
-                <button
-                  key={nav.id}
-                  onClick={() => {
-                    setView(nav.id);
-                    setMobileReading(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[13px] transition cursor-pointer ${
-                    active
-                      ? dark
-                        ? 'bg-zinc-800/80 text-[#F4F4F5] font-medium'
-                        : 'bg-zinc-200/70 text-[#18181B] font-medium'
-                      : dark
-                      ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800/40'
-                      : 'text-[#71717A] hover:text-[#18181B] hover:bg-zinc-200/40'
-                  }`}
-                >
-                  <span>{nav.label}</span>
-                  {nav.count !== null && nav.count > 0 && (
-                    <span
-                      className={`text-xs tabular-nums ${
-                        active
-                          ? dark
-                            ? 'text-[#F4F4F5]'
-                            : 'text-[#18181B]'
-                          : 'text-[#71717A]'
-                      }`}
-                    >
-                      {nav.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Subtle Priority Filter Dots */}
-          <div className="space-y-0.5 pt-2">
-            <div className="px-2.5 pb-1.5 text-[11px] font-medium text-[#71717A]">
-              Priority
-            </div>
-            {Object.values(PRIORITIES).map((tier) => {
-              const active = priorityFilter === tier.id;
-              return (
-                <button
-                  key={tier.id}
-                  onClick={() =>
-                    setPriorityFilter((cur) => (cur === tier.id ? null : tier.id))
-                  }
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[13px] transition cursor-pointer ${
-                    active
-                      ? dark
-                        ? 'bg-zinc-800/80 text-[#F4F4F5] font-medium'
-                        : 'bg-zinc-200/70 text-[#18181B] font-medium'
-                      : dark
-                      ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800/40'
-                      : 'text-[#71717A] hover:text-[#18181B] hover:bg-zinc-200/40'
-                  }`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span
-                      className="w-[7px] h-[7px] rounded-full shrink-0"
-                      style={{ backgroundColor: tier.color }}
-                    />
-                    <span>{tier.name}</span>
-                  </span>
-                  {active && (
-                    <span className="text-[11px] text-[#71717A]">Clear</span>
-                  )}
-                </button>
-              );
-            })}
+          <div
+            onClick={() => {
+              setReadingEmailId(null);
+              setView('inbox');
+            }}
+            className="flex items-center gap-2.5 font-semibold text-lg tracking-tight cursor-pointer"
+          >
+            <BrandMark />
+            <span className="font-medium tracking-tight">MailMind</span>
           </div>
         </div>
 
-        {/* Quiet Bottom Footer: Analysis Window + User Row */}
-        <div className="space-y-1 pt-4">
-          {/* Minimal Borderless Window Menu */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => {
-                setWindowMenuOpen((o) => !o);
-                setUserMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+        {/* Center: Expansive Rounded Pill Search Bar (Exactly like Gmail) */}
+        <div className="flex-1 max-w-2xl px-2 sm:px-6">
+          <div
+            className={`flex items-center h-11 px-4 rounded-full transition-all border ${
+              dark
+                ? 'bg-zinc-800/80 border-transparent focus-within:bg-[#18181B] focus-within:border-zinc-700 focus-within:shadow-md'
+                : 'bg-zinc-200/60 border-transparent focus-within:bg-white focus-within:border-zinc-300 focus-within:shadow-md'
+            }`}
+          >
+            <Search className="w-4 h-4 text-zinc-400 shrink-0 mr-3" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search in emails..."
+              className={`w-full bg-transparent text-[13.5px] focus:outline-none ${
                 dark
-                  ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800/50'
-                  : 'text-[#71717A] hover:text-[#18181B] hover:bg-zinc-200/50'
+                  ? 'text-white placeholder-zinc-400'
+                  : 'text-zinc-900 placeholder-zinc-500'
               }`}
-            >
-              <span className="flex items-center gap-2">
-                <RefreshCw
-                  className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`}
-                />
-                <span>{activeWindowLabel}</span>
-              </span>
-              <ChevronDown className="w-3 h-3 opacity-60" />
-            </button>
-
-            {windowMenuOpen && (
-              <div
-                className={`absolute bottom-9 left-0 w-48 rounded-xl p-1 shadow-lg border z-30 ${
-                  dark
-                    ? 'bg-[#1F1F23] border-[#27272A] text-[#F4F4F5]'
-                    : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
-                }`}
+            />
+            {search ? (
+              <button
+                onClick={() => setSearch('')}
+                className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
               >
-                {WINDOWS.map((w) => (
-                  <button
-                    key={w.id}
-                    onClick={() => selectWindow(w.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
-                      windowId === w.id
-                        ? dark
-                          ? 'bg-zinc-800 font-medium'
-                          : 'bg-zinc-100 font-medium'
-                        : dark
-                        ? 'hover:bg-zinc-800/60 text-[#A1A1AA]'
-                        : 'hover:bg-zinc-50 text-[#71717A]'
-                    }`}
-                  >
-                    <span>{w.label}</span>
-                    {windowId === w.id && <Check className="w-3 h-3" />}
-                  </button>
-                ))}
-              </div>
+                <X className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                title="Search options"
+                className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </button>
             )}
           </div>
+        </div>
 
-          {/* Simple User Row */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+        {/* Right: Quick Controls + User Profile */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => emailsHook.refresh?.(windowId)}
+            className={`p-2 rounded-full transition cursor-pointer ${
+              dark
+                ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800'
+                : 'text-[#71717A] hover:text-black hover:bg-zinc-200'
+            }`}
+            title="Sync mailbox"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            onClick={() => setDark((d) => !d)}
+            className={`p-2 rounded-full transition cursor-pointer ${
+              dark
+                ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800'
+                : 'text-[#71717A] hover:text-black hover:bg-zinc-200'
+            }`}
+            title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+
+          {/* User Profile Avatar Dropdown */}
+          <div className="relative ml-2" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => {
                 setUserMenuOpen((o) => !o);
                 setWindowMenuOpen(false);
               }}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] transition cursor-pointer ${
+              className={`w-8 h-8 rounded-full text-xs font-semibold flex items-center justify-center shrink-0 ring-2 cursor-pointer transition ${
                 dark
-                  ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800/50'
-                  : 'text-[#52525B] hover:text-[#18181B] hover:bg-zinc-200/50'
+                  ? 'bg-zinc-800 text-white ring-zinc-700 hover:ring-zinc-500'
+                  : 'bg-zinc-200 text-zinc-900 ring-zinc-300 hover:ring-zinc-400'
               }`}
             >
-              <span
-                className={`w-6 h-6 rounded-full text-[10px] font-medium flex items-center justify-center shrink-0 ${
-                  dark
-                    ? 'bg-zinc-800 text-[#F4F4F5]'
-                    : 'bg-zinc-200/90 text-[#18181B]'
-                }`}
-              >
-                {userInitials}
-              </span>
-              <span className="truncate text-xs font-medium">{userName}</span>
+              {userInitials}
             </button>
 
             {userMenuOpen && (
               <div
-                className={`absolute bottom-10 left-0 w-44 rounded-xl p-1 shadow-lg border z-30 ${
+                className={`absolute right-0 top-11 w-56 rounded-2xl p-2 shadow-xl border z-50 ${
                   dark
                     ? 'bg-[#1F1F23] border-[#27272A] text-[#F4F4F5]'
                     : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
                 }`}
               >
+                <div className="px-3 py-2 border-b border-zinc-200/40 dark:border-zinc-800/60 mb-1">
+                  <p className="text-xs font-semibold truncate">{userName}</p>
+                  <p className="text-[11px] text-[#71717A] truncate">{auth.user?.email || 'Connected'}</p>
+                </div>
                 <button
                   onClick={() => {
                     setUserMenuOpen(false);
                     auth.logout();
                   }}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
                     dark
-                      ? 'hover:bg-zinc-800 text-[#A1A1AA] hover:text-[#F4F4F5]'
-                      : 'hover:bg-zinc-100 text-[#52525B] hover:text-[#18181B]'
+                      ? 'hover:bg-zinc-800 text-rose-400'
+                      : 'hover:bg-zinc-100 text-rose-600'
                   }`}
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-4 h-4" />
                   <span>Sign out</span>
                 </button>
               </div>
             )}
           </div>
         </div>
-      </aside>
+      </header>
 
       {/* ==================================================================== */}
-      {/* 2. MIDDLE COLUMN — EMAIL LIST (w-[360px], TWO-LINE ROWS, NO CARDS)   */}
+      {/* MAIN CONTAINER: SIDEBAR + CONTENT AREA                                */}
       {/* ==================================================================== */}
-      <section
-        className={`${
-          mobileReading ? 'hidden md:flex' : 'flex'
-        } w-full md:w-[360px] shrink-0 flex-col border-r ${
-          dark
-            ? 'bg-[#18181B] border-[#27272A]'
-            : 'bg-[#FFFFFF] border-[#E4E4E7]'
-        }`}
-      >
-        {/* Minimal Mobile Nav Strip (Only visible on small screens) */}
-        <div
-          className={`flex md:hidden items-center justify-between px-5 pt-3 pb-1 text-xs ${
-            dark ? 'text-[#A1A1AA]' : 'text-[#71717A]'
+      <div className="flex-1 flex overflow-hidden">
+        {/* ================================================================== */}
+        {/* LEFT SIDEBAR (GMAIL STYLE RAIL & LABELS)                           */}
+        {/* ================================================================== */}
+        <aside
+          className={`${
+            sidebarOpen ? 'w-60' : 'w-16'
+          } hidden md:flex flex-col justify-between shrink-0 border-r py-3 transition-all duration-200 ${
+            dark
+              ? 'bg-[#121214] border-[#27272A]'
+              : 'bg-[#F5F5F4] border-[#E4E4E7]'
           }`}
         >
-          <div className="flex items-center gap-3">
-            {[
-              { id: 'attention', label: 'Attention' },
-              { id: 'recent', label: 'Recent' },
-              { id: 'all', label: 'All Mail' }
-            ].map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setView(m.id)}
-                className={
-                  view === m.id
-                    ? dark
-                      ? 'text-[#F4F4F5] font-medium'
-                      : 'text-[#18181B] font-medium'
-                    : ''
-                }
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => setDark((d) => !d)}>
-            {dark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        {/* Borderless Top Search Header */}
-        <div
-          className={`h-14 px-5 flex items-center gap-2.5 border-b shrink-0 ${
-            dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
-          }`}
-        >
-          <Search className="w-4 h-4 text-[#71717A] shrink-0" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search..."
-            className={`w-full bg-transparent text-[13px] focus:outline-none ${
-              dark
-                ? 'text-[#F4F4F5] placeholder-[#71717A]'
-                : 'text-[#18181B] placeholder-[#A1A1AA]'
-            }`}
-          />
-          {search && (
+          <div className="space-y-4 px-3">
+            {/* Compose Pill Button */}
             <button
-              onClick={() => setSearch('')}
-              className="text-xs text-[#71717A] hover:text-current cursor-pointer"
+              onClick={() => setComposeOpen(true)}
+              className={`flex items-center gap-3.5 py-3 rounded-2xl font-medium text-sm transition-all shadow-sm cursor-pointer ${
+                sidebarOpen ? 'px-6 w-full' : 'px-3 justify-center w-10 h-10 rounded-full'
+              } ${
+                dark
+                  ? 'bg-zinc-100 text-zinc-900 hover:bg-white hover:shadow-md'
+                  : 'bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md'
+              }`}
             >
-              Clear
+              <PenLine className="w-4 h-4 shrink-0" />
+              {sidebarOpen && <span>Compose</span>}
             </button>
-          )}
-        </div>
 
-        {/* Quiet Underline Tabs (ONLY in Needs Attention) */}
-        {view === 'attention' && (
-          <div
-            className={`px-5 flex items-center gap-5 border-b text-xs shrink-0 ${
-              dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
-            }`}
-          >
-            {[
-              { id: 'active', label: 'Active' },
-              { id: 'snoozed', label: 'Snoozed' },
-              { id: 'done', label: 'Done' }
-            ].map((t) => {
-              const active = subTab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setSubTab(t.id)}
-                  className={`py-2.5 border-b-2 -mb-px transition cursor-pointer ${
-                    active
-                      ? dark
-                        ? 'border-[#F4F4F5] text-[#F4F4F5] font-medium'
-                        : 'border-[#18181B] text-[#18181B] font-medium'
-                      : 'border-transparent text-[#71717A] hover:text-current'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Strictly Two-Line Clean Email Rows */}
-        <div
-          className={`flex-1 overflow-y-auto divide-y ${
-            dark ? 'divide-[#27272A]' : 'divide-[#E4E4E7]'
-          }`}
-        >
-          {visibleEmails.length === 0 ? (
-            <div className="px-6 py-16 text-center text-[13px] text-[#71717A]">
-              All clear
-            </div>
-          ) : (
-            visibleEmails.map((item) => {
-              const isSelected = currentEmail?.id === item.id;
-              const tier = PRIORITIES[item.priority] || PRIORITIES.P3;
-              const st = statusMap[item.id]?.state;
-
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => selectEmail(item)}
-                  className={`group relative py-3.5 px-5 cursor-pointer transition-colors ${
-                    isSelected
-                      ? dark
-                        ? 'bg-zinc-800/60'
-                        : 'bg-zinc-100/80'
-                      : dark
-                      ? 'hover:bg-zinc-800/30'
-                      : 'hover:bg-zinc-50'
-                  }`}
-                >
-                  {/* Subtle 2px Left Selection Accent */}
-                  {isSelected && (
-                    <div
-                      className={`absolute left-0 top-0 bottom-0 w-[2px] ${
-                        dark ? 'bg-[#F4F4F5]' : 'bg-[#18181B]'
-                      }`}
-                    />
-                  )}
-
-                  {/* Line 1: 7px Dot + Sender Name + Timestamp */}
-                  <div className="flex items-center justify-between gap-3 mb-1">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {item.analyzed ? (
-                        <span
-                          className="w-[7px] h-[7px] rounded-full shrink-0"
-                          style={{ backgroundColor: tier.color }}
-                        />
-                      ) : (
-                        <span
-                          className={`w-[7px] h-[7px] rounded-full border shrink-0 ${
-                            dark ? 'border-zinc-500' : 'border-zinc-400'
-                          }`}
-                        />
-                      )}
-
-                      <span
-                        className={`text-sm truncate ${
-                          item.unread ? 'font-semibold' : 'font-medium'
+            {/* Folder Navigation (Gmail pill shape: rounded-r-full) */}
+            <nav className="space-y-0.5">
+              {[
+                { id: 'inbox', label: 'Inbox', icon: Inbox, count: emails.length },
+                { id: 'attention', label: 'Needs Attention', icon: AlertCircle, count: attentionCount },
+                { id: 'starred', label: 'Starred', icon: Star, count: starredIds.size },
+                { id: 'snoozed', label: 'Snoozed', icon: Clock, count: Object.values(statusMap).filter((s) => s.state === 'snoozed').length },
+                { id: 'done', label: 'Done', icon: Check, count: Object.values(statusMap).filter((s) => s.state === 'done').length },
+                { id: 'all', label: 'All Mail', icon: Archive, count: totalEmails }
+              ].map((nav) => {
+                const active = view === nav.id;
+                const IconComponent = nav.icon;
+                return (
+                  <button
+                    key={nav.id}
+                    onClick={() => {
+                      setView(nav.id);
+                      setReadingEmailId(null);
+                      setMobileReading(false);
+                    }}
+                    className={`w-full flex items-center justify-between py-2 rounded-r-full text-[13.5px] transition cursor-pointer ${
+                      sidebarOpen ? 'pl-4 pr-3' : 'px-2 justify-center rounded-xl'
+                    } ${
+                      active
+                        ? dark
+                          ? 'bg-zinc-800/90 text-white font-semibold'
+                          : 'bg-zinc-200 text-zinc-900 font-semibold'
+                        : dark
+                        ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800/40'
+                        : 'text-[#71717A] hover:text-zinc-900 hover:bg-zinc-200/50'
+                    }`}
+                    title={nav.label}
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <IconComponent
+                        className={`w-4 h-4 shrink-0 ${
+                          active
+                            ? 'text-blue-500'
+                            : 'text-zinc-500'
                         }`}
-                      >
-                        {item.sender}
-                      </span>
+                      />
+                      {sidebarOpen && <span className="truncate">{nav.label}</span>}
                     </div>
 
-                    <span
-                      className={`text-xs shrink-0 tabular-nums transition-opacity group-hover:opacity-0 ${
-                        dark ? 'text-[#71717A]' : 'text-[#71717A]'
+                    {sidebarOpen && nav.count > 0 && (
+                      <span
+                        className={`text-xs tabular-nums font-medium ${
+                          active
+                            ? dark ? 'text-white' : 'text-zinc-900'
+                            : 'text-[#71717A]'
+                        }`}
+                      >
+                        {nav.count.toLocaleString()}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Priority Section */}
+            {sidebarOpen && (
+              <div className="pt-3 border-t border-zinc-200/40 dark:border-zinc-800/60">
+                <div className="px-4 pb-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                  Priority
+                </div>
+                {Object.values(PRIORITIES).map((tier) => {
+                  const active = priorityFilter === tier.id;
+                  return (
+                    <button
+                      key={tier.id}
+                      onClick={() =>
+                        setPriorityFilter((cur) => (cur === tier.id ? null : tier.id))
+                      }
+                      className={`w-full flex items-center justify-between px-4 py-1.5 rounded-r-full text-[13px] transition cursor-pointer ${
+                        active
+                          ? dark
+                            ? 'bg-zinc-800/90 text-white font-medium'
+                            : 'bg-zinc-200 text-zinc-900 font-medium'
+                          : dark
+                          ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800/40'
+                          : 'text-[#71717A] hover:text-zinc-900 hover:bg-zinc-200/50'
                       }`}
                     >
-                      {item.time}
-                    </span>
-                  </div>
+                      <span className="flex items-center gap-3">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: tier.color }}
+                        />
+                        <span>{tier.name}</span>
+                      </span>
+                      {active && (
+                        <span className="text-[11px] text-zinc-400">Clear</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-                  {/* Line 2: Concise Subject Only (Zero 3rd Line Snippet) */}
+          {/* Footer of Sidebar: Timeframe Selector */}
+          {sidebarOpen && (
+            <div className="px-3 pt-3 border-t border-zinc-200/40 dark:border-zinc-800/60">
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => {
+                    setWindowMenuOpen((o) => !o);
+                    setUserMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
+                    dark
+                      ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800/50'
+                      : 'text-[#71717A] hover:text-zinc-900 hover:bg-zinc-200/50'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                    <span>{activeWindowLabel}</span>
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                </button>
+
+                {windowMenuOpen && (
                   <div
-                    className={`pl-[17px] text-[13px] truncate ${
-                      item.unread
-                        ? dark
-                          ? 'text-[#E4E4E7]'
-                          : 'text-[#3F3F46]'
-                        : dark
-                        ? 'text-[#A1A1AA]'
-                        : 'text-[#71717A]'
+                    className={`absolute bottom-11 left-0 w-48 rounded-2xl p-1.5 shadow-xl border z-50 ${
+                      dark
+                        ? 'bg-[#1F1F23] border-[#27272A] text-[#F4F4F5]'
+                        : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
                     }`}
                   >
-                    {item.subject}
-                  </div>
-
-                  {/* Zero-Layout-Shift Floating Hover Actions */}
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className={`absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pl-4 py-1 ${
-                      isSelected
-                        ? dark
-                          ? 'bg-gradient-to-l from-zinc-800 via-zinc-800 to-transparent'
-                          : 'bg-gradient-to-l from-zinc-100 via-zinc-100 to-transparent'
-                        : dark
-                        ? 'bg-gradient-to-l from-[#1E1E22] via-[#1E1E22] to-transparent'
-                        : 'bg-gradient-to-l from-zinc-50 via-zinc-50 to-transparent'
-                    }`}
-                  >
-                    {st && (
+                    {WINDOWS.map((w) => (
                       <button
-                        onClick={(e) => restoreItem(item, e)}
-                        className={`p-1.5 rounded-md transition cursor-pointer ${
-                          dark
-                            ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-700/60'
-                            : 'text-[#71717A] hover:text-[#18181B] hover:bg-zinc-200/70'
+                        key={w.id}
+                        onClick={() => selectWindow(w.id)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
+                          windowId === w.id
+                            ? dark
+                              ? 'bg-zinc-800 font-medium'
+                              : 'bg-zinc-100 font-medium'
+                            : dark
+                            ? 'hover:bg-zinc-800/60 text-[#A1A1AA]'
+                            : 'hover:bg-zinc-50 text-[#71717A]'
                         }`}
-                        title="Restore"
                       >
-                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>{w.label}</span>
+                        {windowId === w.id && <Check className="w-3 h-3 text-blue-500" />}
                       </button>
-                    )}
+                    ))}
                   </div>
-                </div>
-              );
-            })
+                )}
+              </div>
+            </div>
           )}
+        </aside>
 
-          {/* Mailbox Pagination & Total Count Footer */}
+        {/* ================================================================== */}
+        {/* MAIN MAILBOX WORKSPACE: TOOLBAR + TABS + TABLE ROWS OR READING PANE */}
+        {/* ================================================================== */}
+        <main
+          className={`flex-1 flex flex-col overflow-hidden ${
+            dark ? 'bg-[#18181B]' : 'bg-[#FFFFFF]'
+          }`}
+        >
+          {/* 1. GMAIL ACTION TOOLBAR */}
           <div
-            className={`py-4 px-5 border-t text-center space-y-2 shrink-0 ${
+            className={`h-12 px-4 flex items-center justify-between border-b shrink-0 text-xs ${
               dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
             }`}
           >
-            <div className={`text-xs ${dark ? 'text-[#71717A]' : 'text-[#71717A]'}`}>
-              Showing <span className="font-medium text-current">{visibleEmails.length}</span> of{' '}
-              <span className="font-medium text-current">
-                {emailsHook.pagination?.total_emails
-                  ? emailsHook.pagination.total_emails.toLocaleString()
-                  : emails.length}
-              </span>{' '}
-              emails
-              {windowId === 'all_time' && ' · All time'}
+            {/* Left Controls: Checkbox Dropdown, Refresh, Batch Actions */}
+            <div className="flex items-center gap-2">
+              {readingEmailId ? (
+                /* When in thread view: Back to inbox button */
+                <button
+                  onClick={() => setReadingEmailId(null)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer ${
+                    dark
+                      ? 'text-zinc-300 hover:text-white hover:bg-zinc-800'
+                      : 'text-zinc-700 hover:text-black hover:bg-zinc-100'
+                  }`}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to inbox</span>
+                </button>
+              ) : (
+                <>
+                  {/* Select All Checkbox */}
+                  <button
+                    onClick={toggleSelectAll}
+                    className={`p-1.5 rounded-md transition cursor-pointer ${
+                      dark ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-zinc-600 hover:text-black hover:bg-zinc-100'
+                    }`}
+                    title="Select all"
+                  >
+                    {checkedIds.size === visibleEmails.length && visibleEmails.length > 0 ? (
+                      <CheckSquare className="w-4 h-4 text-blue-500" />
+                    ) : checkedIds.size > 0 ? (
+                      <MinusSquare className="w-4 h-4 text-blue-500" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => emailsHook.refresh?.(windowId)}
+                    className={`p-1.5 rounded-md transition cursor-pointer ${
+                      dark ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-zinc-600 hover:text-black hover:bg-zinc-100'
+                    }`}
+                    title="Refresh"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                  </button>
+
+                  {/* Batch actions when checkboxes selected */}
+                  {checkedIds.size > 0 && (
+                    <div className="flex items-center gap-2 ml-2 pl-3 border-l border-zinc-300 dark:border-zinc-700">
+                      <span className="font-medium text-xs">
+                        {checkedIds.size} selected
+                      </span>
+                      <button
+                        onClick={handleBatchDone}
+                        className="px-2.5 py-1 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
+                      >
+                        Mark Done
+                      </button>
+                      <button
+                        onClick={() => setCheckedIds(new Set())}
+                        className="px-2 py-1 rounded-md text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
-            {emailsHook.pagination?.has_next && (
-              <button
-                onClick={() => emailsHook.loadMore?.()}
-                disabled={emailsHook.isLoadingMore}
-                className={`w-full py-2 px-3 rounded-lg text-xs font-medium transition cursor-pointer flex items-center justify-center gap-2 ${
-                  dark
-                    ? 'bg-zinc-800/80 text-[#F4F4F5] hover:bg-zinc-800 disabled:opacity-50'
-                    : 'bg-[#F5F5F4] text-[#18181B] hover:bg-zinc-200/70 disabled:opacity-50'
-                }`}
-              >
-                {emailsHook.isLoadingMore ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Loading more emails...</span>
-                  </>
-                ) : (
-                  <span>Load more emails</span>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
+            {/* Right Controls: Pagination 1-50 of 7,044 + Arrow Navigation */}
+            <div className="flex items-center gap-3">
+              <span className={`tabular-nums ${dark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                {startNum}–{endNum} of {totalEmails.toLocaleString()}
+              </span>
 
-      {/* ==================================================================== */}
-      {/* 3. RIGHT COLUMN — OPEN READING CANVAS (PURE PAGE, NO INNER BOXES)    */}
-      {/* ==================================================================== */}
-      <main
-        className={`${
-          mobileReading ? 'flex' : 'hidden md:flex'
-        } flex-1 flex-col overflow-y-auto ${
-          dark ? 'bg-[#18181B]' : 'bg-[#FFFFFF]'
-        }`}
-      >
-        {currentEmail ? (
-          <>
-            {/* Clean Top Action Strip */}
-            <header
-              className={`h-14 px-6 lg:px-12 border-b flex items-center justify-between shrink-0 ${
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={currentPage <= 1 || !!readingEmailId}
+                  onClick={() => emailsHook.setPage?.((p) => Math.max(1, p - 1))}
+                  className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                    dark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
+                  }`}
+                  title="Newer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  disabled={!emailsHook.pagination?.has_next || !!readingEmailId}
+                  onClick={() => emailsHook.loadMore?.()}
+                  className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                    dark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
+                  }`}
+                  title="Older"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* View Layout Toggle (Table vs Split View) */}
+              <button
+                onClick={() => {
+                  setLayoutMode((m) => (m === 'table' ? 'split' : 'table'));
+                  if (layoutMode === 'split') setReadingEmailId(null);
+                }}
+                className={`p-1.5 rounded-md transition cursor-pointer ${
+                  layoutMode === 'split'
+                    ? 'bg-blue-500/10 text-blue-500'
+                    : dark
+                    ? 'text-zinc-400 hover:bg-zinc-800'
+                    : 'text-zinc-600 hover:bg-zinc-100'
+                }`}
+                title={layoutMode === 'split' ? 'Switch to Full Table View' : 'Switch to Split Reading View'}
+              >
+                <Columns className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* 2. GMAIL CATEGORY TABS (Primary, Updates, Promotions, Social, All) */}
+          {!readingEmailId && view === 'inbox' && (
+            <div
+              className={`flex items-center border-b shrink-0 px-2 sm:px-4 ${
                 dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
               }`}
             >
-              {/* Left: Mobile Back + Floating Priority Popover Pill */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setMobileReading(false)}
-                  className="md:hidden p-1.5 -ml-1.5 text-[#71717A] hover:text-current cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-
-                {!currentEmail.analyzed ? (
+              {[
+                { id: 'primary', label: 'Primary', icon: Inbox, count: categoryCounts.primary, badgeColor: 'bg-blue-500' },
+                { id: 'promotions', label: 'Promotions', icon: Tag, count: categoryCounts.promotions, badgeColor: 'bg-emerald-600' },
+                { id: 'social', label: 'Social', icon: Users, count: categoryCounts.social, badgeColor: 'bg-blue-600' },
+                { id: 'updates', label: 'Updates', icon: Info, count: categoryCounts.updates, badgeColor: 'bg-amber-600' },
+                { id: 'all', label: 'All', icon: Archive, count: emails.length, badgeColor: 'bg-zinc-500' }
+              ].map((tab) => {
+                const active = categoryTab === tab.id;
+                const IconComponent = tab.icon;
+                return (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      analyzeSingle(currentEmail);
-                    }}
-                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition cursor-pointer ${
-                      dark
-                        ? 'bg-zinc-800 text-[#F4F4F5] hover:bg-zinc-700'
-                        : 'bg-zinc-100 text-[#18181B] hover:bg-zinc-200/70'
+                    key={tab.id}
+                    onClick={() => setCategoryTab(tab.id)}
+                    className={`flex items-center gap-3 px-4 sm:px-6 py-3 text-[13.5px] font-medium transition cursor-pointer border-b-2 -mb-[2px] ${
+                      active
+                        ? dark
+                          ? 'border-blue-500 text-blue-400'
+                          : 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/30'
                     }`}
                   >
-                    <span className="w-[7px] h-[7px] rounded-full border border-current opacity-60" />
-                    <span>Analyze</span>
-                  </button>
-                ) : (
-                  <div
-                    className="relative"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={() => {
-                        setPriorityMenuOpen((o) => !o);
-                        setSnoozeMenuOpen(false);
-                      }}
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition cursor-pointer ${
-                        dark
-                          ? 'bg-zinc-800/80 text-[#F4F4F5] hover:bg-zinc-800'
-                          : 'bg-[#F5F5F4] text-[#18181B] hover:bg-zinc-200/60'
-                      }`}
-                    >
+                    <IconComponent className="w-4 h-4 shrink-0" />
+                    <span>{tab.label}</span>
+                    {tab.count > 0 && (
                       <span
-                        className="w-[7px] h-[7px] rounded-full"
-                        style={{ backgroundColor: currentPriority.color }}
-                      />
-                      <span>
-                        {currentPriority.id} · {currentPriority.name}
-                      </span>
-                      <ChevronDown className="w-3 h-3 opacity-60" />
-                    </button>
-
-                    {/* Floating Popover (Zero Accordion Layout Shift) */}
-                    {priorityMenuOpen && (
-                      <div
-                        className={`absolute left-0 top-9 z-30 w-64 rounded-xl p-3.5 shadow-lg border space-y-3 ${
-                          dark
-                            ? 'bg-[#1F1F23] border-[#27272A] text-[#F4F4F5]'
-                            : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
-                        }`}
+                        className={`text-[10px] font-semibold text-white px-1.5 py-0.2 rounded-full ${tab.badgeColor}`}
                       >
-                        <div className="space-y-1 text-xs">
-                          <p
-                            className={
-                              dark ? 'text-[#E4E4E7]' : 'text-[#18181B]'
-                            }
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 3. MAIL CONTENT: TABLE VIEW vs FULL THREAD VIEW vs SPLIT VIEW */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* EMAIL LIST TABLE (Shown when not reading in table mode, or in split mode) */}
+            {(!readingEmailId || layoutMode === 'split') && (
+              <div
+                className={`flex-1 flex flex-col overflow-y-auto ${
+                  layoutMode === 'split' ? 'w-full md:w-[420px] lg:w-[480px] shrink-0 border-r' : 'w-full'
+                } ${dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'}`}
+              >
+                {visibleEmails.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-zinc-400">
+                    <Inbox className="w-12 h-12 stroke-[1.2] mb-3 opacity-40" />
+                    <p className="text-sm font-medium">Your inbox is clear</p>
+                    <p className="text-xs text-zinc-500 mt-1">No messages match the active view or filter</p>
+                  </div>
+                ) : (
+                  visibleEmails.map((item) => {
+                    const isSelected = (readingEmailId || selectedId) === item.id;
+                    const isChecked = checkedIds.has(item.id);
+                    const isStarred = starredIds.has(item.id);
+                    const tier = PRIORITIES[item.priority] || PRIORITIES.P3;
+
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => selectEmail(item)}
+                        className={`group flex items-center h-10 sm:h-11 px-3 sm:px-4 border-b transition-colors cursor-pointer text-[13px] sm:text-[13.5px] select-none ${
+                          isSelected && layoutMode === 'split'
+                            ? dark ? 'bg-[#1E293B]' : 'bg-[#E0E7FF]/70'
+                            : isChecked
+                            ? dark ? 'bg-zinc-800/80' : 'bg-blue-50/60'
+                            : item.unread
+                            ? dark ? 'bg-zinc-900/60 hover:bg-zinc-800/50' : 'bg-white hover:bg-zinc-100/90'
+                            : dark ? 'bg-[#18181B] hover:bg-zinc-800/40 opacity-85' : 'bg-zinc-50/50 hover:bg-zinc-100'
+                        } ${dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'}`}
+                      >
+                        {/* Checkbox column */}
+                        <button
+                          onClick={(e) => toggleCheckEmail(item.id, e)}
+                          className="p-1 -ml-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition shrink-0"
+                          title="Select"
+                        >
+                          {isChecked ? (
+                            <CheckSquare className="w-4 h-4 text-blue-500" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+
+                        {/* Star column */}
+                        <button
+                          onClick={(e) => toggleStarEmail(item.id, e)}
+                          className={`p-1 text-zinc-400 hover:text-amber-400 transition shrink-0 ${
+                            isStarred ? 'text-amber-400' : ''
+                          }`}
+                          title={isStarred ? 'Starred' : 'Not starred'}
+                        >
+                          <Star className={`w-4 h-4 ${isStarred ? 'fill-current' : ''}`} />
+                        </button>
+
+                        {/* Priority indicator dot */}
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0 ml-1 mr-3"
+                          style={{ backgroundColor: tier.color }}
+                          title={`${tier.id} · ${tier.name}`}
+                        />
+
+                        {/* Sender Column: fixed width, strictly aligned down the screen! */}
+                        <div
+                          className={`w-36 sm:w-48 lg:w-56 shrink-0 truncate pr-3 ${
+                            item.unread
+                              ? dark ? 'font-semibold text-white' : 'font-semibold text-zinc-950'
+                              : dark ? 'font-normal text-zinc-300' : 'font-normal text-zinc-700'
+                          }`}
+                        >
+                          {item.sender}
+                        </div>
+
+                        {/* Subject & Snippet Column: flexible width with clean ellipsis */}
+                        <div className="flex-1 min-w-0 flex items-center gap-1.5 truncate pr-3">
+                          <span
+                            className={`shrink-0 truncate max-w-[50%] ${
+                              item.unread
+                                ? dark ? 'font-semibold text-white' : 'font-semibold text-zinc-900'
+                                : dark ? 'font-normal text-zinc-200' : 'font-normal text-zinc-800'
+                            }`}
                           >
-                            Matched:{' '}
-                            <span className="text-[#71717A]">
-                              {currentEmail.matched}
+                            {item.subject}
+                          </span>
+                          <span className="text-zinc-400 shrink-0">—</span>
+                          <span className={`truncate text-xs sm:text-[13px] ${
+                            dark ? 'text-zinc-400' : 'text-zinc-500'
+                          }`}>
+                            {item.paragraphs?.[0] || item.snippet || ''}
+                          </span>
+
+                          {/* Inline Tag Chips: OTP, Attachment */}
+                          {item.otp && (
+                            <span className="ml-2 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              OTP: {item.otp}
                             </span>
-                          </p>
-                          {currentEmail.note && (
-                            <p className="text-[#71717A]">
-                              {currentEmail.note}
-                            </p>
+                          )}
+                          {item.attachment && (
+                            <Paperclip className="w-3.5 h-3.5 text-zinc-400 shrink-0 ml-1" />
                           )}
                         </div>
 
-                        <div
-                          className={`pt-2.5 border-t grid grid-cols-4 gap-1 ${
-                            dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
-                          }`}
-                        >
-                          {Object.values(PRIORITIES).map((tier) => {
-                            const active = currentEmail.priority === tier.id;
-                            return (
-                              <button
-                                key={tier.id}
-                                onClick={() =>
-                                  changePriority(currentEmail, tier.id)
-                                }
-                                className={`py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                                  active
-                                    ? dark
-                                      ? 'bg-zinc-700 text-[#F4F4F5]'
-                                      : 'bg-zinc-200/80 text-[#18181B]'
-                                    : dark
-                                    ? 'hover:bg-zinc-800 text-[#A1A1AA]'
-                                    : 'hover:bg-zinc-100 text-[#71717A]'
-                                }`}
-                              >
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ backgroundColor: tier.color }}
-                                />
-                                {tier.id}
-                              </button>
-                            );
-                          })}
+                        {/* Timestamp & Hover Actions (Right Edge) */}
+                        <div className="relative shrink-0 flex items-center justify-end w-24">
+                          {/* Timestamp */}
+                          <span
+                            className={`text-xs tabular-nums text-right group-hover:hidden ${
+                              item.unread
+                                ? dark ? 'font-semibold text-white' : 'font-semibold text-zinc-900'
+                                : dark ? 'text-zinc-400' : 'text-zinc-500'
+                            }`}
+                          >
+                            {item.time}
+                          </span>
+
+                          {/* Floating Hover Quick Actions */}
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className={`hidden group-hover:flex items-center gap-1 ${
+                              dark ? 'bg-zinc-800' : 'bg-zinc-100'
+                            } px-1.5 py-0.5 rounded-md`}
+                          >
+                            <button
+                              onClick={(e) => markDone(item, e)}
+                              title="Mark Done"
+                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                triggerToast('Snoozed for 3 hours');
+                              }}
+                              title="Snooze"
+                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                            </button>
+                            <a
+                              href={`https://mail.google.com/mail/u/0/#inbox/${item.thread_id || item.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Open in Gmail"
+                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    );
+                  })
                 )}
 
-                {/* View Mode Toggle (Rich HTML vs Plain Text) */}
-                {rawHtml && (
-                  <div
-                    className={`hidden sm:flex items-center p-0.5 rounded-lg border text-xs ${
-                      dark
-                        ? 'border-[#27272A] bg-zinc-900/60'
-                        : 'border-[#E4E4E7] bg-zinc-100/70'
-                    }`}
-                  >
+                {/* Bottom Pagination Button */}
+                {emailsHook.pagination?.has_next && (
+                  <div className="p-4 text-center">
                     <button
-                      onClick={() => setViewMode('rich')}
-                      className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
-                        viewMode === 'rich'
-                          ? dark
-                            ? 'bg-zinc-800 text-white shadow-sm'
-                            : 'bg-white text-zinc-900 shadow-sm'
-                          : dark
-                          ? 'text-[#71717A] hover:text-[#A1A1AA]'
-                          : 'text-[#71717A] hover:text-[#18181B]'
+                      onClick={() => emailsHook.loadMore?.()}
+                      disabled={emailsHook.isLoadingMore}
+                      className={`px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+                        dark
+                          ? 'bg-zinc-800 text-white hover:bg-zinc-700 disabled:opacity-50'
+                          : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200 disabled:opacity-50'
                       }`}
                     >
-                      Rich HTML
-                    </button>
-                    <button
-                      onClick={() => setViewMode('plain')}
-                      className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
-                        viewMode === 'plain'
-                          ? dark
-                            ? 'bg-zinc-800 text-white shadow-sm'
-                            : 'bg-white text-zinc-900 shadow-sm'
-                          : dark
-                          ? 'text-[#71717A] hover:text-[#A1A1AA]'
-                          : 'text-[#71717A] hover:text-[#18181B]'
-                      }`}
-                    >
-                      Text
+                      {emailsHook.isLoadingMore ? 'Loading more emails...' : 'Load more emails'}
                     </button>
                   </div>
                 )}
               </div>
+            )}
 
-              {/* Right: Open in Gmail + OTP Copy + Restore */}
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Direct Open in Gmail Link */}
-                {currentEmail.id && (
-                  <a
-                    href={`https://mail.google.com/mail/u/0/#inbox/${currentEmail.thread_id || currentEmail.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                      dark
-                        ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800'
-                        : 'text-[#52525B] hover:text-[#18181B] hover:bg-zinc-100'
-                    }`}
-                    title="Open this thread in Gmail"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Open in Gmail</span>
-                  </a>
-                )}
-                {currentEmail.otp && (
-                  <button
-                    onClick={() =>
-                      handleCopyOtp(currentEmail.otp, currentEmail.id)
-                    }
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                      dark
-                        ? 'bg-zinc-800 text-[#F4F4F5] hover:bg-zinc-700'
-                        : 'bg-[#F5F5F4] text-[#18181B] hover:bg-zinc-200/70'
-                    }`}
-                  >
-                    {copiedId === currentEmail.id ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-[#71717A]" />
-                        <span>Copy {currentEmail.otp}</span>
-                      </>
-                    )}
-                  </button>
-                )}
+            {/* OPEN EMAIL READING CANVAS */}
+            {(readingEmailId || layoutMode === 'split') && (
+              <div
+                className={`flex-1 flex flex-col overflow-y-auto ${
+                  dark ? 'bg-[#18181B]' : 'bg-[#FFFFFF]'
+                }`}
+              >
+                {currentEmail ? (
+                  <>
+                    {/* Action Header Strip for Email */}
+                    <div
+                      className={`h-12 px-6 flex items-center justify-between border-b shrink-0 ${
+                        dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+                      }`}
+                    >
+                      {/* Left: Priority Badge Popover + View Toggle */}
+                      <div className="flex items-center gap-3">
+                        <div className="relative" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => {
+                              setPriorityMenuOpen((o) => !o);
+                            }}
+                            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition cursor-pointer ${
+                              dark
+                                ? 'bg-zinc-800 text-white hover:bg-zinc-700'
+                                : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200'
+                            }`}
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: currentPriority?.color }}
+                            />
+                            <span>{currentPriority?.id} · {currentPriority?.name}</span>
+                            <ChevronDown className="w-3 h-3 opacity-60" />
+                          </button>
 
-                {currentTriage && (
-                  <button
-                    onClick={() => restoreItem(currentEmail)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                      dark
-                        ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800'
-                        : 'text-[#52525B] hover:text-[#18181B] hover:bg-zinc-100'
-                    }`}
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Restore</span>
-                  </button>
-                )}
-              </div>
-            </header>
+                          {priorityMenuOpen && (
+                            <div
+                              className={`absolute left-0 top-9 z-50 w-64 rounded-2xl p-3 shadow-xl border space-y-3 ${
+                                dark
+                                  ? 'bg-[#1F1F23] border-[#27272A] text-white'
+                                  : 'bg-[#FFFFFF] border-[#E4E4E7] text-zinc-900'
+                              }`}
+                            >
+                              <div className="text-xs space-y-1">
+                                <p>Matched: <span className="text-zinc-400">{currentEmail.matched}</span></p>
+                                {currentEmail.note && <p className="text-zinc-400">{currentEmail.note}</p>}
+                              </div>
+                              <div className="pt-2 border-t grid grid-cols-4 gap-1 border-zinc-200 dark:border-zinc-800">
+                                {Object.values(PRIORITIES).map((tier) => (
+                                  <button
+                                    key={tier.id}
+                                    onClick={() => changePriority(currentEmail, tier.id)}
+                                    className={`py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition ${
+                                      currentEmail.priority === tier.id
+                                        ? dark ? 'bg-zinc-700 text-white' : 'bg-zinc-200 text-zinc-900'
+                                        : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400'
+                                    }`}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tier.color }} />
+                                    {tier.id}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
-            {/* Open Reading Canvas (Generous Whitespace, Zero Inner Cards) */}
-            <article className="px-6 lg:px-12 py-10 max-w-4xl w-full select-text">
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight leading-snug mb-5 select-text">
-                {currentEmail.subject}
-              </h1>
+                        {/* Mode toggle (Rich HTML vs Text) */}
+                        {rawHtml && (
+                          <div className={`flex items-center p-0.5 rounded-lg border text-xs ${
+                            dark ? 'border-[#27272A] bg-zinc-900/60' : 'border-[#E4E4E7] bg-zinc-100/70'
+                          }`}>
+                            <button
+                              onClick={() => setViewMode('rich')}
+                              className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                                viewMode === 'rich'
+                                  ? dark ? 'bg-zinc-800 text-white shadow-sm' : 'bg-white text-zinc-900 shadow-sm'
+                                  : 'text-zinc-500'
+                              }`}
+                            >
+                              Rich HTML
+                            </button>
+                            <button
+                              onClick={() => setViewMode('plain')}
+                              className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                                viewMode === 'plain'
+                                  ? dark ? 'bg-zinc-800 text-white shadow-sm' : 'bg-white text-zinc-900 shadow-sm'
+                                  : 'text-zinc-500'
+                              }`}
+                            >
+                              Text
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
-              {/* Clean Sender Row like actual Gmail */}
-              <div className="flex items-start justify-between gap-4 mb-8 pb-6 border-b border-zinc-200/60 dark:border-zinc-800/60">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`w-10 h-10 rounded-full text-xs font-semibold flex items-center justify-center shrink-0 ${
-                      dark
-                        ? 'bg-zinc-800 text-[#E4E4E7]'
-                        : currentEmail.avatarBg
-                    }`}
-                  >
-                    {currentEmail.initials}
-                  </div>
-                  <div className="min-w-0 truncate">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-semibold truncate">
-                        {currentEmail.sender}
-                      </span>
-                      <span className="text-xs text-[#71717A] truncate">
-                        &lt;{currentEmail.email}&gt;
-                      </span>
+                      {/* Right: Actions (Done, Open in Gmail, Prev/Next) */}
+                      <div className="flex items-center gap-2">
+                        {currentEmail.id && (
+                          <a
+                            href={`https://mail.google.com/mail/u/0/#inbox/${currentEmail.thread_id || currentEmail.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                              dark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
+                            }`}
+                            title="Open in Gmail"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Open in Gmail</span>
+                          </a>
+                        )}
+
+                        <button
+                          onClick={() => markDone(currentEmail)}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition"
+                        >
+                          Mark Done
+                        </button>
+
+                        {/* Navigation buttons for next/prev email */}
+                        <div className="flex items-center gap-0.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
+                          <button
+                            disabled={!prevEmail}
+                            onClick={() => selectEmail(prevEmail)}
+                            className="p-1.5 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 disabled:opacity-30"
+                            title="Previous email"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            disabled={!nextEmail}
+                            onClick={() => selectEmail(nextEmail)}
+                            className="p-1.5 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 disabled:opacity-30"
+                            title="Next email"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-[#71717A] mt-0.5">
-                      to: me
-                    </div>
-                  </div>
-                </div>
 
-                <div className="flex flex-col items-end shrink-0">
-                  <span className="text-xs text-[#71717A]">
-                    {currentEmail.fullDate}
-                  </span>
-                  {loadingDetail && (
-                    <span className="text-[11px] text-blue-500 flex items-center gap-1 mt-1">
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                      Loading content...
-                    </span>
-                  )}
-                </div>
-              </div>
+                    {/* Email Reader Canvas */}
+                    <article className="px-6 sm:px-12 py-8 max-w-4xl w-full select-text">
+                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-6">
+                        {currentEmail.subject}
+                      </h1>
 
-              {/* Rich Visual Content (HTML or Formatted Plain Text) */}
-              <div className="min-h-[220px]">
-                {loadingDetail && !rawHtml && !rawBody ? (
-                  <div className="py-8 space-y-4 animate-pulse">
-                    <div className={`h-4 rounded w-3/4 ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
-                    <div className={`h-4 rounded w-full ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
-                    <div className={`h-4 rounded w-5/6 ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
-                    <div className={`h-36 rounded w-full ${dark ? 'bg-zinc-800/50' : 'bg-zinc-100'}`} />
-                  </div>
-                ) : viewMode === 'rich' && rawHtml ? (
-                  <HtmlEmailViewer html={rawHtml} dark={dark} />
+                      {/* Sender row header */}
+                      <div className="flex items-start justify-between gap-4 mb-8 pb-6 border-b border-zinc-200/60 dark:border-zinc-800/60">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div
+                            className={`w-10 h-10 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ${
+                              dark ? 'bg-zinc-800 text-white' : currentEmail.avatarBg
+                            }`}
+                          >
+                            {currentEmail.initials}
+                          </div>
+                          <div className="min-w-0 truncate">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-sm font-semibold truncate">{currentEmail.sender}</span>
+                              <span className="text-xs text-zinc-500 truncate">&lt;{currentEmail.email}&gt;</span>
+                            </div>
+                            <div className="text-xs text-zinc-400 mt-0.5">to: me</div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-end shrink-0">
+                          <span className="text-xs text-zinc-500">{currentEmail.fullDate}</span>
+                          {loadingDetail && (
+                            <span className="text-[11px] text-blue-500 flex items-center gap-1 mt-1">
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                              Loading...
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Body Rendering */}
+                      <div className="min-h-[220px]">
+                        {loadingDetail && !rawHtml && !rawBody ? (
+                          <div className="py-8 space-y-4 animate-pulse">
+                            <div className={`h-4 rounded w-3/4 ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+                            <div className={`h-4 rounded w-full ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+                            <div className={`h-4 rounded w-5/6 ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+                            <div className={`h-36 rounded w-full ${dark ? 'bg-zinc-800/50' : 'bg-zinc-100'}`} />
+                          </div>
+                        ) : viewMode === 'rich' && rawHtml ? (
+                          <HtmlEmailViewer html={rawHtml} dark={dark} />
+                        ) : (
+                          <FormattedTextEmail
+                            text={rawBody || currentEmail.paragraphs?.join('\n\n') || ''}
+                            dark={dark}
+                          />
+                        )}
+                      </div>
+
+                      {/* Attachment Pills */}
+                      {currentEmail.attachment && (
+                        <div className="mt-8 pt-6 border-t border-zinc-200/60 dark:border-zinc-800/60">
+                          <button
+                            onClick={() => triggerToast(`Downloaded ${currentEmail.attachment.name}`)}
+                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition cursor-pointer ${
+                              dark ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'
+                            }`}
+                          >
+                            <Paperclip className="w-3.5 h-3.5 text-zinc-400" />
+                            <span className="font-medium">{currentEmail.attachment.name}</span>
+                            <span className="text-zinc-500">· {currentEmail.attachment.size}</span>
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  </>
                 ) : (
-                  <FormattedTextEmail
-                    text={rawBody || currentEmail.paragraphs?.join('\n\n') || ''}
-                    dark={dark}
-                  />
+                  <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">
+                    No message selected
+                  </div>
                 )}
               </div>
-
-              {/* Single Subtle Inline Attachment Pill */}
-              {currentEmail.attachment && (
-                <div className="mt-8">
-                  <button
-                    onClick={() =>
-                      triggerToast(`Downloaded ${currentEmail.attachment.name}`)
-                    }
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition cursor-pointer ${
-                      dark
-                        ? 'bg-zinc-800/80 text-[#E4E4E7] hover:bg-zinc-800'
-                        : 'bg-[#F5F5F4] text-[#3F3F46] hover:bg-zinc-200/70'
-                    }`}
-                  >
-                    <Paperclip className="w-3.5 h-3.5 text-[#71717A]" />
-                    <span className="font-medium">
-                      {currentEmail.attachment.name}
-                    </span>
-                    <span className="text-[#71717A]">
-                      · {currentEmail.attachment.size}
-                    </span>
-                  </button>
-                </div>
-              )}
-            </article>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-sm text-[#71717A]">
-            No message selected
+            )}
           </div>
-        )}
-      </main>
+        </main>
+      </div>
 
       {/* ==================================================================== */}
-      {/* MINIMAL BOTTOM-RIGHT TOAST                                           */}
+      {/* FLOATING COMPOSE MODAL (GMAIL STYLE DIALOG)                          */}
       {/* ==================================================================== */}
+      {composeOpen && (
+        <div
+          className={`fixed bottom-0 right-8 w-full sm:w-[540px] rounded-t-2xl shadow-2xl border z-50 flex flex-col ${
+            dark ? 'bg-[#1F1F23] border-[#27272A] text-white' : 'bg-white border-[#E4E4E7] text-zinc-900'
+          }`}
+          style={{ height: '480px' }}
+        >
+          {/* Header */}
+          <div
+            className={`flex items-center justify-between px-4 py-3 rounded-t-2xl border-b ${
+              dark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-100 border-zinc-200'
+            }`}
+          >
+            <span className="text-xs font-semibold">New Message</span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setComposeOpen(false)}
+                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Form Fields */}
+          <div className="flex flex-col flex-1 p-3 space-y-2">
+            <input
+              type="text"
+              placeholder="Recipients"
+              value={composeData.to}
+              onChange={(e) => setComposeData({ ...composeData, to: e.target.value })}
+              className="w-full px-2 py-1.5 text-xs bg-transparent border-b border-zinc-200 dark:border-zinc-800 focus:outline-none"
+            />
+            <input
+              type="text"
+              placeholder="Subject"
+              value={composeData.subject}
+              onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
+              className="w-full px-2 py-1.5 text-xs font-medium bg-transparent border-b border-zinc-200 dark:border-zinc-800 focus:outline-none"
+            />
+            <textarea
+              placeholder="Write your email here..."
+              value={composeData.body}
+              onChange={(e) => setComposeData({ ...composeData, body: e.target.value })}
+              className="flex-1 w-full px-2 py-2 text-xs bg-transparent resize-none focus:outline-none leading-relaxed"
+            />
+          </div>
+
+          {/* Bottom Action Strip */}
+          <div
+            className={`px-4 py-3 border-t flex items-center justify-between ${
+              dark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-zinc-50'
+            }`}
+          >
+            <button
+              onClick={() => {
+                triggerToast('Message sent (preview mode)');
+                setComposeOpen(false);
+                setComposeData({ to: '', subject: '', body: '' });
+              }}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 shadow-sm transition"
+            >
+              <span>Send</span>
+              <Send className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={() => {
+                setComposeOpen(false);
+                setComposeData({ to: '', subject: '', body: '' });
+              }}
+              className="p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
+              title="Discard draft"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Undo / Action Toast */}
       {toast && (
         <div
-          onClick={(e) => e.stopPropagation()}
-          className={`fixed bottom-5 right-5 z-50 px-3.5 py-2 rounded-lg shadow-md border text-xs flex items-center gap-3 ${
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl shadow-lg border text-xs font-medium flex items-center gap-3 z-50 ${
             dark
-              ? 'bg-[#1F1F23] border-[#27272A] text-[#F4F4F5]'
-              : 'bg-[#18181B] border-[#18181B] text-white'
+              ? 'bg-[#1F1F23] border-[#27272A] text-white'
+              : 'bg-zinc-900 border-zinc-800 text-white'
           }`}
         >
           <span>{toast.message}</span>
@@ -1894,7 +1985,7 @@ export default function App() {
                 toast.undo();
                 setToast(null);
               }}
-              className="font-medium underline underline-offset-2 opacity-90 hover:opacity-100 cursor-pointer"
+              className="text-amber-400 hover:underline font-semibold"
             >
               Undo
             </button>
