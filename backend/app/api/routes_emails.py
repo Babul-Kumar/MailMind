@@ -641,19 +641,25 @@ def get_classified_emails(
     if period:
         active_period = str(period).lower().strip()
         from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
-        if active_period in SUPPORTED_PERIODS and active_period != "all_time":
+        if active_period in SUPPORTED_PERIODS:
             pref = user_email_cache.get_analysis_preference(user_id, session.email)
-            boundaries = calculate_period_boundaries(
-                period=active_period,
-                tz_name=pref.get("timezone", "UTC"),
-                custom_start_date=pref.get("custom_start_date"),
-                custom_end_date=pref.get("custom_end_date")
-            )
-            start_ts_sec = boundaries["start_ts_sec"] if boundaries["start_ts_sec"] > 0 else None
-            if active_period == "custom" and pref.get("custom_end_date"):
-                end_ts_sec = boundaries["end_ts_sec"]
-            else:
-                end_ts_sec = None
+            if active_period != pref.get("period"):
+                try:
+                    user_email_cache.set_analysis_preference(user_id, session.email, period=active_period)
+                except Exception:
+                    pass
+            if active_period != "all_time":
+                boundaries = calculate_period_boundaries(
+                    period=active_period,
+                    tz_name=pref.get("timezone", "UTC"),
+                    custom_start_date=pref.get("custom_start_date"),
+                    custom_end_date=pref.get("custom_end_date")
+                )
+                start_ts_sec = boundaries["start_ts_sec"] if boundaries["start_ts_sec"] > 0 else None
+                if active_period == "custom" and pref.get("custom_end_date"):
+                    end_ts_sec = boundaries["end_ts_sec"]
+                else:
+                    end_ts_sec = None
 
     stats_db = user_email_cache.get_mailbox_stats(
         user_id,
@@ -1100,28 +1106,38 @@ def get_email_detail(request: Request, email_id: str):
     user_model_version = route_info["model_version"]
     canary_group = route_info["canary_group"]
 
-    # Check cache first with model_version
+    # Check cache first with model_version, then fallback without model_version
     cached = user_email_cache.get(user_id, email_id, model_version=user_model_version)
-    if cached and cached.get("body") and cached.get("body") != cached.get("snippet"):
+    if not cached:
+        cached = user_email_cache.get(user_id, email_id, model_version=None)
+
+    has_real_content = cached and cached.get("body") and cached.get("body") != cached.get("snippet") and bool(cached.get("body_html"))
+
+    if has_real_content:
         target_email = cached
     else:
-        # Fetch on-demand
-        full_email = get_single_email(service, email_id)
-        if not full_email:
-            raise HTTPException(status_code=404, detail="Email not found in mailbox.")
-
-        classified = predict_email(full_email, pipeline=pipeline)
-        classified["model_version"] = user_model_version
-        classified["canary_group"] = canary_group
-        user_email_cache.set(user_id, email_id, classified)
-
-        # Phase 48: Non-blocking candidate shadow inference hook (failsafe)
+        # Fetch on-demand from Gmail with full MIME structure
         try:
-            from backend.app.ml.shadow_engine import shadow_engine
-            shadow_engine.shadow_batch_async(user_id, [full_email], [classified])
-        except Exception:
-            pass
-        target_email = classified
+            full_email = get_single_email(service, email_id)
+        except Exception as e:
+            logger.warning("Could not fetch full email %s from Gmail: %s", email_id, e)
+            full_email = None
+
+        if full_email:
+            classified = predict_email(full_email, pipeline=pipeline)
+            classified["model_version"] = user_model_version
+            classified["canary_group"] = canary_group
+            user_email_cache.set(user_id, email_id, classified)
+            target_email = classified
+            try:
+                from backend.app.ml.shadow_engine import shadow_engine
+                shadow_engine.shadow_batch_async(user_id, [full_email], [classified])
+            except Exception:
+                pass
+        elif cached:
+            target_email = cached
+        else:
+            raise HTTPException(status_code=404, detail="Email not found in mailbox.")
 
     # Enrich with user action state (resolved, snoozed) and action policy
     from backend.app.core.action_store import user_action_store
@@ -1144,6 +1160,8 @@ def get_email_detail(request: Request, email_id: str):
     enriched["action_reason"] = policy_eval["reason"]
     enriched["next_step"] = policy_eval["next_step"]
     enriched["action_policy"] = policy_eval
+    enriched["body"] = target_email.get("body") or target_email.get("snippet") or ""
+    enriched["body_html"] = target_email.get("body_html") or ""
 
     return {"status": "success", "email": enriched}
 

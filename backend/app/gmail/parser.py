@@ -31,7 +31,7 @@ def decode_mime_header(header_value: str) -> str:
 def clean_html_to_text(html_content: str) -> str:
     """
     Converts raw HTML email markup into clean, readable plain text.
-    Strips scripts, styles, metadata tags, and normalizes consecutive whitespace.
+    Strips scripts, styles, metadata tags, and preserves structural paragraph breaks.
     """
     if not html_content:
         return ""
@@ -39,8 +39,12 @@ def clean_html_to_text(html_content: str) -> str:
         soup = BeautifulSoup(html_content, "html.parser")
         for tag in soup(["script", "style", "head", "meta", "noscript", "svg"]):
             tag.decompose()
-        text = soup.get_text(separator=" ")
-        return re.sub(r"\s+", " ", text).strip()
+        for block in soup(["p", "br", "div", "tr", "li", "h1", "h2", "h3", "h4", "h5", "h6"]):
+            block.append("\n")
+        text = soup.get_text()
+        lines = [line.strip() for line in text.splitlines()]
+        cleaned = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+        return cleaned if cleaned else re.sub(r"\s+", " ", text).strip()
     except Exception:
         clean = re.sub(r"<[^>]+>", " ", html_content)
         return re.sub(r"\s+", " ", clean).strip()
@@ -61,6 +65,43 @@ def decode_payload_data(data_b64: str) -> str:
             return raw_bytes.decode("latin-1", errors="replace")
     except Exception:
         return ""
+
+
+def extract_html_from_payload(payload: Dict[str, Any]) -> str:
+    """
+    Recursively extracts the raw HTML body content from a message payload.
+    Handles multipart/alternative, multipart/mixed, and nested message structures.
+    """
+    if not payload:
+        return ""
+
+    mime_type = payload.get("mimeType", "")
+    body_data = payload.get("body", {}).get("data", "")
+    parts = payload.get("parts", [])
+
+    if body_data and not parts:
+        if "html" in mime_type.lower():
+            return decode_payload_data(body_data).strip()
+        return ""
+
+    html_candidates = []
+
+    def _walk_parts(part_list):
+        for part in part_list:
+            p_mime = part.get("mimeType", "").lower()
+            p_body = part.get("body", {})
+            p_data = p_body.get("data", "")
+            sub_parts = part.get("parts", [])
+
+            if sub_parts:
+                _walk_parts(sub_parts)
+            elif p_data and "html" in p_mime:
+                decoded = decode_payload_data(p_data)
+                if decoded:
+                    html_candidates.append(decoded.strip())
+
+    _walk_parts(parts)
+    return "\n".join(html_candidates).strip()
 
 
 def extract_body_from_payload(payload: Dict[str, Any]) -> str:
@@ -100,14 +141,14 @@ def extract_body_from_payload(payload: Dict[str, Any]) -> str:
                 if p_mime == "text/plain":
                     plain_candidates.append(decoded.strip())
                 elif p_mime == "text/html":
-                    html_candidates.append(clean_html_to_text(decoded))
+                    html_candidates.append(decoded.strip())
 
     _walk_parts(parts)
 
     if plain_candidates:
-        return " ".join([p for p in plain_candidates if p]).strip()
+        return "\n\n".join([p for p in plain_candidates if p]).strip()
     elif html_candidates:
-        return " ".join([h for h in html_candidates if h]).strip()
+        return clean_html_to_text("\n".join(html_candidates))
 
     return ""
 
@@ -115,7 +156,7 @@ def extract_body_from_payload(payload: Dict[str, Any]) -> str:
 def parse_message(msg_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Parses a raw Gmail API message JSON resource into a clean structured dictionary.
-    Guarantees consistent schema, header decoding, and robust MIME body extraction.
+    Guarantees consistent schema, header decoding, and robust MIME body + HTML extraction.
     """
     msg_id = msg_data.get("id", "")
     thread_id = msg_data.get("threadId", "")
@@ -142,6 +183,7 @@ def parse_message(msg_data: Dict[str, Any]) -> Dict[str, Any]:
 
     date_str = header_dict.get("date", "")
     body_text = extract_body_from_payload(payload)
+    body_html = extract_html_from_payload(payload)
 
     if not body_text and snippet:
         body_text = snippet
@@ -161,6 +203,7 @@ def parse_message(msg_data: Dict[str, Any]) -> Dict[str, Any]:
         "recipients": recipients,
         "date": date_str,
         "body": body_text,
+        "body_html": body_html,
         "snippet": snippet,
         "labels": label_ids,
         "internal_date": internal_date,

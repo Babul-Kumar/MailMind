@@ -533,7 +533,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     if (isAuthenticated && initialLoadedRef.current) {
       loadDataRef.current();
     }
-  }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery]);
+  }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
 
   // Smart Action Queue State
   const [actionQueue, setActionQueue] = useState({
@@ -777,12 +777,12 @@ export function useEmails(isAuthenticated = false, user = null) {
         }
       }, 1500);
 
-      loadDataRef.current();
+      loadDataRef.current(1, pageSize, undefined, undefined, undefined, newPeriod, true);
     } catch (err) {
       console.error('Error changing analysis period:', err);
       setIsAnalyzing(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, pageSize]);
 
   // History Mailbox Loader
   const loadHistoryData = useCallback(async (customPage, customFilters) => {
@@ -828,6 +828,44 @@ export function useEmails(isAuthenticated = false, user = null) {
     }
   }, [isAuthenticated, activeFilter, loadHistoryData]);
 
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const loadMore = useCallback(async () => {
+    if (isLoading || isLoadingMore || !pagination?.has_next) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = (pagination.page || 1) + 1;
+      const priorityParam = activeFilter !== 'ALL' ? activeFilter : '';
+      const actionParam = actionFilter === 'ACTION_REQUIRED' ? true : actionFilter === 'NO_ACTION' ? false : null;
+      const queryParam = debouncedSearchQuery.trim() || gmailQuery;
+
+      const data = await fetchEmails({
+        page: nextPage,
+        pageSize,
+        priority: priorityParam,
+        query: queryParam,
+        actionRequired: actionParam,
+        period: analysisPeriod,
+        sync: false,
+      });
+
+      if (data?.emails && data.emails.length > 0) {
+        setEmails((prev) => {
+          const existingIds = new Set(prev.map((e) => e.id || e.email_id || e.message_id));
+          const newEmails = data.emails.filter((e) => !existingIds.has(e.id || e.email_id || e.message_id));
+          return [...prev, ...newEmails];
+        });
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load more emails:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoading, isLoadingMore, pagination, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
+
   const isInitialLoading = isLoading && emails.length === 0;
   const isRefreshing = isLoading && emails.length > 0;
 
@@ -845,6 +883,8 @@ export function useEmails(isAuthenticated = false, user = null) {
     isInitialLoading,
     initialFetchComplete,
     isRefreshing,
+    loadMore,
+    isLoadingMore,
     isJustUpdated,
     isShowingCached,
     isOfflineMode,

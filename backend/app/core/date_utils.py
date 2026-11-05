@@ -16,6 +16,7 @@ SUPPORTED_PERIODS = {
     "last_3_months": "Last 3 months",
     "this_month": "This month",
     "last_1_year": "Last 1 year",
+    "last_year": "Last 1 year",
     "all_time": "All time",
     "custom": "Custom date range"
 }
@@ -112,6 +113,8 @@ def calculate_period_boundaries(
       - gmail_query: Gmail search filter syntax string (e.g. 'after:YYYY/MM/DD')
     """
     period_clean = str(period).lower().strip() if period else DEFAULT_PERIOD
+    if period_clean == "last_year":
+        period_clean = "last_1_year"
     if period_clean not in SUPPORTED_PERIODS:
         period_clean = DEFAULT_PERIOD
 

@@ -11,13 +11,14 @@ import {
   Copy,
   RotateCcw,
   ArrowLeft,
-  LogOut
+  LogOut,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useEmails } from './hooks/useEmails';
 import { AuthCallback } from './components/auth/AuthCallback';
 import { cleanSenderName, formatEmailDate } from './utils/formatting';
-import { submitFeedback } from './services/api';
+import { submitFeedback, fetchEmailDetail } from './services/api';
 
 // ============================================================================
 // PRIORITY DEFINITIONS (NATURAL COLORS, SHORT LABELS)
@@ -33,7 +34,7 @@ const PRIORITIES = {
 const WINDOWS = [
   { id: 'this_month', label: 'This month', days: 30 },
   { id: 'last_3_months', label: 'Last 3 months', days: 90 },
-  { id: 'last_year', label: 'Last year', days: 365 },
+  { id: 'last_1_year', label: 'Last 1 year', days: 365 },
   { id: 'all_time', label: 'All time', days: 9999 }
 ];
 
@@ -317,6 +318,158 @@ function getSenderInitials(name) {
   return clean.slice(0, 2).toUpperCase() || 'M';
 }
 
+
+// ============================================================================
+// RICH GMAIL-STYLE EMAIL CONTENT RENDERERS
+// ============================================================================
+
+function HtmlEmailViewer({ html, dark }) {
+  const iframeRef = useRef(null);
+  const [iframeHeight, setIframeHeight] = useState(500);
+
+  const cleanHtml = useMemo(() => {
+    if (!html) return '';
+
+    // Convert links so they always open safely in an external new tab
+    let processed = html.replace(/<a\s+(?:[^>]*?\s+)?href="([^"]*)"/gi, (match, url) => {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer"`;
+    });
+
+    const resetStyles = `
+      <style>
+        html, body {
+          margin: 0;
+          padding: 16px 20px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          font-size: 14px;
+          line-height: 1.6;
+          color: ${dark ? '#EDEDED' : '#1F2937'};
+          background-color: transparent !important;
+          word-break: break-word;
+          overflow-wrap: break-word;
+        }
+        img {
+          max-width: 100% !important;
+          height: auto !important;
+        }
+        table {
+          max-width: 100% !important;
+        }
+        a {
+          color: #2563EB;
+        }
+        blockquote {
+          border-left: 2px solid ${dark ? '#3F3F46' : '#E5E7EB'};
+          margin: 8px 0;
+          padding-left: 12px;
+          color: ${dark ? '#A1A1AA' : '#6B7280'};
+        }
+      </style>
+    `;
+
+    if (processed.includes('</head>')) {
+      return processed.replace('</head>', `${resetStyles}</head>`);
+    } else {
+      return `${resetStyles}${processed}`;
+    }
+  }, [html, dark]);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const measureHeight = () => {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc && doc.body) {
+          const bodyH = doc.body.scrollHeight;
+          const docH = doc.documentElement.scrollHeight;
+          const h = Math.max(bodyH, docH, 350);
+          setIframeHeight(h + 30);
+        }
+      } catch (err) {
+        // Fallback for sandboxed context
+      }
+    };
+
+    iframe.addEventListener('load', measureHeight);
+    const interval = setInterval(measureHeight, 500);
+    const stopTimer = setTimeout(() => clearInterval(interval), 3500);
+
+    return () => {
+      iframe.removeEventListener('load', measureHeight);
+      clearInterval(interval);
+      clearTimeout(stopTimer);
+    };
+  }, [cleanHtml]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      title="Email Content"
+      srcDoc={cleanHtml}
+      sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+      style={{
+        width: '100%',
+        minHeight: '350px',
+        height: `${iframeHeight}px`,
+        border: 'none',
+        display: 'block',
+        backgroundColor: 'transparent',
+      }}
+    />
+  );
+}
+
+function FormattedTextEmail({ text, dark }) {
+  const urlRegex = /(https?:\/\/[^\s<>()"']+)/g;
+
+  const paragraphs = useMemo(() => {
+    if (!text) return [];
+    return text.split(/\r?\n\s*\r?\n/).map((p) => p.trim()).filter(Boolean);
+  }, [text]);
+
+  const renderWithLinks = (paragraph) => {
+    const tokens = paragraph.split(urlRegex);
+    return tokens.map((token, idx) => {
+      if (token.match(urlRegex)) {
+        return (
+          <a
+            key={idx}
+            href={token}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline break-all"
+          >
+            {token}
+          </a>
+        );
+      }
+      return token;
+    });
+  };
+
+  if (!paragraphs.length) {
+    return (
+      <div className={`italic text-sm ${dark ? 'text-zinc-500' : 'text-zinc-400'}`}>
+        (No message content)
+      </div>
+    );
+  }
+
+  return (
+    <div className={`space-y-4 text-[14.5px] leading-relaxed select-text ${
+      dark ? 'text-[#E4E4E7]' : 'text-[#27272A]'
+    }`}>
+      {paragraphs.map((p, idx) => (
+        <p key={idx} className="whitespace-pre-wrap">
+          {renderWithLinks(p)}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function formatRealEmail(item, index) {
   const senderDisplay = cleanSenderName(item.sender);
   const senderEmail = (item.sender?.match(/<([^>]+)>/)?.[1]) || (item.sender?.includes('@') ? item.sender : '');
@@ -371,8 +524,10 @@ function formatRealEmail(item, index) {
 
   return {
     id: item.email_id || item.id || `real-${index}`,
+    thread_id: item.thread_id || item.threadId || item.id,
     sender: senderDisplay,
     email: senderEmail || 'user@example.com',
+    recipients: item.recipients || 'me',
     initials,
     avatarBg: 'bg-zinc-200/80 text-zinc-700',
     subject: item.subject || '(No Subject)',
@@ -387,6 +542,8 @@ function formatRealEmail(item, index) {
     note,
     otp,
     attachment,
+    body: item.body || item.snippet || '',
+    body_html: item.body_html || '',
     paragraphs: paragraphs.length ? paragraphs : ['(No message body)'],
     raw: item,
   };
@@ -457,6 +614,11 @@ export default function App() {
   const [selectedId, setSelectedId] = useState('e1');
   const [statusMap, setStatusMap] = useState({}); // { [id]: { state: 'done' | 'snoozed', until?: string } }
 
+  // Cache for full email details (MIME HTML body, complete headers)
+  const [emailDetails, setEmailDetails] = useState({});
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [viewMode, setViewMode] = useState('rich'); // 'rich' | 'plain'
+
   // Overrides map for user-set priorities
   const [overridesMap, setOverridesMap] = useState({});
 
@@ -508,6 +670,43 @@ export default function App() {
       setSelectedId(emails[0].id);
     }
   }, [emails, selectedId]);
+
+  // On-demand fetch of complete MIME content & HTML body when email is selected
+  useEffect(() => {
+    if (!currentEmail || !currentEmail.id) return;
+    const emailId = currentEmail.id;
+
+    // Skip mock static emails
+    if (emailId.startsWith('e') && emailId.length <= 3) return;
+
+    // If detail is already cached with full HTML or body, skip
+    if (emailDetails[emailId]?.body_html) return;
+
+    let isMounted = true;
+    setLoadingDetail(true);
+
+    fetchEmailDetail(emailId)
+      .then((res) => {
+        if (!isMounted) return;
+        if (res?.email) {
+          setEmailDetails((prev) => ({
+            ...prev,
+            [emailId]: res.email,
+          }));
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.warn('Could not fetch email detail:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingDetail(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentEmail?.id]);
 
   const triggerToast = useCallback((message, undo = null) => {
     setToast({ id: Date.now(), message, undo });
@@ -718,6 +917,10 @@ export default function App() {
     setWindowMenuOpen(false);
     setSyncing(true);
 
+    if (nextId === 'all_time') {
+      setView('all');
+    }
+
     if (emailsHook.changeAnalysisPeriod) {
       emailsHook.changeAnalysisPeriod(nextId);
     }
@@ -822,6 +1025,10 @@ export default function App() {
 
   const activeWindowLabel =
     WINDOWS.find((w) => w.id === windowId)?.label || 'Last 3 months';
+  const detailedEmail = currentEmail ? (emailDetails[currentEmail.id] || currentEmail) : null;
+  const rawHtml = detailedEmail?.body_html || currentEmail?.body_html || '';
+  const rawBody = detailedEmail?.body || currentEmail?.body || '';
+
   const currentPriority = currentEmail
     ? PRIORITIES[currentEmail.priority] || PRIORITIES.P3
     : null;
@@ -1294,6 +1501,45 @@ export default function App() {
               );
             })
           )}
+
+          {/* Mailbox Pagination & Total Count Footer */}
+          <div
+            className={`py-4 px-5 border-t text-center space-y-2 shrink-0 ${
+              dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+            }`}
+          >
+            <div className={`text-xs ${dark ? 'text-[#71717A]' : 'text-[#71717A]'}`}>
+              Showing <span className="font-medium text-current">{visibleEmails.length}</span> of{' '}
+              <span className="font-medium text-current">
+                {emailsHook.pagination?.total_emails
+                  ? emailsHook.pagination.total_emails.toLocaleString()
+                  : emails.length}
+              </span>{' '}
+              emails
+              {windowId === 'all_time' && ' · All time'}
+            </div>
+
+            {emailsHook.pagination?.has_next && (
+              <button
+                onClick={() => emailsHook.loadMore?.()}
+                disabled={emailsHook.isLoadingMore}
+                className={`w-full py-2 px-3 rounded-lg text-xs font-medium transition cursor-pointer flex items-center justify-center gap-2 ${
+                  dark
+                    ? 'bg-zinc-800/80 text-[#F4F4F5] hover:bg-zinc-800 disabled:opacity-50'
+                    : 'bg-[#F5F5F4] text-[#18181B] hover:bg-zinc-200/70 disabled:opacity-50'
+                }`}
+              >
+                {emailsHook.isLoadingMore ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Loading more emails...</span>
+                  </>
+                ) : (
+                  <span>Load more emails</span>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
@@ -1428,10 +1674,67 @@ export default function App() {
                     )}
                   </div>
                 )}
+
+                {/* View Mode Toggle (Rich HTML vs Plain Text) */}
+                {rawHtml && (
+                  <div
+                    className={`hidden sm:flex items-center p-0.5 rounded-lg border text-xs ${
+                      dark
+                        ? 'border-[#27272A] bg-zinc-900/60'
+                        : 'border-[#E4E4E7] bg-zinc-100/70'
+                    }`}
+                  >
+                    <button
+                      onClick={() => setViewMode('rich')}
+                      className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                        viewMode === 'rich'
+                          ? dark
+                            ? 'bg-zinc-800 text-white shadow-sm'
+                            : 'bg-white text-zinc-900 shadow-sm'
+                          : dark
+                          ? 'text-[#71717A] hover:text-[#A1A1AA]'
+                          : 'text-[#71717A] hover:text-[#18181B]'
+                      }`}
+                    >
+                      Rich HTML
+                    </button>
+                    <button
+                      onClick={() => setViewMode('plain')}
+                      className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                        viewMode === 'plain'
+                          ? dark
+                            ? 'bg-zinc-800 text-white shadow-sm'
+                            : 'bg-white text-zinc-900 shadow-sm'
+                          : dark
+                          ? 'text-[#71717A] hover:text-[#A1A1AA]'
+                          : 'text-[#71717A] hover:text-[#18181B]'
+                      }`}
+                    >
+                      Text
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Right: OTP Copy + Snooze Popover + Done */}
-              <div className="flex items-center gap-2">
+              {/* Right: Open in Gmail + OTP Copy + Restore */}
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Direct Open in Gmail Link */}
+                {currentEmail.id && (
+                  <a
+                    href={`https://mail.google.com/mail/u/0/#inbox/${currentEmail.thread_id || currentEmail.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                      dark
+                        ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800'
+                        : 'text-[#52525B] hover:text-[#18181B] hover:bg-zinc-100'
+                    }`}
+                    title="Open this thread in Gmail"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Open in Gmail</span>
+                  </a>
+                )}
                 {currentEmail.otp && (
                   <button
                     onClick={() =>
@@ -1474,16 +1777,16 @@ export default function App() {
             </header>
 
             {/* Open Reading Canvas (Generous Whitespace, Zero Inner Cards) */}
-            <article className="px-6 lg:px-12 py-10 max-w-2xl w-full select-text">
-              <h1 className="text-xl font-semibold tracking-tight leading-snug mb-5">
+            <article className="px-6 lg:px-12 py-10 max-w-4xl w-full select-text">
+              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight leading-snug mb-5 select-text">
                 {currentEmail.subject}
               </h1>
 
-              {/* Clean Sender Row */}
-              <div className="flex items-center justify-between gap-4 mb-8">
+              {/* Clean Sender Row like actual Gmail */}
+              <div className="flex items-start justify-between gap-4 mb-8 pb-6 border-b border-zinc-200/60 dark:border-zinc-800/60">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`w-9 h-9 rounded-full text-xs font-medium flex items-center justify-center shrink-0 ${
+                    className={`w-10 h-10 rounded-full text-xs font-semibold flex items-center justify-center shrink-0 ${
                       dark
                         ? 'bg-zinc-800 text-[#E4E4E7]'
                         : currentEmail.avatarBg
@@ -1492,29 +1795,50 @@ export default function App() {
                     {currentEmail.initials}
                   </div>
                   <div className="min-w-0 truncate">
-                    <span className="text-sm font-medium">
-                      {currentEmail.sender}
-                    </span>
-                    <span className="text-xs text-[#71717A] ml-2">
-                      &lt;{currentEmail.email}&gt;
-                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-semibold truncate">
+                        {currentEmail.sender}
+                      </span>
+                      <span className="text-xs text-[#71717A] truncate">
+                        &lt;{currentEmail.email}&gt;
+                      </span>
+                    </div>
+                    <div className="text-xs text-[#71717A] mt-0.5">
+                      to: me
+                    </div>
                   </div>
                 </div>
 
-                <span className="text-xs text-[#71717A] shrink-0">
-                  {currentEmail.fullDate}
-                </span>
+                <div className="flex flex-col items-end shrink-0">
+                  <span className="text-xs text-[#71717A]">
+                    {currentEmail.fullDate}
+                  </span>
+                  {loadingDetail && (
+                    <span className="text-[11px] text-blue-500 flex items-center gap-1 mt-1">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Loading content...
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Crisp Natural Paragraphs */}
-              <div
-                className={`text-[15px] leading-relaxed space-y-4 ${
-                  dark ? 'text-[#E4E4E7]' : 'text-[#27272A]'
-                }`}
-              >
-                {currentEmail.paragraphs.map((para, idx) => (
-                  <p key={idx}>{para}</p>
-                ))}
+              {/* Rich Visual Content (HTML or Formatted Plain Text) */}
+              <div className="min-h-[220px]">
+                {loadingDetail && !rawHtml && !rawBody ? (
+                  <div className="py-8 space-y-4 animate-pulse">
+                    <div className={`h-4 rounded w-3/4 ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+                    <div className={`h-4 rounded w-full ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+                    <div className={`h-4 rounded w-5/6 ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
+                    <div className={`h-36 rounded w-full ${dark ? 'bg-zinc-800/50' : 'bg-zinc-100'}`} />
+                  </div>
+                ) : viewMode === 'rich' && rawHtml ? (
+                  <HtmlEmailViewer html={rawHtml} dark={dark} />
+                ) : (
+                  <FormattedTextEmail
+                    text={rawBody || currentEmail.paragraphs?.join('\n\n') || ''}
+                    dark={dark}
+                  />
+                )}
               </div>
 
               {/* Single Subtle Inline Attachment Pill */}
