@@ -53,3 +53,4 @@ def test_last_year_alias_supported():
     assert abs(b_ly["start_ts_sec"] - b_1y["start_ts_sec"]) < 5  # within 5 seconds
     b_all = calculate_period_boundaries(period="all_time")
     assert b_all["start_ts_sec"] == 0.0
+

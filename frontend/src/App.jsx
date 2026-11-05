@@ -671,42 +671,6 @@ export default function App() {
     }
   }, [emails, selectedId]);
 
-  // On-demand fetch of complete MIME content & HTML body when email is selected
-  useEffect(() => {
-    if (!currentEmail || !currentEmail.id) return;
-    const emailId = currentEmail.id;
-
-    // Skip mock static emails
-    if (emailId.startsWith('e') && emailId.length <= 3) return;
-
-    // If detail is already cached with full HTML or body, skip
-    if (emailDetails[emailId]?.body_html) return;
-
-    let isMounted = true;
-    setLoadingDetail(true);
-
-    fetchEmailDetail(emailId)
-      .then((res) => {
-        if (!isMounted) return;
-        if (res?.email) {
-          setEmailDetails((prev) => ({
-            ...prev,
-            [emailId]: res.email,
-          }));
-        }
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        console.warn('Could not fetch email detail:', err);
-      })
-      .finally(() => {
-        if (isMounted) setLoadingDetail(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [currentEmail?.id]);
 
   const triggerToast = useCallback((message, undo = null) => {
     setToast({ id: Date.now(), message, undo });
@@ -787,6 +751,44 @@ export default function App() {
       null
     );
   }, [visibleEmails, selectedId]);
+
+
+  // On-demand fetch of complete MIME content & HTML body when email is selected
+  useEffect(() => {
+    if (!currentEmail?.id) return;
+    const emailId = currentEmail.id;
+
+    // Skip mock static emails
+    if (emailId.startsWith('e') && emailId.length <= 3) return;
+
+    // If detail is already cached with full HTML or body, skip
+    if (emailDetails[emailId]?.body_html) return;
+
+    let isMounted = true;
+    setLoadingDetail(true);
+
+    fetchEmailDetail(emailId)
+      .then((res) => {
+        if (!isMounted) return;
+        if (res?.email) {
+          setEmailDetails((prev) => ({
+            ...prev,
+            [emailId]: res.email,
+          }));
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.warn('Could not fetch email detail:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingDetail(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentEmail?.id]);
 
   // ============================================================================
   // INTERACTIVE HANDLERS
