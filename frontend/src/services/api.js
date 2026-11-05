@@ -97,6 +97,9 @@ export async function fetchAuthExchange(handoff) {
         throw new Error(errorData.detail || errorData.message || `Exchange failed: HTTP ${res.status}`);
       }
       return await res.json();
+    } catch (err) {
+      _pendingExchanges.delete(handoff);
+      throw err;
     } finally {
       // Clear from pending cache after 15s to allow future logins if needed
       setTimeout(() => {

@@ -1276,7 +1276,7 @@ export default function App() {
                         : 'bg-gradient-to-l from-zinc-50 via-zinc-50 to-transparent'
                     }`}
                   >
-                    {st ? (
+                    {st && (
                       <button
                         onClick={(e) => restoreItem(item, e)}
                         className={`p-1.5 rounded-md transition cursor-pointer ${
@@ -1288,31 +1288,6 @@ export default function App() {
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                       </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={(e) => snoozeItem(item, 'Tomorrow', e)}
-                          className={`p-1.5 rounded-md transition cursor-pointer ${
-                            dark
-                              ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-700/60'
-                              : 'text-[#71717A] hover:text-[#18181B] hover:bg-zinc-200/70'
-                          }`}
-                          title="Snooze"
-                        >
-                          <Clock className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => markDone(item, e)}
-                          className={`p-1.5 rounded-md transition cursor-pointer ${
-                            dark
-                              ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-700/60'
-                              : 'text-[#71717A] hover:text-[#18181B] hover:bg-zinc-200/70'
-                          }`}
-                          title="Done"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                      </>
                     )}
                   </div>
                 </div>
@@ -1482,7 +1457,7 @@ export default function App() {
                   </button>
                 )}
 
-                {currentTriage ? (
+                {currentTriage && (
                   <button
                     onClick={() => restoreItem(currentEmail)}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
@@ -1494,66 +1469,6 @@ export default function App() {
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Restore</span>
                   </button>
-                ) : (
-                  <>
-                    <div
-                      className="relative"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        onClick={() => {
-                          setSnoozeMenuOpen((o) => !o);
-                          setPriorityMenuOpen(false);
-                        }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                          dark
-                            ? 'text-[#A1A1AA] hover:text-[#F4F4F5] hover:bg-zinc-800'
-                            : 'text-[#52525B] hover:text-[#18181B] hover:bg-zinc-100'
-                        }`}
-                      >
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Snooze</span>
-                      </button>
-
-                      {snoozeMenuOpen && (
-                        <div
-                          className={`absolute right-0 top-9 z-30 w-40 rounded-xl p-1 shadow-lg border text-xs ${
-                            dark
-                              ? 'bg-[#1F1F23] border-[#27272A] text-[#F4F4F5]'
-                              : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
-                          }`}
-                        >
-                          {['Later today', 'Tomorrow', 'Next week'].map(
-                            (option) => (
-                              <button
-                                key={option}
-                                onClick={() => snoozeItem(currentEmail, option)}
-                                className={`w-full text-left px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                                  dark
-                                    ? 'hover:bg-zinc-800 text-[#E4E4E7]'
-                                    : 'hover:bg-zinc-100 text-[#18181B]'
-                                }`}
-                              >
-                                {option}
-                              </button>
-                            )
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => markDone(currentEmail)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                        dark
-                          ? 'bg-[#F4F4F5] text-[#18181B] hover:bg-zinc-200'
-                          : 'bg-[#18181B] text-white hover:bg-zinc-800'
-                      }`}
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Done</span>
-                    </button>
-                  </>
                 )}
               </div>
             </header>

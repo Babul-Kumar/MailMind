@@ -1,5 +1,21 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import http from 'node:http';
+import https from 'node:https';
+
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 64,
+  maxFreeSockets: 16,
+  timeout: 60000,
+});
+
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 64,
+  maxFreeSockets: 16,
+  timeout: 60000,
+});
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -7,6 +23,8 @@ export default defineConfig(({ mode }) => {
   const target = (env.VITE_BACKEND_TARGET || env.VITE_API_BASE_URL || 'http://127.0.0.1:8000')
     .trim()
     .replace(/\/+$/, '');
+
+  const agent = target.startsWith('https') ? httpsAgent : httpAgent;
 
   console.log(`\x1b[36m[vite proxy]\x1b[0m API requests -> \x1b[32m${target}\x1b[0m`);
 
@@ -19,6 +37,7 @@ export default defineConfig(({ mode }) => {
           target,
           changeOrigin: true,
           secure: false,
+          agent,
           cookiePathRewrite: '/',
           configure: (proxy) => {
             proxy.on('error', (err, req, res) => {

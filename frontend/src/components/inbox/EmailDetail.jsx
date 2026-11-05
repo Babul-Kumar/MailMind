@@ -116,7 +116,7 @@ export function EmailDetail({
 
         {/* Right: Quick Action Buttons & Gmail Link */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {localResolved ? (
+          {localResolved && (
             <button
               onClick={() => {
                 setLocalResolved(false);
@@ -139,55 +139,6 @@ export function EmailDetail({
               <RotateCcw size={12} />
               <span>Resolved</span>
             </button>
-          ) : (
-            <>
-              <button
-                onClick={() => setSnoozeOpen(true)}
-                className="detail-snooze-btn"
-                title="Snooze email"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  padding: '0.35rem 0.6rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-subtle)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.76rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                }}
-              >
-                <Clock size={12} />
-                <span>Snooze</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setLocalResolved(true);
-                  onResolve?.(email.email_id || email.id, email.thread_id);
-                }}
-                className="detail-resolve-btn"
-                title="Mark thread as resolved"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  padding: '0.35rem 0.7rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid rgba(34, 197, 94, 0.35)',
-                  backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                  color: '#22c55e',
-                  fontSize: '0.76rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <Check size={12} />
-                <span>Resolve</span>
-              </button>
-            </>
           )}
 
           <a

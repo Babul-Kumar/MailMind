@@ -69,10 +69,41 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // Reuse or create in-flight exchange promise across React 18 StrictMode mounts
+    async function runExchangeWithRetries(code, maxRetries = 2) {
+      let lastErr = null;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        if (!isMounted) return;
+        try {
+          const doExchange = exchangeHandoff || fetchAuthExchange;
+          const data = await doExchange(code);
+          if (data && (data.authenticated || data.user)) {
+            return data;
+          }
+        } catch (err) {
+          lastErr = err;
+          try {
+            const authStatus = await fetchAuthStatus();
+            if (authStatus && authStatus.authenticated && authStatus.user) {
+              return authStatus;
+            }
+          } catch (_) {}
+
+          const isPermanentClientError =
+            err.message?.includes('expired') ||
+            err.message?.includes('consumed') ||
+            err.message?.includes('Invalid') ||
+            err.message?.includes('400');
+          if (isPermanentClientError || attempt === maxRetries) {
+            throw err;
+          }
+          await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+        }
+      }
+      throw lastErr;
+    }
+
     if (!_currentExchangePromise) {
-      const doExchange = exchangeHandoff || fetchAuthExchange;
-      _currentExchangePromise = doExchange(handoffCode);
+      _currentExchangePromise = runExchangeWithRetries(handoffCode);
     }
 
     _currentExchangePromise
@@ -96,27 +127,8 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
       })
       .catch(async (err) => {
         if (!isMounted) return;
-        // Fallback: If code was already consumed or already processed, check if session is active
-        try {
-          const authStatus = await fetchAuthStatus();
-          if (authStatus && authStatus.authenticated && authStatus.user) {
-            setStatus('success');
-            window.history.replaceState({}, document.title, '/');
-            if (onAuthenticationComplete) {
-              onAuthenticationComplete(authStatus.user);
-            }
-            setTimeout(() => {
-              if (onSuccess) {
-                onSuccess(authStatus.user);
-              }
-            }, 350);
-            return;
-          }
-        } catch (_) {}
-
         console.error('Handoff exchange failed:', err);
         setStatus('error');
-        window.history.replaceState({}, document.title, '/');
         const isExpiredOrUsed =
           err.message?.includes('expired') ||
           err.message?.includes('consumed') ||
@@ -131,7 +143,6 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
       .finally(() => {
         setTimeout(() => {
           _currentExchangePromise = null;
-          _currentHandoffCode = null;
         }, 5000);
       });
 
