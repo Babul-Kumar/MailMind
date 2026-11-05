@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { PrioritySummary } from '../priority/PrioritySummary';
 import { EmailList } from './EmailList';
 import { EmailDetail } from './EmailDetail';
-
 import { HistoryView } from './HistoryView';
-import { PeriodSelector } from './PeriodSelector';
-import { Zap } from 'lucide-react';
+import { Zap, Mail, ChevronDown } from 'lucide-react';
 
 export function Inbox({
   emails,
@@ -57,9 +55,17 @@ export function Inbox({
   setHistoryFilter,
   loadHistoryData,
 }) {
-
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  // Auto-select first email on desktop when list loads if no selection yet
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      if (!selectedEmail && emails && emails.length > 0) {
+        setSelectedEmail(emails[0]);
+      }
+    }
+  }, [emails, selectedEmail]);
 
   // Reset keyboard highlight when filtered emails change
   useEffect(() => {
@@ -69,7 +75,6 @@ export function Inbox({
   // Keyboard navigation: ArrowUp, ArrowDown, Enter, /
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Do not trigger if user is actively in a form field
       const activeTag = document.activeElement?.tagName?.toLowerCase();
       if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
         return;
@@ -89,10 +94,18 @@ export function Inbox({
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev < emails.length - 1 ? prev + 1 : 0));
+        setHighlightedIndex((prev) => {
+          const next = prev < emails.length - 1 ? prev + 1 : 0;
+          if (window.innerWidth >= 1024) setSelectedEmail(emails[next]);
+          return next;
+        });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : emails.length - 1));
+        setHighlightedIndex((prev) => {
+          const next = prev > 0 ? prev - 1 : emails.length - 1;
+          if (window.innerWidth >= 1024) setSelectedEmail(emails[next]);
+          return next;
+        });
       } else if (e.key === 'Enter') {
         if (highlightedIndex >= 0 && highlightedIndex < emails.length) {
           e.preventDefault();
@@ -112,13 +125,13 @@ export function Inbox({
   const endIdx = totalCount > 0 ? Math.min(pageNum * pageSize, totalCount) : 0;
 
   // Title and description for active view
-  let viewTitle = 'Recent Mail';
+  let viewTitle = 'Inbox';
   let viewDescription = '';
   if (activeFilter === 'IMPORTANT') {
     viewTitle = 'Important';
     viewDescription = 'High-importance emails classified by the priority model.';
   } else if (activeFilter === 'P1') {
-    viewTitle = 'P1 · Critical';
+    viewTitle = 'P1 · Urgent';
     viewDescription = 'Immediate operational urgency or critical consequence.';
   } else if (activeFilter === 'P2') {
     viewTitle = 'P2 · Important';
@@ -130,446 +143,476 @@ export function Inbox({
     viewTitle = 'P4 · Low';
     viewDescription = 'Bulk notifications, updates, or low priority.';
   } else if (activeFilter === 'ALL') {
-    viewTitle = 'Recent Mail';
+    viewTitle = 'Inbox';
     viewDescription = '';
   }
 
+  if (activeFilter === 'HISTORY') {
+    return (
+      <HistoryView
+        emails={historyEmails}
+        pagination={historyPagination}
+        onPageChange={(newPage) => loadHistoryData?.(newPage)}
+        isLoading={historyLoading}
+        startDate={historyFilter.startDate}
+        endDate={historyFilter.endDate}
+        searchQuery={historyFilter.query}
+        analyzedOnly={historyFilter.analyzedOnly}
+        onFilterChange={(newFilters) => setHistoryFilter?.(newFilters)}
+        onSelectEmail={setSelectedEmail}
+      />
+    );
+  }
+
   return (
-    <div style={{ width: '100%' }}>
-      {/* Mailbox Intelligence Overview */}
-      {!searchQuery && (
-        <PrioritySummary
-          emails={allEmails.length ? allEmails : emails}
-          stats={stats}
-          onSelectFilter={onSelectFilter}
-          activeFilter={activeFilter}
-        />
-      )}
+    <div style={{ width: '100%', height: '100%' }}>
+      {/* 3-Column Split Layout for Modern Desktop View */}
+      <div className="inbox-split-layout">
+        {/* Center Column: Priority Distribution & Email Feed */}
+        <div className="inbox-feed-column">
+          {/* Mailbox Intelligence Overview */}
+          {!searchQuery && (
+            <PrioritySummary
+              emails={allEmails.length ? allEmails : emails}
+              stats={stats}
+              onSelectFilter={onSelectFilter}
+              activeFilter={activeFilter}
+            />
+          )}
 
-      {/* Background Mailbox Scan Notification Card */}
-      {isScanning && scanStatus && (
-        <div className="scan-status-card">
-          <div className="scan-status-header">
-            <div className="scan-status-title-group">
-              <span className="scan-status-pulse-dot animate-pulse" />
-              <span className="scan-status-title">
-                {scanStatus.status === 'SCANNING'
-                  ? 'Scanning Gmail Messages'
-                  : scanStatus.status === 'ANALYZING'
-                  ? (scanStatus.period === 'last_1_month' || analysisPeriod === 'last_1_month'
-                      ? 'Analyzing Last 1 Month'
-                      : scanStatus.period === 'last_2_months' || analysisPeriod === 'last_2_months'
-                      ? 'Analyzing Last 2 Months'
-                      : scanStatus.period === 'this_month' || analysisPeriod === 'this_month'
-                      ? 'Analyzing This Month'
-                      : scanStatus.period === 'last_3_months' || analysisPeriod === 'last_3_months'
-                      ? 'Analyzing Last 3 Months'
-                      : scanStatus.period === 'last_1_year' || analysisPeriod === 'last_1_year'
-                      ? 'Analyzing Last 1 Year'
-                      : scanStatus.period === 'custom' || analysisPeriod === 'custom'
-                      ? 'Analyzing Custom Date Range'
-                      : scanStatus.period === 'all_time' || analysisPeriod === 'all_time'
-                      ? 'Analyzing All Messages'
-                      : 'Analyzing Recent Mail')
-                  : 'Analysis Complete'}
-              </span>
-            </div>
-            {scanStatus.status === 'ANALYZING' && (
-              <span className="scan-status-counter">
-                {scanStatus.analyzed?.toLocaleString() || 0} / {scanStatus.total?.toLocaleString() || 0}
-              </span>
-            )}
-          </div>
+          {/* Background Mailbox Scan Notification Card */}
+          {isScanning && scanStatus && (
+            <div className="scan-status-card">
+              <div className="scan-status-header">
+                <div className="scan-status-title-group">
+                  <span className="scan-status-pulse-dot animate-pulse" />
+                  <span className="scan-status-title">
+                    {scanStatus.status === 'SCANNING'
+                      ? 'Scanning Gmail Messages'
+                      : scanStatus.status === 'ANALYZING'
+                      ? (scanStatus.period === 'last_1_month' || analysisPeriod === 'last_1_month'
+                          ? 'Analyzing Last 1 Month'
+                          : scanStatus.period === 'last_2_months' || analysisPeriod === 'last_2_months'
+                          ? 'Analyzing Last 2 Months'
+                          : scanStatus.period === 'this_month' || analysisPeriod === 'this_month'
+                          ? 'Analyzing This Month'
+                          : scanStatus.period === 'last_3_months' || analysisPeriod === 'last_3_months'
+                          ? 'Analyzing Last 3 Months'
+                          : scanStatus.period === 'last_1_year' || analysisPeriod === 'last_1_year'
+                          ? 'Analyzing Last 1 Year'
+                          : scanStatus.period === 'custom' || analysisPeriod === 'custom'
+                          ? 'Analyzing Custom Date Range'
+                          : scanStatus.period === 'all_time' || analysisPeriod === 'all_time'
+                          ? 'Analyzing All Messages'
+                          : 'Analyzing Recent Mail')
+                      : 'Analysis Complete'}
+                  </span>
+                </div>
+                {scanStatus.status === 'ANALYZING' && (
+                  <span className="scan-status-counter">
+                    {scanStatus.analyzed?.toLocaleString() || 0} / {scanStatus.total?.toLocaleString() || 0}
+                  </span>
+                )}
+              </div>
 
-          {/* Smooth Progress Track */}
-          {scanStatus.status === 'ANALYZING' && (
-            <div className="scan-status-track">
-              <div
-                className="scan-status-fill"
-                style={{ width: `${Math.min(100, Math.max(0, scanStatus.progress_percent || 0))}%` }}
-              />
+              {/* Smooth Progress Track */}
+              {scanStatus.status === 'ANALYZING' && (
+                <div className="scan-status-track">
+                  <div
+                    className="scan-status-fill"
+                    style={{ width: `${Math.min(100, Math.max(0, scanStatus.progress_percent || 0))}%` }}
+                  />
+                </div>
+              )}
+
+              <div className="scan-status-meta-line">
+                {scanStatus.status === 'ANALYZING' ? (
+                  <>
+                    <span>{scanStatus.progress_percent || 0}% analyzed</span>
+                    <span className="meta-dot">·</span>
+                    <span>{scanStatus.cached?.toLocaleString() || 0} reused from cache</span>
+                  </>
+                ) : scanStatus.status === 'SCANNING' ? (
+                  <span>Discovered {scanStatus.discovered?.toLocaleString() || 0} messages so far</span>
+                ) : (
+                  <span>100% analyzed · All priority classes active</span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem' }}>
+                <div className="scan-status-subnote" style={{ margin: 0 }}>
+                  You can browse cached emails while background analysis continues.
+                </div>
+                {onCancelScan && (
+                  <button
+                    type="button"
+                    onClick={onCancelScan}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-xs)',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      padding: '2px 8px',
+                      cursor: 'pointer',
+                    }}
+                    title="Stop background analysis"
+                  >
+                    Cancel Analysis
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
-          <div className="scan-status-meta-line">
-            {scanStatus.status === 'ANALYZING' ? (
-              <>
-                <span>{scanStatus.progress_percent || 0}% analyzed</span>
-                <span className="meta-dot">·</span>
-                <span>{scanStatus.cached?.toLocaleString() || 0} reused from cache</span>
-              </>
-            ) : scanStatus.status === 'SCANNING' ? (
-              <span>Discovered {scanStatus.discovered?.toLocaleString() || 0} messages so far</span>
-            ) : (
-              <span>100% analyzed · All priority classes active</span>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem' }}>
-            <div className="scan-status-subnote" style={{ margin: 0 }}>
-              You can browse cached emails while background analysis continues.
-            </div>
-            {onCancelScan && (
+          {/* Recoverable Mailbox Error Banner */}
+          {error && !isOfflineMode && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.65rem 1rem',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.22)',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                color: 'var(--p1-color)',
+                fontSize: '0.82rem',
+                fontWeight: 500,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span>{error}</span>
+              </div>
               <button
-                type="button"
-                onClick={onCancelScan}
+                onClick={() => onRefresh?.()}
                 style={{
-                  background: 'none',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  borderRadius: '4px',
-                  color: 'var(--text-muted, #94a3b8)',
-                  fontSize: '0.75rem',
-                  padding: '2px 8px',
+                  fontSize: '0.78rem',
+                  color: 'var(--p1-color)',
+                  fontWeight: 600,
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
                   cursor: 'pointer',
                 }}
-                title="Stop background analysis"
               >
-                Cancel Analysis
+                Retry
               </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Recoverable Mailbox Error Banner */}
-      {error && !isOfflineMode && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.65rem 1rem',
-            backgroundColor: 'rgba(239, 68, 68, 0.08)',
-            border: '1px solid rgba(239, 68, 68, 0.22)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1rem',
-            color: 'var(--p1-color)',
-            fontSize: '0.82rem',
-            fontWeight: 500,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <span>{error}</span>
-          </div>
-          <button
-            onClick={() => onRefresh?.()}
-            style={{
-              fontSize: '0.78rem',
-              color: 'var(--p1-color)',
-              fontWeight: 600,
-              padding: '0.2rem 0.55rem',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              cursor: 'pointer',
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Offline Mode Indicator Banner */}
-      {isOfflineMode && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.65rem 1rem',
-            backgroundColor: 'rgba(239, 68, 68, 0.08)',
-            border: '1px solid rgba(239, 68, 68, 0.22)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1rem',
-            color: 'var(--p1-color)',
-            fontSize: '0.82rem',
-            fontWeight: 500,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <span>You're offline. Saved emails are available.</span>
-            {lastUpdated && (
-              <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                · Last updated at {new Date(lastUpdated).toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => onRefresh?.()}
-            style={{
-              fontSize: '0.78rem',
-              color: 'var(--p1-color)',
-              fontWeight: 600,
-              padding: '0.2rem 0.55rem',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              cursor: 'pointer',
-            }}
-          >
-            Retry Connection
-          </button>
-        </div>
-      )}
-
-      {/* Showing Cached Banner during Background Refresh */}
-      {isShowingCached && !isOfflineMode && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.55rem 0.95rem',
-            backgroundColor: 'rgba(99, 102, 241, 0.06)',
-            border: '1px solid rgba(99, 102, 241, 0.18)',
-            borderRadius: 'var(--radius-md)',
-            marginBottom: '1rem',
-            color: 'var(--text-secondary)',
-            fontSize: '0.8rem',
-          }}
-        >
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--accent)' }} />
-          <span>Showing saved emails.</span>
-          {lastUpdated && (
-            <span style={{ color: 'var(--text-muted)' }}>
-              Last updated at {new Date(lastUpdated).toLocaleTimeString()}.
-            </span>
+            </div>
           )}
-          {isLoading && <span style={{ color: 'var(--accent)', fontWeight: 500 }}>Refreshing inbox…</span>}
-        </div>
-      )}
 
-
-
-      {/* Mobile Horizontal Priority Filter Bar */}
-      <div className="mobile-priority-bar" role="tablist" aria-label="Filter by priority">
-        {[
-          { key: 'ALL', label: 'All Mail', count: totalCount },
-          { key: 'P1', label: 'P1', count: stats?.counts?.P1 || 0, dotColor: 'var(--p1-color)' },
-          { key: 'P2', label: 'P2', count: stats?.counts?.P2 || 0, dotColor: 'var(--p2-color)' },
-          { key: 'P3', label: 'P3', count: stats?.counts?.P3 || 0, dotColor: 'var(--p3-color)' },
-          { key: 'P4', label: 'P4', count: stats?.counts?.P4 || 0, dotColor: 'var(--p4-color)' },
-        ].map((tab) => {
-          const isActive = activeFilter === tab.key;
-          return (
-            <button
-              key={tab.key}
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => onSelectFilter(tab.key)}
-              className={`mobile-priority-chip ${isActive ? 'is-active' : ''}`}
+          {/* Offline Mode Indicator Banner */}
+          {isOfflineMode && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.65rem 1rem',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.22)',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                color: 'var(--p1-color)',
+                fontSize: '0.82rem',
+                fontWeight: 500,
+              }}
             >
-              {tab.dotColor && (
-                <span className="mobile-chip-dot" style={{ backgroundColor: tab.dotColor }} />
-              )}
-              {tab.isAttention && (
-                <Zap size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
-              )}
-              <span>{tab.label}</span>
-              <span className="mobile-chip-separator">·</span>
-              <span className="mobile-chip-count">
-                {typeof tab.count === 'number' ? tab.count.toLocaleString() : tab.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span>You're offline. Saved emails are available.</span>
+                {lastUpdated && (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                    · Last updated at {new Date(lastUpdated).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => onRefresh?.()}
+                style={{
+                  fontSize: '0.78rem',
+                  color: 'var(--p1-color)',
+                  fontWeight: 600,
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  cursor: 'pointer',
+                }}
+              >
+                Retry Connection
+              </button>
+            </div>
+          )}
 
-      {activeFilter === 'HISTORY' ? (
-        <HistoryView
-          emails={historyEmails}
-          pagination={historyPagination}
-          onPageChange={(newPage) => loadHistoryData?.(newPage)}
-          isLoading={historyLoading}
-          startDate={historyFilter.startDate}
-          endDate={historyFilter.endDate}
-          searchQuery={historyFilter.query}
-          analyzedOnly={historyFilter.analyzedOnly}
-          onFilterChange={(newFilters) => setHistoryFilter?.(newFilters)}
-          onSelectEmail={setSelectedEmail}
-        />
-      ) : (
-        <>
+          {/* Mobile Horizontal Priority Filter Bar */}
+          <div className="mobile-priority-bar" role="tablist" aria-label="Filter by priority">
+            {[
+              { key: 'ALL', label: 'All Mail', count: totalCount },
+              { key: 'P1', label: 'P1', count: stats?.counts?.P1 || 0, dotColor: 'var(--p1-color)' },
+              { key: 'P2', label: 'P2', count: stats?.counts?.P2 || 0, dotColor: 'var(--p2-color)' },
+              { key: 'P3', label: 'P3', count: stats?.counts?.P3 || 0, dotColor: 'var(--p3-color)' },
+              { key: 'P4', label: 'P4', count: stats?.counts?.P4 || 0, dotColor: 'var(--p4-color)' },
+            ].map((tab) => {
+              const isActive = activeFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => onSelectFilter(tab.key)}
+                  className={`mobile-priority-chip ${isActive ? 'is-active' : ''}`}
+                >
+                  {tab.dotColor && (
+                    <span className="mobile-chip-dot" style={{ backgroundColor: tab.dotColor }} />
+                  )}
+                  <span>{tab.label}</span>
+                  <span className="mobile-chip-separator">·</span>
+                  <span className="mobile-chip-count">
+                    {typeof tab.count === 'number' ? tab.count.toLocaleString() : tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Unified View Header & Control Bar */}
           <div className="inbox-section-header">
-        {/* Top Line: View Title & Counts */}
-        <div className="inbox-header-top-line">
-          <div className="inbox-header-title-group">
-            <h2 className="inbox-view-title">{viewTitle}</h2>
-            <span className="inbox-view-count-badge">
-              {totalCount.toLocaleString()} {totalCount === 1 ? 'email' : 'emails'}
-            </span>
+            {/* Top Line: View Title & Counts */}
+            <div className="inbox-header-top-line">
+              <div className="inbox-header-title-group">
+                <h2 className="inbox-view-title">{viewTitle}</h2>
+                <span className="inbox-view-count-badge">
+                  {totalCount.toLocaleString()} {totalCount === 1 ? 'email' : 'emails'}
+                </span>
+              </div>
+              {totalCount > 0 && (
+                <span className="inbox-view-pagination-info">
+                  Showing {startIdx}–{endIdx} of {totalCount.toLocaleString()}
+                </span>
+              )}
+            </div>
+
+            {viewDescription && (
+              <p className="inbox-view-description">
+                {viewDescription}
+              </p>
+            )}
+
+            {/* Secondary Action Filter for P2 */}
+            {activeFilter === 'P2' && (
+              <div className="inbox-p2-filter-row">
+                <button
+                  type="button"
+                  onClick={() => onSelectActionFilter?.('ALL')}
+                  className={`inbox-sub-chip ${actionFilter === 'ALL' ? 'is-active' : ''}`}
+                >
+                  All Important ({(stats?.counts?.P2 || totalCount).toLocaleString()})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectActionFilter?.('ACTION_REQUIRED')}
+                  className={`inbox-sub-chip action-required ${actionFilter === 'ACTION_REQUIRED' ? 'is-active' : ''}`}
+                >
+                  ● Action Required
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectActionFilter?.('NO_ACTION')}
+                  className={`inbox-sub-chip ${actionFilter === 'NO_ACTION' ? 'is-active' : ''}`}
+                >
+                  ○ No Action
+                </button>
+              </div>
+            )}
+
+            {/* Controls Row: Sort Dropdown */}
+            <div className="inbox-controls-row" style={{ justifyContent: 'flex-end' }}>
+              <div className="inbox-sort-group">
+                <span className="inbox-sort-label">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => onSortChange(e.target.value)}
+                  className="inbox-sort-select"
+                  aria-label="Sort emails"
+                >
+                  <option value="date_desc">Newest</option>
+                  <option value="date_asc">Oldest</option>
+                  <option value="priority_desc">Priority</option>
+                  <option value="confidence_desc">Confidence</option>
+                  <option value="deadline_asc">Deadline (earliest first)</option>
+                  <option value="sender_asc">Sender (A-Z)</option>
+                </select>
+              </div>
+            </div>
           </div>
-          {totalCount > 0 && (
-            <span className="inbox-view-pagination-info">
-              Showing {startIdx}–{endIdx} of {totalCount.toLocaleString()}
-            </span>
+
+          {/* Main Email Feed */}
+          <div>
+            <EmailList
+              emails={emails}
+              selectedEmailId={selectedEmail?.email_id || (highlightedIndex >= 0 ? emails[highlightedIndex]?.email_id : null)}
+              onSelectEmail={setSelectedEmail}
+              isLoading={isLoading}
+              isRefreshing={isRefreshing}
+              isInitialLoading={isInitialLoading}
+              emptyType={searchQuery.trim() ? 'search' : 'inbox'}
+              onRefresh={onRefresh}
+            />
+
+            {/* Modern Pagination Controls */}
+            {pagination && pagination.total_emails > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.85rem 0.5rem',
+                  marginTop: '0.75rem',
+                  borderTop: '1px solid var(--border-subtle)',
+                  fontSize: '0.82rem',
+                  color: 'var(--text-secondary)',
+                  flexWrap: 'wrap',
+                  gap: '0.6rem',
+                }}
+              >
+                <div>
+                  Showing{' '}
+                  <strong style={{ color: 'var(--text-main)' }}>
+                    {Math.min((pagination.page - 1) * pagination.page_size + 1, pagination.total_emails)}–
+                    {Math.min(pagination.page * pagination.page_size, pagination.total_emails)}
+                  </strong>{' '}
+                  of{' '}
+                  <strong style={{ color: 'var(--text-main)' }}>
+                    {pagination.total_emails.toLocaleString()}
+                  </strong>{' '}
+                  messages
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => onPageChange?.(pagination.page - 1)}
+                    disabled={!pagination.has_prev || isLoading}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.4rem 0.8rem',
+                      minHeight: '36px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      color: !pagination.has_prev || isLoading ? 'var(--text-muted)' : 'var(--text-main)',
+                      cursor: !pagination.has_prev || isLoading ? 'default' : 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      opacity: !pagination.has_prev || isLoading ? 0.5 : 1,
+                      transition: 'all var(--transition-fast)',
+                    }}
+                  >
+                    ← Previous
+                  </button>
+
+                  <span style={{ padding: '0 0.4rem', color: 'var(--text-muted)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                    Page <strong style={{ color: 'var(--text-main)' }}>{pagination.page}</strong> of {pagination.total_pages}
+                  </span>
+
+                  <button
+                    onClick={() => onPageChange?.(pagination.page + 1)}
+                    disabled={!pagination.has_next || isLoading}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.4rem 0.8rem',
+                      minHeight: '36px',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      color: !pagination.has_next || isLoading ? 'var(--text-muted)' : 'var(--text-main)',
+                      cursor: !pagination.has_next || isLoading ? 'default' : 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      opacity: !pagination.has_next || isLoading ? 0.5 : 1,
+                      transition: 'all var(--transition-fast)',
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Desktop Open Reading Pane (Apple Mail / Linear Style) */}
+        <div className="inbox-reading-pane-column">
+          {selectedEmail ? (
+            <EmailDetail
+              email={selectedEmail}
+              isInline={true}
+              onClose={() => setSelectedEmail(null)}
+              onResolve={onResolve}
+              onUnresolve={onUnresolve}
+              onSnooze={onSnooze}
+            />
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                padding: '3rem 2rem',
+                textAlign: 'center',
+                gap: '0.75rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-muted)',
+                  marginBottom: '0.25rem',
+                }}
+              >
+                <Mail size={20} />
+              </div>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                No email selected
+              </span>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-dim)', maxWidth: '260px', lineHeight: 1.5 }}>
+                Select an email from the list to preview content, examine model classification signals, and take action.
+              </span>
+            </div>
           )}
         </div>
-
-        {viewDescription && (
-          <p className="inbox-view-description">
-            {viewDescription}
-          </p>
-        )}
-
-        {/* Secondary Action Filter for P2 */}
-        {activeFilter === 'P2' && (
-          <div className="inbox-p2-filter-row">
-            <button
-              type="button"
-              onClick={() => onSelectActionFilter?.('ALL')}
-              className={`inbox-sub-chip ${actionFilter === 'ALL' ? 'is-active' : ''}`}
-            >
-              All Important ({(stats?.counts?.P2 || totalCount).toLocaleString()})
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectActionFilter?.('ACTION_REQUIRED')}
-              className={`inbox-sub-chip action-required ${actionFilter === 'ACTION_REQUIRED' ? 'is-active' : ''}`}
-            >
-              ● Action Required
-            </button>
-            <button
-              type="button"
-              onClick={() => onSelectActionFilter?.('NO_ACTION')}
-              className={`inbox-sub-chip ${actionFilter === 'NO_ACTION' ? 'is-active' : ''}`}
-            >
-              ○ No Action
-            </button>
-          </div>
-        )}
-
-        {/* Controls Row: Sort Dropdown */}
-        <div className="inbox-controls-row" style={{ justifyContent: 'flex-end' }}>
-          <div className="inbox-sort-group">
-            <span className="inbox-sort-label">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => onSortChange(e.target.value)}
-              className="inbox-sort-select"
-              aria-label="Sort emails"
-            >
-              <option value="date_desc">Newest</option>
-              <option value="date_asc">Oldest</option>
-              <option value="priority_desc">Priority</option>
-              <option value="confidence_desc">Confidence</option>
-              <option value="deadline_asc">Deadline (earliest first)</option>
-              <option value="sender_asc">Sender (A-Z)</option>
-            </select>
-          </div>
-        </div>
       </div>
 
-      {/* Main Email Feed */}
-      <div>
-        <EmailList
-          emails={emails}
-          selectedEmailId={selectedEmail?.email_id || (highlightedIndex >= 0 ? emails[highlightedIndex]?.email_id : null)}
-          onSelectEmail={setSelectedEmail}
-          isLoading={isLoading}
-          isRefreshing={isRefreshing}
-          isInitialLoading={isInitialLoading}
-          emptyType={searchQuery.trim() ? 'search' : 'inbox'}
-          onRefresh={onRefresh}
-        />
-
-        {/* Modern Pagination Controls */}
-        {pagination && pagination.total_emails > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.85rem 0.5rem',
-              marginTop: '0.75rem',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '0.82rem',
-              color: 'var(--text-secondary)',
-              flexWrap: 'wrap',
-              gap: '0.6rem',
-            }}
-          >
-            <div>
-              Showing{' '}
-              <strong style={{ color: 'var(--text-main)' }}>
-                {Math.min((pagination.page - 1) * pagination.page_size + 1, pagination.total_emails)}–
-                {Math.min(pagination.page * pagination.page_size, pagination.total_emails)}
-              </strong>{' '}
-              of{' '}
-              <strong style={{ color: 'var(--text-main)' }}>
-                {pagination.total_emails.toLocaleString()}
-              </strong>{' '}
-              analyzed messages
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-              <button
-                onClick={() => onPageChange?.(pagination.page - 1)}
-                disabled={!pagination.has_prev || isLoading}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.4rem 0.8rem',
-                  minHeight: '38px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-subtle)',
-                  color: !pagination.has_prev || isLoading ? 'var(--text-muted)' : 'var(--text-main)',
-                  cursor: !pagination.has_prev || isLoading ? 'default' : 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  opacity: !pagination.has_prev || isLoading ? 0.5 : 1,
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                ← Previous
-              </button>
-
-              <span style={{ padding: '0 0.4rem', color: 'var(--text-muted)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
-                Page <strong style={{ color: 'var(--text-main)' }}>{pagination.page}</strong> of {pagination.total_pages}
-              </span>
-
-              <button
-                onClick={() => onPageChange?.(pagination.page + 1)}
-                disabled={!pagination.has_next || isLoading}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.4rem 0.8rem',
-                  minHeight: '38px',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border-subtle)',
-                  color: !pagination.has_next || isLoading ? 'var(--text-muted)' : 'var(--text-main)',
-                  cursor: !pagination.has_next || isLoading ? 'default' : 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  opacity: !pagination.has_next || isLoading ? 0.5 : 1,
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                Next →
-              </button>
-            </div>
-          </div>
+      {/* Mobile Drawer (Only active when on smaller screens) */}
+      <div className="inbox-mobile-drawer-wrapper">
+        {selectedEmail && (
+          <EmailDetail
+            email={selectedEmail}
+            isInline={false}
+            onClose={() => setSelectedEmail(null)}
+            onResolve={onResolve}
+            onUnresolve={onUnresolve}
+            onSnooze={onSnooze}
+          />
         )}
       </div>
-    </>
-  )}
-
-      {/* Detail Drawer */}
-      {selectedEmail && (
-        <EmailDetail
-          email={selectedEmail}
-          onClose={() => setSelectedEmail(null)}
-          onResolve={onResolve}
-          onUnresolve={onUnresolve}
-          onSnooze={onSnooze}
-        />
-      )}
     </div>
   );
 }
+
+export default Inbox;
