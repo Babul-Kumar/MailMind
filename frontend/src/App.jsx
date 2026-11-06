@@ -945,8 +945,8 @@ export default function App() {
   const totalEmails = emailsHook.pagination?.total_emails || emails.length;
   const currentPage = emailsHook.pagination?.page || 1;
   const pageSize = emailsHook.pagination?.page_size || 50;
-  const startNum = visibleEmails.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const endNum = visibleEmails.length === 0 ? 0 : Math.min(startNum + visibleEmails.length - 1, totalEmails);
+  const startNum = visibleEmails.length === 0 ? 0 : 1;
+  const endNum = Math.min(visibleEmails.length, totalEmails);
 
   const activeWindowLabel = WINDOWS.find((w) => w.id === windowId)?.label || 'Last 3 months';
   const currentPriority = currentEmail ? (PRIORITIES[currentEmail.priority] || PRIORITIES.P3) : null;
@@ -1022,7 +1022,10 @@ export default function App() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                emailsHook.setSearchQuery?.(e.target.value);
+              }}
               placeholder="Search in emails..."
               className={`w-full bg-transparent text-[13.5px] focus:outline-none ${
                 dark
@@ -1155,8 +1158,14 @@ export default function App() {
                       setView(nav.id);
                       setReadingEmailId(null);
                       setMobileReading(false);
+                      setPriorityFilter(null);
                       if (nav.id === 'all') {
                         setCategoryTab('all');
+                        emailsHook.setActiveFilter?.('ALL');
+                      } else if (nav.id === 'attention') {
+                        emailsHook.setActiveFilter?.('NEEDS_ATTENTION');
+                      } else if (nav.id === 'recent') {
+                        emailsHook.setActiveFilter?.('ALL');
                       }
                     }}
                     className={`w-full flex items-center justify-between py-2 rounded-r-full text-[13.5px] transition cursor-pointer ${
@@ -1210,9 +1219,13 @@ export default function App() {
                   return (
                     <button
                       key={tier.id}
-                      onClick={() =>
-                        setPriorityFilter((cur) => (cur === tier.id ? null : tier.id))
-                      }
+                      onClick={() => {
+                        const nextPriority = priorityFilter === tier.id ? null : tier.id;
+                        setPriorityFilter(nextPriority);
+                        setCategoryTab('all');
+                        setReadingEmailId(null);
+                        emailsHook.setActiveFilter?.(nextPriority || 'ALL');
+                      }}
                       className={`w-full flex items-center justify-between px-4 py-1.5 rounded-r-full text-[13px] transition cursor-pointer ${
                         active
                           ? dark
@@ -1613,15 +1626,33 @@ export default function App() {
                 {emailsHook.pagination?.has_next && (
                   <div className="p-4 text-center">
                     <button
-                      onClick={() => emailsHook.loadMore?.()}
+                      onClick={async () => {
+                        try {
+                          const count = await emailsHook.loadMore?.();
+                          if (count > 0) {
+                            triggerToast(`Loaded ${count} older emails`);
+                          } else {
+                            triggerToast('All available emails loaded');
+                          }
+                        } catch {
+                          triggerToast('Failed to load more emails');
+                        }
+                      }}
                       disabled={emailsHook.isLoadingMore}
-                      className={`px-4 py-2 rounded-lg text-xs font-medium transition cursor-pointer ${
+                      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer shadow-sm ${
                         dark
                           ? 'bg-zinc-800 text-white hover:bg-zinc-700 disabled:opacity-50'
                           : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200 disabled:opacity-50'
                       }`}
                     >
-                      {emailsHook.isLoadingMore ? 'Loading more emails...' : 'Load more emails'}
+                      {emailsHook.isLoadingMore ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Loading more emails...</span>
+                        </>
+                      ) : (
+                        <span>Load more emails</span>
+                      )}
                     </button>
                   </div>
                 )}

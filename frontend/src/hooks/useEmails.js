@@ -831,10 +831,10 @@ export function useEmails(isAuthenticated = false, user = null) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || isLoadingMore || !pagination?.has_next) return;
+    if (isLoading || isLoadingMore || !pagination?.has_next) return 0;
     setIsLoadingMore(true);
     try {
-      const nextPage = (pagination.page || 1) + 1;
+      const nextPage = (pagination?.page || page || 1) + 1;
       const priorityParam = activeFilter !== 'ALL' ? activeFilter : '';
       const actionParam = actionFilter === 'ACTION_REQUIRED' ? true : actionFilter === 'NO_ACTION' ? false : null;
       const queryParam = debouncedSearchQuery.trim() || gmailQuery;
@@ -849,22 +849,31 @@ export function useEmails(isAuthenticated = false, user = null) {
         sync: false,
       });
 
+      let addedCount = 0;
       if (data?.emails && data.emails.length > 0) {
         setEmails((prev) => {
           const existingIds = new Set(prev.map((e) => e.id || e.email_id || e.message_id));
           const newEmails = data.emails.filter((e) => !existingIds.has(e.id || e.email_id || e.message_id));
+          addedCount = newEmails.length;
           return [...prev, ...newEmails];
         });
-        if (data.pagination) {
-          setPagination(data.pagination);
-        }
       }
+
+      if (data?.pagination) {
+        setPagination(data.pagination);
+        setPage(data.pagination.page || nextPage);
+      } else if (!data?.emails || data.emails.length === 0) {
+        setPagination((prev) => ({ ...(prev || {}), has_next: false }));
+      }
+
+      return addedCount;
     } catch (err) {
       console.warn('Failed to load more emails:', err);
+      throw err;
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoading, isLoadingMore, pagination, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
+  }, [isLoading, isLoadingMore, pagination, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
 
   const isInitialLoading = isLoading && emails.length === 0;
   const isRefreshing = isLoading && emails.length > 0;
