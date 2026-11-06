@@ -365,7 +365,7 @@ function FormattedTextEmail({ text, dark }) {
   }
 
   return (
-    <div className={`space-y-4 text-[14.5px] leading-relaxed select-text ${
+    <div className={`space-y-4 text-[14.5px] leading-relaxed select-text break-words overflow-hidden ${
       dark ? 'text-[#E4E4E7]' : 'text-[#27272A]'
     }`}>
       {paragraphs.map((p, idx) => (
@@ -462,6 +462,23 @@ function formatRealEmail(item, index) {
   };
 }
 
+export function getEmailCategory(item) {
+  const text = `${item.subject || ''} ${item.sender || ''}`.toLowerCase();
+  if (/offer|drop|price|sale|discount|deal|free|win|festive|reward|quiz|internship|hiring|coupon|promo/i.test(text)) {
+    return 'promotions';
+  }
+  if (/quora|linkedin|twitter|facebook|connect|network|community|discussion|instagram|threads/i.test(text)) {
+    return 'social';
+  }
+  if (
+    item.priority === 'P3' ||
+    /update|code|verify|digest|notification|security|system|admit|receipt|alert|statement|billing|invoice|github|gitlab|atcoder|codechef|leetcode/i.test(text)
+  ) {
+    return 'updates';
+  }
+  return 'primary';
+}
+
 // ============================================================================
 // MAIN APPLICATION
 // ============================================================================
@@ -518,8 +535,8 @@ export default function App() {
   // Visual Layout & Navigation State
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [layoutMode, setLayoutMode] = useState('table'); // 'table' | 'split'
-  const [view, setView] = useState('inbox'); // 'inbox' | 'attention' | 'starred' | 'snoozed' | 'done' | 'all'
-  const [categoryTab, setCategoryTab] = useState('primary'); // 'primary' | 'promotions' | 'social' | 'updates' | 'all'
+  const [view, setView] = useState('all'); // 'all' | 'attention' | 'recent'
+  const [categoryTab, setCategoryTab] = useState('all'); // 'all' | 'primary' | 'promotions' | 'social' | 'updates'
   const [readingEmailId, setReadingEmailId] = useState(null); // when null: table view; when id: open email view
   const [selectedId, setSelectedId] = useState('e1');
   const [priorityFilter, setPriorityFilter] = useState(null); // null | 'P1' | 'P2' | 'P3' | 'P4'
@@ -545,16 +562,11 @@ export default function App() {
   // Floating Popovers & Feedback
   const [syncing, setSyncing] = useState(false);
   const [priorityMenuOpen, setPriorityMenuOpen] = useState(false);
-  const [snoozeMenuOpen, setSnoozeMenuOpen] = useState(false);
   const [windowMenuOpen, setWindowMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [selectMenuOpen, setSelectMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [toast, setToast] = useState(null);
-
-  // Quick Compose Dialog State
-  const [composeOpen, setComposeOpen] = useState(false);
-  const [composeData, setComposeData] = useState({ to: '', subject: '', body: '' });
 
   // Cache for full email details (MIME HTML body, complete headers)
   const [emailDetails, setEmailDetails] = useState({});
@@ -623,7 +635,6 @@ export default function App() {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         setPriorityMenuOpen(false);
-        setSnoozeMenuOpen(false);
         setWindowMenuOpen(false);
         setUserMenuOpen(false);
         setSelectMenuOpen(false);
@@ -635,7 +646,6 @@ export default function App() {
 
   const closeAllMenus = () => {
     setPriorityMenuOpen(false);
-    setSnoozeMenuOpen(false);
     setWindowMenuOpen(false);
     setUserMenuOpen(false);
     setSelectMenuOpen(false);
@@ -659,15 +669,15 @@ export default function App() {
     let social = 0;
 
     emails.forEach((item) => {
-      const text = `${item.subject} ${item.sender}`.toLowerCase();
-      if (item.priority === 'P1' || item.priority === 'P2' || item.needsAttention) {
-        primary++;
-      } else if (/offer|drop|price|sale|discount|deal|free|win|festive|reward|quiz|internship|hiring/i.test(text)) {
+      const cat = getEmailCategory(item);
+      if (cat === 'promotions') {
         promotions++;
-      } else if (/quora|linkedin|twitter|facebook|connect|network|community|discussion/i.test(text)) {
+      } else if (cat === 'social') {
         social++;
-      } else {
+      } else if (cat === 'updates') {
         updates++;
+      } else {
+        primary++;
       }
     });
 
@@ -680,36 +690,26 @@ export default function App() {
       const st = statusMap[item.id]?.state;
       const isStarred = starredIds.has(item.id);
 
-      // Folder filtering
-      if (view === 'starred') {
-        if (!isStarred) return false;
-      } else if (view === 'attention') {
-        if (!item.needsAttention || st === 'done') return false;
-      } else if (view === 'snoozed') {
-        if (st !== 'snoozed') return false;
-      } else if (view === 'done') {
-        if (st !== 'done') return false;
-      } else if (view === 'inbox') {
-        if (st === 'done') return false;
+      // View filtering
+      if (view === 'attention') {
+        if (!item.needsAttention) return false;
+      } else if (view === 'recent') {
+        if (item.daysAgo > cutoffDays) return false;
+      }
+      // 'all' shows all emails
 
-        // Category Tab Filtering within Inbox
-        if (categoryTab !== 'all') {
-          const text = `${item.subject} ${item.sender}`.toLowerCase();
-          if (categoryTab === 'primary') {
-            if (item.priority !== 'P1' && item.priority !== 'P2' && !item.needsAttention) return false;
-          } else if (categoryTab === 'updates') {
-            const isUpdate = item.priority === 'P3' || /update|code|verify|digest|notification|security|system|admit|receipt/i.test(text);
-            if (!isUpdate) return false;
-          } else if (categoryTab === 'promotions') {
-            const isPromo = /offer|drop|price|sale|discount|deal|free|win|festive|reward|quiz|internship|hiring/i.test(text);
-            if (!isPromo) return false;
-          } else if (categoryTab === 'social') {
-            const isSocial = /quora|linkedin|twitter|facebook|connect|network|community|discussion/i.test(text);
-            if (!isSocial) return false;
+      // Category Tab Filtering
+      if (categoryTab !== 'all') {
+        const cat = getEmailCategory(item);
+        if (cat !== categoryTab) {
+          // Keep critical P1/P2 items in primary so they are never missed
+          if (categoryTab === 'primary' && (item.priority === 'P1' || item.priority === 'P2')) {
+            // Include in primary
+          } else {
+            return false;
           }
         }
       }
-      // 'all' shows all emails
 
       if (priorityFilter) {
         if (!item.analyzed || item.priority !== priorityFilter) return false;
@@ -752,7 +752,7 @@ export default function App() {
     if (emailId.startsWith('e') && emailId.length <= 3) return;
 
     // If detail is already cached with full HTML or body, skip
-    if (emailDetails[emailId]?.body_html) return;
+    if (emailDetails[emailId]) return;
 
     let isMounted = true;
     setLoadingDetail(true);
@@ -919,6 +919,7 @@ export default function App() {
 
     if (nextId === 'all_time') {
       setView('all');
+      setCategoryTab('all');
     }
 
     if (emailsHook.changeAnalysisPeriod) {
@@ -998,7 +999,8 @@ export default function App() {
           <div
             onClick={() => {
               setReadingEmailId(null);
-              setView('inbox');
+              setView('all');
+              setCategoryTab('all');
             }}
             className="flex items-center gap-2.5 font-semibold text-lg tracking-tight cursor-pointer"
           >
@@ -1137,30 +1139,12 @@ export default function App() {
           }`}
         >
           <div className="space-y-4 px-3">
-            {/* Compose Pill Button */}
-            <button
-              onClick={() => setComposeOpen(true)}
-              className={`flex items-center gap-3.5 py-3 rounded-2xl font-medium text-sm transition-all shadow-sm cursor-pointer ${
-                sidebarOpen ? 'px-6 w-full' : 'px-3 justify-center w-10 h-10 rounded-full'
-              } ${
-                dark
-                  ? 'bg-zinc-100 text-zinc-900 hover:bg-white hover:shadow-md'
-                  : 'bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md'
-              }`}
-            >
-              <PenLine className="w-4 h-4 shrink-0" />
-              {sidebarOpen && <span>Compose</span>}
-            </button>
-
-            {/* Folder Navigation (Gmail pill shape: rounded-r-full) */}
-            <nav className="space-y-0.5">
+            {/* Primary Views (Clean AI Email Triage) */}
+            <nav className="space-y-1">
               {[
-                { id: 'inbox', label: 'Inbox', icon: Inbox, count: emails.length },
+                { id: 'all', label: 'All Mail', icon: Archive, count: totalEmails },
                 { id: 'attention', label: 'Needs Attention', icon: AlertCircle, count: attentionCount },
-                { id: 'starred', label: 'Starred', icon: Star, count: starredIds.size },
-                { id: 'snoozed', label: 'Snoozed', icon: Clock, count: Object.values(statusMap).filter((s) => s.state === 'snoozed').length },
-                { id: 'done', label: 'Done', icon: Check, count: Object.values(statusMap).filter((s) => s.state === 'done').length },
-                { id: 'all', label: 'All Mail', icon: Archive, count: totalEmails }
+                { id: 'recent', label: 'Recent Mail', icon: Clock, count: null }
               ].map((nav) => {
                 const active = view === nav.id;
                 const IconComponent = nav.icon;
@@ -1171,6 +1155,9 @@ export default function App() {
                       setView(nav.id);
                       setReadingEmailId(null);
                       setMobileReading(false);
+                      if (nav.id === 'all') {
+                        setCategoryTab('all');
+                      }
                     }}
                     className={`w-full flex items-center justify-between py-2 rounded-r-full text-[13.5px] transition cursor-pointer ${
                       sidebarOpen ? 'pl-4 pr-3' : 'px-2 justify-center rounded-xl'
@@ -1335,7 +1322,7 @@ export default function App() {
                   }`}
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back to inbox</span>
+                  <span>Back to all mail</span>
                 </button>
               ) : (
                 <>
@@ -1372,12 +1359,7 @@ export default function App() {
                       <span className="font-medium text-xs">
                         {checkedIds.size} selected
                       </span>
-                      <button
-                        onClick={handleBatchDone}
-                        className="px-2.5 py-1 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
-                      >
-                        Mark Done
-                      </button>
+
                       <button
                         onClick={() => setCheckedIds(new Set())}
                         className="px-2 py-1 rounded-md text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
@@ -1440,7 +1422,7 @@ export default function App() {
           </div>
 
           {/* 2. GMAIL CATEGORY TABS (Primary, Updates, Promotions, Social, All) */}
-          {!readingEmailId && view === 'inbox' && (
+          {!readingEmailId && (
             <div
               className={`flex items-center border-b shrink-0 px-2 sm:px-4 ${
                 dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
@@ -1494,7 +1476,7 @@ export default function App() {
                 {visibleEmails.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-zinc-400">
                     <Inbox className="w-12 h-12 stroke-[1.2] mb-3 opacity-40" />
-                    <p className="text-sm font-medium">Your inbox is clear</p>
+                    <p className="text-sm font-medium">All caught up</p>
                     <p className="text-xs text-zinc-500 mt-1">No messages match the active view or filter</p>
                   </div>
                 ) : (
@@ -1531,16 +1513,7 @@ export default function App() {
                           )}
                         </button>
 
-                        {/* Star column */}
-                        <button
-                          onClick={(e) => toggleStarEmail(item.id, e)}
-                          className={`p-1 text-zinc-400 hover:text-amber-400 transition shrink-0 ${
-                            isStarred ? 'text-amber-400' : ''
-                          }`}
-                          title={isStarred ? 'Starred' : 'Not starred'}
-                        >
-                          <Star className={`w-4 h-4 ${isStarred ? 'fill-current' : ''}`} />
-                        </button>
+
 
                         {/* Priority indicator dot */}
                         <span
@@ -1609,13 +1582,7 @@ export default function App() {
                               dark ? 'bg-zinc-800' : 'bg-zinc-100'
                             } px-1.5 py-0.5 rounded-md`}
                           >
-                            <button
-                              onClick={(e) => markDone(item, e)}
-                              title="Mark Done"
-                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
+
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1775,12 +1742,7 @@ export default function App() {
                           </a>
                         )}
 
-                        <button
-                          onClick={() => markDone(currentEmail)}
-                          className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition"
-                        >
-                          Mark Done
-                        </button>
+
 
                         {/* Navigation buttons for next/prev email */}
                         <div className="flex items-center gap-0.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
@@ -1887,88 +1849,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* ==================================================================== */}
-      {/* FLOATING COMPOSE MODAL (GMAIL STYLE DIALOG)                          */}
-      {/* ==================================================================== */}
-      {composeOpen && (
-        <div
-          className={`fixed bottom-0 right-8 w-full sm:w-[540px] rounded-t-2xl shadow-2xl border z-50 flex flex-col ${
-            dark ? 'bg-[#1F1F23] border-[#27272A] text-white' : 'bg-white border-[#E4E4E7] text-zinc-900'
-          }`}
-          style={{ height: '480px' }}
-        >
-          {/* Header */}
-          <div
-            className={`flex items-center justify-between px-4 py-3 rounded-t-2xl border-b ${
-              dark ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-100 border-zinc-200'
-            }`}
-          >
-            <span className="text-xs font-semibold">New Message</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setComposeOpen(false)}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
 
-          {/* Form Fields */}
-          <div className="flex flex-col flex-1 p-3 space-y-2">
-            <input
-              type="text"
-              placeholder="Recipients"
-              value={composeData.to}
-              onChange={(e) => setComposeData({ ...composeData, to: e.target.value })}
-              className="w-full px-2 py-1.5 text-xs bg-transparent border-b border-zinc-200 dark:border-zinc-800 focus:outline-none"
-            />
-            <input
-              type="text"
-              placeholder="Subject"
-              value={composeData.subject}
-              onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
-              className="w-full px-2 py-1.5 text-xs font-medium bg-transparent border-b border-zinc-200 dark:border-zinc-800 focus:outline-none"
-            />
-            <textarea
-              placeholder="Write your email here..."
-              value={composeData.body}
-              onChange={(e) => setComposeData({ ...composeData, body: e.target.value })}
-              className="flex-1 w-full px-2 py-2 text-xs bg-transparent resize-none focus:outline-none leading-relaxed"
-            />
-          </div>
-
-          {/* Bottom Action Strip */}
-          <div
-            className={`px-4 py-3 border-t flex items-center justify-between ${
-              dark ? 'border-zinc-800 bg-zinc-900/40' : 'border-zinc-200 bg-zinc-50'
-            }`}
-          >
-            <button
-              onClick={() => {
-                triggerToast('Message sent (preview mode)');
-                setComposeOpen(false);
-                setComposeData({ to: '', subject: '', body: '' });
-              }}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 shadow-sm transition"
-            >
-              <span>Send</span>
-              <Send className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={() => {
-                setComposeOpen(false);
-                setComposeData({ to: '', subject: '', body: '' });
-              }}
-              className="p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
-              title="Discard draft"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Floating Undo / Action Toast */}
       {toast && (
