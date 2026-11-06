@@ -39,7 +39,9 @@ export async function apiFetch(endpoint, options = {}) {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const fullUrl = `${baseUrl}${cleanEndpoint}`;
 
-  const defaultHeaders = {};
+  const defaultHeaders = {
+    'X-Requested-With': 'MailMind',
+  };
   if (options.body && typeof options.body === 'string' && !options.headers?.['Content-Type']) {
     defaultHeaders['Content-Type'] = 'application/json';
   }

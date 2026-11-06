@@ -47,6 +47,18 @@ def load_model(model_path: Optional[str] = None):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Model artifact not found at: {path}")
 
+    # Cryptographic integrity check: Verify SHA-256 before deserializing Python pickle
+    from backend.app.ml.registry import compute_sha256
+    meta = model_registry.get_active_metadata()
+    expected_hash = meta.get("artifact_sha256")
+    if expected_hash and model_path is None:
+        actual_hash = compute_sha256(path)
+        if actual_hash != expected_hash:
+            raise ValueError(
+                f"Security Verification Failed: Model artifact at {path} failed SHA-256 checksum integrity "
+                f"(expected {expected_hash[:12]}..., got {actual_hash[:12]}...). Potential tampering detected."
+            )
+
     with warnings.catch_warnings():
         try:
             from sklearn.exceptions import InconsistentVersionWarning

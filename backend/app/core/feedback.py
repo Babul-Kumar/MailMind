@@ -21,6 +21,9 @@ import json
 import time
 import uuid
 import logging
+import threading
+
+_feedback_lock = threading.Lock()
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from backend.app.core.config import BASE_DIR, DATA_DIR
@@ -201,8 +204,9 @@ class FeedbackManager:
         ):
             record.pop(forbidden, None)
 
-        with open(FEEDBACK_FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(record) + "\n")
+        with _feedback_lock:
+            with open(FEEDBACK_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record) + "\n")
         return record
 
     def list_feedback(

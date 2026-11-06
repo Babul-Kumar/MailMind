@@ -37,6 +37,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[FastAPI Startup Error] Could not pre-warm model: {e}")
     yield
+    try:
+        from backend.app.core.cache import user_email_cache
+        user_email_cache.close()
+    except Exception:
+        pass
     print("[FastAPI Shutdown] Clean shutdown completed.")
 
 

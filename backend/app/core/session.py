@@ -41,6 +41,10 @@ class SessionManager:
     def __init__(self):
         self._sessions: Dict[str, SessionData] = {}
         os.makedirs(SESSIONS_DIR, exist_ok=True)
+        try:
+            os.chmod(SESSIONS_DIR, 0o700)
+        except Exception:
+            pass
         self._load_persisted_sessions()
 
     def _load_persisted_sessions(self):
@@ -72,8 +76,14 @@ class SessionManager:
             return
         try:
             fpath = os.path.join(SESSIONS_DIR, f"{session.session_id}.json")
-            with open(fpath, "w", encoding="utf-8") as f:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+            fd = os.open(fpath, flags, 0o600)
+            with open(fd, "w", encoding="utf-8") as f:
                 json.dump(session.to_dict(), f, indent=2)
+            try:
+                os.chmod(fpath, 0o600)
+            except Exception:
+                pass
         except Exception as e:
             print(f"[SessionManager Warning] Could not persist session: {e}")
 

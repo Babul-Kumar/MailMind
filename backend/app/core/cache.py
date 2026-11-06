@@ -51,6 +51,15 @@ class UserEmailCache:
             self._local.conn = conn
         return self._local.conn
 
+    def close(self):
+        """Explicitly closes the calling thread's SQLite connection to prevent resource leaks."""
+        if hasattr(self._local, "conn") and self._local.conn is not None:
+            try:
+                self._local.conn.close()
+            except Exception:
+                pass
+            self._local.conn = None
+
     def _init_db(self):
         """Initializes tables and indexes, ensuring version-aware composite primary key."""
         with self._lock:

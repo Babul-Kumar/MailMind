@@ -237,9 +237,21 @@ function HtmlEmailViewer({ html, dark }) {
   const cleanHtml = useMemo(() => {
     if (!html) return '';
 
-    // Convert links so they always open safely in an external new tab
-    let processed = html.replace(/<a\s+(?:[^>]*?\s+)?href="([^"]*)"/gi, (match, url) => {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer"`;
+    // Neutralize dangerous inline handlers & scripts
+    let processed = html
+      .replace(/\s+on\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '')
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+    // Convert all links (double-quote, single-quote, unquoted) to safe external tabs with rel="noopener noreferrer"
+    processed = processed.replace(/<a\b([^>]*)>/gi, (match, attrs) => {
+      const hrefMatch = attrs.match(/href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+      const rawUrl = hrefMatch ? (hrefMatch[1] || hrefMatch[2] || hrefMatch[3] || '') : '';
+      const safeUrl = rawUrl.trim().toLowerCase().startsWith('javascript:') ? '#' : rawUrl;
+      const cleanAttrs = attrs
+        .replace(/\s*target\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/\s*rel\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/href\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, `href="${safeUrl}"`);
+      return `<a ${cleanAttrs} target="_blank" rel="noopener noreferrer">`;
     });
 
     const resetStyles = `
@@ -1585,7 +1597,9 @@ export default function App() {
 
                         {/* Sender Column: fixed width, strictly aligned down the screen! */}
                         <div
-                          className={`w-36 sm:w-48 lg:w-56 shrink-0 truncate pr-3 ${
+                          className={`${
+                            layoutMode === 'split' ? 'w-28 sm:w-36' : 'w-36 sm:w-48 lg:w-56'
+                          } shrink-0 truncate pr-2 sm:pr-3 ${
                             item.unread
                               ? dark ? 'font-semibold text-white' : 'font-semibold text-zinc-950'
                               : dark ? 'font-normal text-zinc-300' : 'font-normal text-zinc-700'
