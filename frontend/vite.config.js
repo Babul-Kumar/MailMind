@@ -4,17 +4,13 @@ import http from 'node:http';
 import https from 'node:https';
 
 const httpAgent = new http.Agent({
-  keepAlive: true,
-  maxSockets: 64,
-  maxFreeSockets: 16,
-  timeout: 60000,
+  keepAlive: false,
+  timeout: 30000,
 });
 
 const httpsAgent = new https.Agent({
-  keepAlive: true,
-  maxSockets: 64,
-  maxFreeSockets: 16,
-  timeout: 60000,
+  keepAlive: false,
+  timeout: 30000,
 });
 
 export default defineConfig(({ mode }) => {

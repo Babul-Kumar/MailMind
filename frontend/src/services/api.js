@@ -53,7 +53,15 @@ export async function apiFetch(endpoint, options = {}) {
     },
   };
 
-  return fetch(fullUrl, mergedOptions);
+  let res = await fetch(fullUrl, mergedOptions);
+
+  // Auto-retry once on transient 502/503 (e.g. dev server reloads or brief proxy reconnections)
+  if ((res.status === 502 || res.status === 503) && !options._retried) {
+    await new Promise((r) => setTimeout(r, 350));
+    res = await fetch(fullUrl, { ...mergedOptions, _retried: true });
+  }
+
+  return res;
 }
 
 export async function fetchHealth() {
