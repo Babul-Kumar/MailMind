@@ -394,12 +394,16 @@ function formatRealEmail(item, index) {
       })
     : time;
 
-  // Detect OTP from subject or body
-  const text = `${item.subject || ''} ${item.body || ''}`;
+  // Detect OTP strictly from authentication context (prevent address/pincode collisions like Bengaluru 560055)
+  const fullText = `${item.subject || ''} ${item.body || ''}`;
   let otp = null;
-  const otpMatch = text.match(/\b([0-9]{6})\b/);
-  if (otpMatch && /verification|code|otp|one-time|password|authorize/i.test(text)) {
-    otp = otpMatch[1];
+  const isMarketingOrAddress = /\b(?:bengaluru|bangalore|mumbai|delhi|hyderabad|chennai|pincode|pin\s*code|postal|discount|newsletter|unsubscribe|early bird|conference|summit)\b/i.test(fullText);
+  if (!isMarketingOrAddress) {
+    const authOtpMatch = fullText.match(/(?:verification\s*code|one-time\s*(?:passcode|password)|auth\s*code|\botp\b)(?:[:\s]+is)?[:\s]+([0-9]{4,8})\b/i) ||
+                         fullText.match(/\b([0-9]{4,8})\b(?:\s+is\s+(?:your\s+)?(?:verification\s*code|otp|one-time\s*password|security\s*code))/i);
+    if (authOtpMatch) {
+      otp = authOtpMatch[1];
+    }
   }
 
   // Paragraphs
@@ -428,11 +432,17 @@ function formatRealEmail(item, index) {
     daysAgo = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
   }
 
-  const needsAttention = Boolean(
-    item.action_required ||
-    item.deadline_detected ||
-    priority === 'P1' ||
-    (priority === 'P2' && item.action_required !== false)
+  // 7-day actionability lifecycle:
+  // - Security alerts and Important emails stay in Needs Attention for days 0-7.
+  // - After 7 days, non-critical items age out from Needs Attention (action_status: 'AGED'), but retain P2 in search & mailbox views.
+  const isAgedOut = item.action_status === 'AGED' || item.action_status === 'EXPIRED' || (daysAgo > 7 && !item.is_critical_incident && !item.deadline_detected && priority === 'P2');
+  const needsAttention = !isAgedOut && Boolean(
+    item.needs_attention ?? (
+      item.action_required ||
+      item.deadline_detected ||
+      priority === 'P1' ||
+      (priority === 'P2' && item.action_required !== false)
+    )
   );
 
   return {
@@ -661,10 +671,13 @@ export default function App() {
     return WINDOWS.find((w) => w.id === windowId)?.days ?? 90;
   }, [windowId]);
 
-  // Attention Counter
+  // Attention Counter (global stats from backend or loaded items fallback)
   const attentionCount = useMemo(() => {
+    if (emailsHook.stats?.needs_attention_count !== undefined && emailsHook.stats.needs_attention_count !== null) {
+      return emailsHook.stats.needs_attention_count;
+    }
     return emails.filter((e) => e.needsAttention && !statusMap[e.id]).length;
-  }, [emails, statusMap]);
+  }, [emailsHook.stats, emails, statusMap]);
 
   // Category Counts for Gmail Category Tabs
   const categoryCounts = useMemo(() => {
@@ -1189,8 +1202,10 @@ export default function App() {
                         setCategoryTab('all');
                         emailsHook.setActiveFilter?.('ALL');
                       } else if (nav.id === 'attention') {
+                        setCategoryTab('all');
                         emailsHook.setActiveFilter?.('NEEDS_ATTENTION');
                       } else if (nav.id === 'recent') {
+                        setCategoryTab('all');
                         emailsHook.setActiveFilter?.('ALL');
                       }
                     }}
@@ -1552,7 +1567,14 @@ export default function App() {
                           )}
                         </button>
 
-
+                        {/* Star column */}
+                        <button
+                          onClick={(e) => toggleStarEmail(item.id, e)}
+                          className="p-1 text-zinc-400 hover:text-amber-400 transition shrink-0"
+                          title={isStarred ? "Starred" : "Not starred"}
+                        >
+                          <Star className={`w-4 h-4 ${isStarred ? "fill-amber-400 text-amber-400" : "text-zinc-400"}`} />
+                        </button>
 
                         {/* Priority indicator dot */}
                         <span

@@ -29,6 +29,7 @@ SECURITY_NOTIFICATION_PATTERN = re.compile(
     r"password (?:changed|reset|updated)|"
     r"two-factor authentication (?:enabled|disabled|updated)|"
     r"security alert(?::|\b)|"
+    r"shared (?:some )?google account data|third-party (?:app )?access granted|google account data|"
     r"login from (?:new device|unknown device|new location)|"
     r"device added to your account"
     r")\b",
@@ -412,8 +413,18 @@ def evaluate_priority_aging(
                 demotion_reason = "Security incident older than 7 days; demoted to P2 (retained in Needs Attention)"
             elif sec_notify:
                 demotion_reason = "Security alert older than 7 days; demoted to P2"
+                if not is_resolved and not is_snoozed:
+                    action_status = "AGED"
             else:
                 demotion_reason = "P1 email older than 7 days without explicit deadline; demoted to P2"
+
+    elif original_priority == "P2" and sec_notify and not crit_incident:
+        # P2 security alert 7-day lifecycle: Days 0-7 active in Needs Attention. After 7 days: archived from active queue.
+        if age_sec > SEVEN_DAYS_SECONDS:
+            is_demoted = True
+            demotion_reason = "Security notice older than 7 days; archived from active attention queue"
+            if not is_resolved and not is_snoozed:
+                action_status = "AGED"
 
     # Determine queue placement & actionability
     if action_status == "RESOLVED":
@@ -422,7 +433,7 @@ def evaluate_priority_aging(
     elif action_status == "SNOOZED":
         queue_placement = "SNOOZED"
         is_act = True
-    elif action_status == "EXPIRED":
+    elif action_status in ("EXPIRED", "AGED"):
         queue_placement = "HISTORICAL"
         is_act = False
     elif crit_incident:

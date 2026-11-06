@@ -26,6 +26,7 @@ SEC_P1_ACTION = re.compile(
 SEC_P2_AUTH = re.compile(
     r"\b(security alert|new (?:sign-in|login|device)|sign-in from new|"
     r"allowed (?:.*? )?access|granted (?:.*? )?access|access granted|"
+    r"shared (?:some )?google account data|shared account data|google account data|third-party (?:app )?access granted|"
     r"verify your identity|verification code|one-time password|\botp\b|"
     r"check (?:your )?account activity|review (?:your )?account activity|"
     r"unrecognized device|new browser|unusual activity detected|two-factor authentication code)\b",
@@ -140,9 +141,12 @@ ACTION_ACTIVATION_PATTERNS = re.compile(
 
 ACTION_SECURITY_PATTERNS = re.compile(
     r"\b("
+    r"security alert|check (?:your )?activity|review (?:your )?activity|"
     r"reset (?:your )?password|secure your account|unauthorized (?:access|sign-in|login|activity)|"
     r"account (?:compromised|locked|suspended)|report unauthorized|if you did not (?:authorize|request|do this)|"
-    r"someone may have accessed|someone knows your password|immediate verification required"
+    r"someone may have accessed|someone knows your password|immediate verification required|"
+    r"shared (?:some )?google account data|third-party (?:app )?access granted|third-party access|"
+    r"new (?:sign-in|login) (?:from|on|detected)|new login alert"
     r")\b",
     re.IGNORECASE
 )
@@ -890,7 +894,7 @@ def refine_priority(
             signals.extend([m_sec2_auth.group(0), m_sec2_act.group(0)])
             refined_priority = "P2"
             reason = "Security verification: user authorization or account activity review required"
-        elif m_sec2_auth and any(term in subj.lower() for term in ["security alert", "verification code", "otp", "access granted"]):
+        elif m_sec2_auth and any(term in subj.lower() for term in ["security alert", "verification code", "otp", "access granted", "account data", "google account", "sign-in", "login", "new login"]):
             signals.append(m_sec2_auth.group(0))
             refined_priority = "P2"
             reason = "Security verification: account access or verification notice"

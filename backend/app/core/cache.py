@@ -716,6 +716,8 @@ class UserEmailCache:
                     if target_priority == "NEEDS_ATTENTION":
                         if aging["is_otp_expired"] or (aging["deadline_status"] == "EXPIRED" and not aging["is_critical_incident"]):
                             continue
+                        if aging.get("action_status") == "AGED" and not aging.get("is_critical_incident"):
+                            continue
                         if not (em.get("action_required") or aging["deadline_status"] in ("UPCOMING", "OVERDUE") or aging["is_critical_incident"] or effective_p == "P1" or (effective_p == "P2" and em.get("action_required"))):
                             continue
                     elif target_priority in ("P1", "P2", "P3", "P4"):
