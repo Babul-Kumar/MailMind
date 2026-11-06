@@ -602,7 +602,8 @@ class UserEmailCache:
         now_ts: Optional[float] = None,
         start_ts: Optional[float] = None,
         end_ts: Optional[float] = None,
-        is_analyzed: Optional[bool] = None
+        is_analyzed: Optional[bool] = None,
+        use_effective_priority: bool = False
     ) -> Tuple[List[Dict[str, Any]], int]:
         """Queries cached emails with streaming pagination, date-range bounding, and dynamic priority aging."""
         if not user_id:
@@ -641,13 +642,18 @@ class UserEmailCache:
             p_norm = priority.upper().strip()
             if p_norm != "ALL":
                 target_priority = p_norm
-                if p_norm == "P1":
-                    where_clauses.append("predicted_priority = 'P1'")
-                elif p_norm == "P2":
-                    where_clauses.append("predicted_priority IN ('P1', 'P2')")
-                elif p_norm == "P3":
-                    where_clauses.append("predicted_priority IN ('P1', 'P2', 'P3')")
-                elif p_norm == "NEEDS_ATTENTION":
+                if use_effective_priority:
+                    if p_norm == "P1":
+                        where_clauses.append("predicted_priority = 'P1'")
+                    elif p_norm == "P2":
+                        where_clauses.append("predicted_priority IN ('P1', 'P2')")
+                    elif p_norm == "P3":
+                        where_clauses.append("predicted_priority IN ('P1', 'P2', 'P3')")
+                else:
+                    if p_norm in ("P1", "P2", "P3", "P4"):
+                        where_clauses.append("predicted_priority = ?")
+                        params.append(p_norm)
+                if p_norm == "NEEDS_ATTENTION":
                     where_clauses.append("(needs_attention = 1 OR predicted_priority IN ('P1', 'P2') OR action_required = 1)")
 
         if action_required is True:
@@ -703,8 +709,8 @@ class UserEmailCache:
                 em["action_status"] = aging["action_status"]
                 em["is_demoted"] = aging["is_demoted"]
                 em["demotion_reason"] = aging["demotion_reason"]
-                em["final_priority"] = effective_p
-                em["predicted_priority"] = effective_p
+                em["final_priority"] = orig_p
+                em["predicted_priority"] = orig_p
 
                 if target_priority:
                     if target_priority == "NEEDS_ATTENTION":
@@ -713,7 +719,8 @@ class UserEmailCache:
                         if not (em.get("action_required") or aging["deadline_status"] in ("UPCOMING", "OVERDUE") or aging["is_critical_incident"] or effective_p == "P1" or (effective_p == "P2" and em.get("action_required"))):
                             continue
                     elif target_priority in ("P1", "P2", "P3", "P4"):
-                        if effective_p != target_priority:
+                        check_p = effective_p if use_effective_priority else orig_p
+                        if check_p != target_priority:
                             continue
 
                 all_candidates.append(em)
@@ -729,12 +736,13 @@ class UserEmailCache:
         user_id: str,
         model_version: Optional[str] = None,
         start_ts: Optional[float] = None,
-        end_ts: Optional[float] = None
+        end_ts: Optional[float] = None,
+        use_effective_priority: bool = False
     ) -> Dict[str, Any]:
         """
         Fast aggregate mailbox stats.
-        Supports date-range bounding and uses direct SQL for totals, P3, and P4.
-        Only runs aging evaluation on P1/P2 items, reducing memory allocations by >90%.
+        Supports date-range bounding and uses direct SQL for totals and baseline priority tiers.
+        Evaluates dynamic needs_attention and aging for active queues.
         """
         if not user_id:
             return self._empty_stats()
@@ -759,6 +767,8 @@ class UserEmailCache:
         cur = conn.execute(f"""
             SELECT
                 COUNT(*) as total,
+                SUM(CASE WHEN predicted_priority = 'P1' THEN 1 ELSE 0 END) as p1_count,
+                SUM(CASE WHEN predicted_priority = 'P2' THEN 1 ELSE 0 END) as p2_count,
                 SUM(CASE WHEN predicted_priority = 'P3' THEN 1 ELSE 0 END) as p3_count,
                 SUM(CASE WHEN predicted_priority = 'P4' THEN 1 ELSE 0 END) as p4_count,
                 SUM(CASE WHEN needs_attention = 1 THEN 1 ELSE 0 END) as needs_attention_count,
@@ -774,6 +784,8 @@ class UserEmailCache:
         if total == 0:
             return self._empty_stats()
 
+        p1_cnt = row["p1_count"] or 0
+        p2_cnt = row["p2_count"] or 0
         p3_cnt = row["p3_count"] or 0
         p4_cnt = row["p4_count"] or 0
         refined = row["refined_count"] or 0
@@ -800,9 +812,12 @@ class UserEmailCache:
                 p_fb = r["predicted_priority"] or "P2"
                 dynamic_counts[p_fb] = dynamic_counts.get(p_fb, 0) + 1
 
+        tier_counts = dynamic_counts if use_effective_priority else {"P1": p1_cnt, "P2": p2_cnt, "P3": p3_cnt, "P4": p4_cnt}
+        highest_count = dynamic_counts.get("P1", 0) if use_effective_priority else p1_cnt
+
         percentages = {
             cls: round((cnt / total * 100), 1) if total > 0 else 0.0
-            for cls, cnt in dynamic_counts.items()
+            for cls, cnt in tier_counts.items()
         }
 
         last_analyzed = row["last_analyzed"]
@@ -815,10 +830,11 @@ class UserEmailCache:
             "total_analyzed": total,
             "refined_count": refined,
             "refinement_rate": round((refined / total * 100), 1) if total > 0 else 0.0,
-            "counts": dynamic_counts,
+            "counts": tier_counts,
+            "effective_counts": dynamic_counts,
             "percentages": percentages,
             "average_confidence": avg_conf,
-            "highest_priority_count": dynamic_counts.get("P1", 0),
+            "highest_priority_count": highest_count,
             "needs_attention_count": dynamic_needs_attention or (row["needs_attention_count"] or 0),
             "last_synced": last_synced_str,
         }

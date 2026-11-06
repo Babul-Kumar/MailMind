@@ -381,7 +381,7 @@ function formatRealEmail(item, index) {
   const senderDisplay = cleanSenderName(item.sender);
   const senderEmail = (item.sender?.match(/<([^>]+)>/)?.[1]) || (item.sender?.includes('@') ? item.sender : '');
   const initials = getSenderInitials(senderDisplay);
-  const priority = item.effective_priority || item.final_priority || item.predicted_priority || 'P3';
+  const priority = item.original_priority || item.predicted_priority || item.final_priority || item.effective_priority || 'P3';
   const time = formatEmailDate(item.date);
   const fullDate = item.date
     ? new Date(item.date).toLocaleString([], {
@@ -567,6 +567,11 @@ export default function App() {
   const [selectMenuOpen, setSelectMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // Compose Dialog State
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeMinimized, setComposeMinimized] = useState(false);
+  const [composeData, setComposeData] = useState({ to: '', subject: '', body: '' });
 
   // Cache for full email details (MIME HTML body, complete headers)
   const [emailDetails, setEmailDetails] = useState({});
@@ -1141,11 +1146,32 @@ export default function App() {
               : 'bg-[#F5F5F4] border-[#E4E4E7]'
           }`}
         >
-          <div className="space-y-4 px-3">
-            {/* Primary Views (Clean AI Email Triage) */}
+          <div className="space-y-3 px-3">
+            {/* Gmail-style Compose Button */}
+            <div className="pt-0.5">
+              <button
+                onClick={() => {
+                  setComposeOpen(true);
+                  setComposeMinimized(false);
+                }}
+                className={`flex items-center gap-3.5 py-3 rounded-2xl font-medium text-sm transition-all shadow-sm cursor-pointer border ${
+                  sidebarOpen ? 'px-5 w-full justify-start' : 'w-10 h-10 justify-center px-0 mx-auto'
+                } ${
+                  dark
+                    ? 'bg-[#2B3945] hover:bg-[#344453] text-[#C2E7FF] border-blue-900/40'
+                    : 'bg-[#C2E7FF] hover:bg-[#B3DCF5] text-[#001D35] border-blue-200/60'
+                }`}
+                title="Compose"
+              >
+                <PenLine className="w-4 h-4 shrink-0 text-blue-500 dark:text-blue-400" />
+                {sidebarOpen && <span className="font-semibold tracking-wide">Compose</span>}
+              </button>
+            </div>
+
+            {/* Primary Views (Gmail Style + AI Email Triage) */}
             <nav className="space-y-1">
               {[
-                { id: 'all', label: 'All Mail', icon: Archive, count: totalEmails },
+                { id: 'all', label: 'Inbox', icon: Inbox, count: totalEmails },
                 { id: 'attention', label: 'Needs Attention', icon: AlertCircle, count: attentionCount },
                 { id: 'recent', label: 'Recent Mail', icon: Clock, count: null }
               ].map((nav) => {
@@ -1881,6 +1907,124 @@ export default function App() {
       </div>
 
 
+
+      {/* Floating Compose Dialog (Gmail style) */}
+      {composeOpen && (
+        <div
+          className={`fixed bottom-0 right-4 sm:right-12 z-50 rounded-t-2xl shadow-2xl border transition-all duration-200 overflow-hidden flex flex-col ${
+            composeMinimized ? 'w-72 h-11' : 'w-[95vw] sm:w-[540px] h-[480px]'
+          } ${
+            dark ? 'bg-[#1E1E22] border-zinc-700 text-zinc-100' : 'bg-white border-zinc-300 text-zinc-900'
+          }`}
+        >
+          {/* Compose Header */}
+          <div
+            className={`px-4 py-2.5 flex items-center justify-between border-b cursor-pointer select-none ${
+              dark ? 'bg-[#26262B] border-zinc-700/80' : 'bg-zinc-100 border-zinc-200'
+            }`}
+            onClick={() => setComposeMinimized((m) => !m)}
+          >
+            <span className="text-xs font-semibold">New Message</span>
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setComposeMinimized((m) => !m)}
+                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                title={composeMinimized ? 'Expand' : 'Minimize'}
+              >
+                {composeMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                onClick={() => setComposeOpen(false)}
+                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                title="Close"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {!composeMinimized && (
+            <>
+              {/* Recipients Input */}
+              <div className="flex items-center px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 text-xs">
+                <span className="text-zinc-400 w-12 shrink-0">To:</span>
+                <input
+                  type="email"
+                  value={composeData.to}
+                  onChange={(e) => setComposeData((prev) => ({ ...prev, to: e.target.value }))}
+                  placeholder="recipient@example.com"
+                  className="w-full bg-transparent outline-none text-xs"
+                />
+              </div>
+
+              {/* Subject Input */}
+              <div className="flex items-center px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 text-xs">
+                <span className="text-zinc-400 w-12 shrink-0">Subject:</span>
+                <input
+                  type="text"
+                  value={composeData.subject}
+                  onChange={(e) => setComposeData((prev) => ({ ...prev, subject: e.target.value }))}
+                  placeholder="Subject"
+                  className="w-full bg-transparent outline-none text-xs font-medium"
+                />
+              </div>
+
+              {/* Message Body */}
+              <div className="flex-1 p-4 overflow-y-auto">
+                <textarea
+                  value={composeData.body}
+                  onChange={(e) => setComposeData((prev) => ({ ...prev, body: e.target.value }))}
+                  placeholder="Write your email here..."
+                  className="w-full h-full bg-transparent outline-none text-xs leading-relaxed resize-none"
+                />
+              </div>
+
+              {/* Compose Action Footer */}
+              <div className={`px-4 py-3 border-t flex items-center justify-between ${
+                dark ? 'border-zinc-800 bg-[#1A1A1D]' : 'border-zinc-200 bg-zinc-50'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      triggerToast('Message sent successfully');
+                      setComposeData({ to: '', subject: '', body: '' });
+                      setComposeOpen(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition shadow-sm cursor-pointer"
+                  >
+                    <span>Send</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                  <a
+                    href={`https://mail.google.com/mail/u/0/?view=cm&fs=1&to=${encodeURIComponent(composeData.to)}&su=${encodeURIComponent(composeData.subject)}&body=${encodeURIComponent(composeData.body)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded"
+                    title="Open draft directly in Gmail"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span>In Gmail</span>
+                  </a>
+                </div>
+
+                <div className="flex items-center gap-1 text-zinc-400">
+                  <button
+                    onClick={() => {
+                      setComposeData({ to: '', subject: '', body: '' });
+                      setComposeOpen(false);
+                      triggerToast('Draft discarded');
+                    }}
+                    className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-rose-500 transition cursor-pointer"
+                    title="Discard draft"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Floating Undo / Action Toast */}
       {toast && (

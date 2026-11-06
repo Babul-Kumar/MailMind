@@ -354,33 +354,41 @@ class TestPriorityAging(unittest.TestCase):
         ]
         user_email_cache.store_batch(self.user_id, emails)
 
-        # A. Filter by P1: only fresh_p1 should match
-        p1_rows, p1_total = user_email_cache.query_emails(self.user_id, priority="P1", now_ts=now)
+        # A. Filter by P1 with effective priority aging: only fresh_p1 should match
+        p1_rows, p1_total = user_email_cache.query_emails(self.user_id, priority="P1", now_ts=now, use_effective_priority=True)
         self.assertEqual(p1_total, 1)
         self.assertEqual(p1_rows[0]["email_id"], "fresh_p1")
         self.assertEqual(p1_rows[0]["effective_priority"], "P1")
 
+        # A2. Standard mailbox filter by original model priority: all 3 P1 emails returned
+        p1_orig_rows, p1_orig_total = user_email_cache.query_emails(self.user_id, priority="P1", now_ts=now, use_effective_priority=False)
+        self.assertEqual(p1_orig_total, 3)
+
         # B. Filter by P2: aged_p1 should match because it demoted to P2
-        p2_rows, p2_total = user_email_cache.query_emails(self.user_id, priority="P2", now_ts=now)
+        p2_rows, p2_total = user_email_cache.query_emails(self.user_id, priority="P2", now_ts=now, use_effective_priority=True)
         self.assertEqual(p2_total, 1)
         self.assertEqual(p2_rows[0]["email_id"], "aged_p1")
         self.assertEqual(p2_rows[0]["effective_priority"], "P2")
         self.assertEqual(p2_rows[0]["original_priority"], "P1")
         self.assertTrue(p2_rows[0]["is_demoted"])
 
-        # C. Filter by P4: expired_otp should be counted in P4
-        p4_rows, p4_total = user_email_cache.query_emails(self.user_id, priority="P4", now_ts=now)
+        # C. Filter by P4: expired_otp should be counted in P4 under effective priority
+        p4_rows, p4_total = user_email_cache.query_emails(self.user_id, priority="P4", now_ts=now, use_effective_priority=True)
         p4_ids = [r["email_id"] for r in p4_rows]
         self.assertIn("expired_otp", p4_ids)
 
-        # D. Mailbox stats: dynamic counts must reflect effective priorities
-        stats = user_email_cache.get_mailbox_stats(self.user_id)
+        # D. Mailbox stats: dynamic counts must reflect effective priorities when use_effective_priority=True
+        stats = user_email_cache.get_mailbox_stats(self.user_id, use_effective_priority=True)
         self.assertEqual(stats["total_analyzed"], 4)
         self.assertEqual(stats["counts"]["P1"], 1)  # Only fresh_p1
         self.assertEqual(stats["counts"]["P2"], 1)  # aged_p1
         self.assertEqual(stats["counts"]["P3"], 1)  # standard_p3
         self.assertEqual(stats["counts"]["P4"], 1)  # expired_otp
         self.assertEqual(stats["highest_priority_count"], 1)
+
+        # D2. Standard mailbox stats reflects total baseline priorities
+        stats_std = user_email_cache.get_mailbox_stats(self.user_id, use_effective_priority=False)
+        self.assertEqual(stats_std["counts"]["P1"], 3)
 
     def test_api_routes_display_aging_enrichment(self):
         """API /api/emails route returns effective_priority, original_priority, is_demoted."""
