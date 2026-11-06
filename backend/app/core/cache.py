@@ -742,6 +742,44 @@ class UserEmailCache:
         offset = max(0, (page - 1) * page_size)
         return all_candidates[offset : offset + page_size], total_count
 
+    def get_action_candidates(self, user_id: str, model_version: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Fast lookup of emails eligible for the action queue:
+        Filters strictly to P1, P2, action_required=1, or needs_attention=1.
+        """
+        if not user_id:
+            return []
+        conn = self._get_connection()
+        where_clauses = [
+            "user_id = ?",
+            "is_stale = 0",
+            "(predicted_priority IN ('P1', 'P2') OR action_required = 1 OR needs_attention = 1)"
+        ]
+        params: List[Any] = [user_id]
+        if model_version:
+            where_clauses.append("model_version = ?")
+            params.append(model_version)
+        where_sql = " AND ".join(where_clauses)
+        cur = conn.execute(f"""
+            SELECT data_json, message_id, thread_id, predicted_priority
+            FROM user_email_cache
+            WHERE {where_sql}
+            ORDER BY internal_date DESC
+        """, params)
+        candidates = []
+        for r in cur:
+            try:
+                em = json.loads(r["data_json"])
+                mid = em.get("id") or em.get("email_id") or em.get("message_id") or r["message_id"]
+                em["id"] = mid
+                em["email_id"] = mid
+                if r["thread_id"] and not em.get("thread_id"):
+                    em["thread_id"] = r["thread_id"]
+                candidates.append(em)
+            except Exception:
+                pass
+        return candidates
+
     def get_mailbox_stats(
         self,
         user_id: str,

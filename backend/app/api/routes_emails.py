@@ -943,8 +943,9 @@ def get_classified_emails(
         item_copy["action_status"] = policy_eval["action_status"]
         item_copy["is_demoted"] = policy_eval["is_demoted"]
         item_copy["demotion_reason"] = policy_eval["demotion_reason"]
-        item_copy["final_priority"] = policy_eval["effective_priority"]
-        item_copy["predicted_priority"] = policy_eval["effective_priority"]
+        # Preserve original ML classification in final_priority and predicted_priority
+        item_copy["final_priority"] = item.get("final_priority") or policy_eval["original_priority"]
+        item_copy["predicted_priority"] = item.get("predicted_priority") or policy_eval["original_priority"]
         item_copy["is_resolved"] = policy_eval["is_resolved"]
         item_copy["is_snoozed"] = policy_eval["is_snoozed"]
         item_copy["snoozed_until"] = policy_eval["snoozed_until"]
@@ -954,86 +955,31 @@ def get_classified_emails(
         item_copy["action_policy"] = policy_eval
         enriched_display.append(item_copy)
 
-    # Enforce strict priority filter on display list
-    if priority and priority.strip():
-        p_norm = priority.strip().upper()
-        if p_norm == "NEEDS_ATTENTION":
-            display_list = [e for e in enriched_display if e.get("queue_placement") == "ACTIVE"]
-            total_matching = len(display_list)
-        elif p_norm in ("P1", "P2", "P3", "P4"):
-            display_list = [
-                e for e in enriched_display
-                if (e.get("effective_priority") or e.get("final_priority") or e.get("predicted_priority") or "").upper() == p_norm
-            ]
-            total_matching = len(display_list)
-        elif p_norm == "IMPORTANT":
-            display_list = [
-                e for e in enriched_display
-                if (e.get("effective_priority") or e.get("final_priority") or e.get("predicted_priority") or "").upper() == "P2"
-            ]
-            total_matching = len(display_list)
-        else:
-            display_list = enriched_display
-    else:
-        display_list = enriched_display
+    # query_emails already filtered and paginated correctly from the database
+    display_list = enriched_display
+    if priority and priority.strip().upper() == "NEEDS_ATTENTION":
+        display_list = [e for e in enriched_display if e.get("queue_placement") == "ACTIVE"]
 
     if action_required is True:
         display_list = [e for e in display_list if e.get("action_required")]
-        total_matching = len(display_list)
     elif action_required is False:
         display_list = [e for e in display_list if not e.get("action_required")]
-        total_matching = len(display_list)
 
-    # Compute exact action queue summary counts for sidebar and navigation badges
-    all_user_emails, _ = user_email_cache.query_emails(
-        user_id=user_id,
-        page=1,
-        page_size=10000,
-        model_version=user_model_version
-    )
-    if not all_user_emails:
-        all_user_emails, _ = user_email_cache.query_emails(
-            user_id=user_id,
-            page=1,
-            page_size=10000,
-            model_version=None
-        )
-    if all_user_emails:
-        q_summary = classify_action_queue(all_user_emails, action_states_map=action_states_map, now_ts=now_ts)
-        stats["action_queue_counts"] = q_summary["counts"]
-        stats["needs_attention_count"] = q_summary["counts"]["total_active"]
-
-        # Ensure mailbox priority counts and percentages use dynamic effective_priority
-        dynamic_counts = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
-        for e in all_user_emails:
-            state = action_states_map.get(e.get("email_id") or e.get("id") or "")
-            pe = evaluate_actionability(e, action_state=state, now_ts=now_ts)
-            ep = pe.get("effective_priority") or "P4"
-            dynamic_counts[ep] = dynamic_counts.get(ep, 0) + 1
-        tot = sum(dynamic_counts.values()) or len(all_user_emails)
-        stats["counts"] = dynamic_counts
-        stats["percentages"] = {
-            cls: round((cnt / tot * 100), 1) if tot > 0 else 0.0
-            for cls, cnt in dynamic_counts.items()
-        }
-        stats["highest_priority_count"] = dynamic_counts.get("P1", 0)
-    else:
-        dynamic_counts = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
-        for e in enriched_display:
-            ep = e.get("effective_priority") or "P4"
-            dynamic_counts[ep] = dynamic_counts.get(ep, 0) + 1
-        tot = sum(dynamic_counts.values()) or len(enriched_display) or 1
-        stats["counts"] = dynamic_counts
-        stats["percentages"] = {
-            cls: round((cnt / tot * 100), 1) if tot > 0 else 0.0
-            for cls, cnt in dynamic_counts.items()
-        }
-        stats["highest_priority_count"] = dynamic_counts.get("P1", 0)
+    # Use fast, aggregated stats from database cache without multi-second synchronous table scans
+    if not has_explicit_max and stats_db:
+        stats = dict(stats_db)
+    elif not stats and stats_db:
+        stats = dict(stats_db)
+    if "action_queue_counts" not in stats or not stats.get("action_queue_counts"):
         stats["action_queue_counts"] = {
-            "urgent": 0, "due_soon": 0, "other_active": 0, "total_active": 0,
-            "older": 0, "snoozed": 0, "resolved": 0
+            "urgent": stats.get("highest_priority_count", 0),
+            "due_soon": 0,
+            "other_active": stats.get("needs_attention_count", 0),
+            "total_active": stats.get("needs_attention_count", 0),
+            "older": 0,
+            "snoozed": 0,
+            "resolved": 0
         }
-        stats["needs_attention_count"] = 0
 
     t_total_ms = (time.perf_counter() - t_req_start) * 1000
     timing_breakdown = {

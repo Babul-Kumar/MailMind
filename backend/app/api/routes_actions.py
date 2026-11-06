@@ -216,24 +216,19 @@ def get_action_queue(
     except Exception:
         user_model_version = model_registry.get_active_version()
 
-    # Query all cached emails for user
-    all_cached_emails, _ = user_email_cache.query_emails(
-        user_id=user_id,
-        priority=None,  # All priorities
-        search=None,
-        page=1,
-        page_size=10000,
-        model_version=user_model_version
-    )
-    # If no emails found under user_model_version, fallback to querying all un-stale cached emails for this user
-    if not all_cached_emails:
+    # Fast query of action candidates (P1, P2, action_required, needs_attention)
+    if hasattr(user_email_cache, "get_action_candidates"):
+        all_cached_emails = user_email_cache.get_action_candidates(user_id=user_id, model_version=user_model_version)
+        if not all_cached_emails:
+            all_cached_emails = user_email_cache.get_action_candidates(user_id=user_id, model_version=None)
+    else:
         all_cached_emails, _ = user_email_cache.query_emails(
             user_id=user_id,
             priority=None,
             search=None,
             page=1,
-            page_size=10000,
-            model_version=None
+            page_size=1000,
+            model_version=user_model_version
         )
 
     # Fetch user action states map
