@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import hashlib
 import pandas as pd
@@ -15,24 +16,45 @@ def hash_text(text: str) -> str:
     return hashlib.sha256(norm.encode("utf-8")).hexdigest()
 
 
-def check_leakage(train_df: pd.DataFrame, test_df: pd.DataFrame) -> List[str]:
+def check_leakage(train_df: pd.DataFrame, test_df: pd.DataFrame, jaccard_threshold: float = 0.85) -> List[str]:
     """
-    Checks for any text leakage between training and holdout test sets.
+    Checks for exact text leakage (SHA256) and near-duplicate template leakage (Jaccard similarity)
+    between training and holdout test sets.
     Returns a list of leaked email IDs or review IDs if any overlap is detected.
     """
+    def tokenize(text: str) -> set:
+        return set(re.findall(r"\b[a-zA-Z]{3,}\b", str(text or "").lower()))
+
     test_hashes = set()
+    test_tokens = []
     for _, row in test_df.iterrows():
         subj = str(row.get("subject", ""))
         body = str(row.get("body", ""))
-        test_hashes.add(hash_text(f"{subj} {body}"))
+        combined = f"{subj} {body}"
+        test_hashes.add(hash_text(combined))
+        toks = tokenize(combined)
+        if len(toks) >= 5:
+            test_tokens.append(toks)
 
     leaked = []
     for _, row in train_df.iterrows():
         subj = str(row.get("subject", ""))
         body = str(row.get("body", ""))
-        h = hash_text(f"{subj} {body}")
+        combined = f"{subj} {body}"
+        h = hash_text(combined)
+        r_id = str(row.get("review_id", row.get("email_id", "unknown")))
         if h in test_hashes:
-            leaked.append(str(row.get("review_id", row.get("email_id", "unknown"))))
+            leaked.append(r_id)
+            continue
+
+        train_toks = tokenize(combined)
+        if len(train_toks) >= 5:
+            for t_toks in test_tokens:
+                intersection = len(train_toks & t_toks)
+                union = len(train_toks | t_toks)
+                if union > 0 and (intersection / union) >= jaccard_threshold:
+                    leaked.append(f"{r_id} (near-duplicate: {intersection/union:.2f})")
+                    break
     return leaked
 
 

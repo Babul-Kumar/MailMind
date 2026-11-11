@@ -78,6 +78,13 @@ TX_P1_OVERDUE = re.compile(
     re.IGNORECASE
 )
 
+INFRA_P1_OUTAGE = re.compile(
+    r"\b(monitor is down|service (?:is )?down|production (?:outage|down|incident)|"
+    r"database (?:outage|down|unresponsive)|cluster (?:failure|down)|"
+    r"server (?:unresponsive|down)|unauthorized root access|compromised root access)\b",
+    re.IGNORECASE
+)
+
 TX_P2_DUE = re.compile(
     r"\b(payment due|bill due|invoice due|payment reminder|upcoming payment|"
     r"statement is ready|bill is ready)\b",
@@ -180,6 +187,8 @@ ACTION_PAYMENT_PATTERNS = re.compile(
 ACTION_SERVICE_PATTERNS = re.compile(
     r"\b("
     r"(?:project|service|portfolio|account|subscription|workspace) (?:will be|scheduled (?:to be|for)|is going to be) (?:deleted?|deletion|suspended|suspension|terminated|termination|deactivated|deactivation)|"
+    r"services? (?:have been|are) suspended|free services have been suspended|monitor is down|"
+    r"portfolio is going to be paused|projects? will be deleted in \d+ days|"
     r"unless you take action|take action (?:to prevent|before deletion)|"
     r"(?:take action|action required) to prevent (?:workspace |account |project |service )?deactivation|"
     r"complete (?:your )?(?:kyc verification|kyc)|verify your identity to continue"
@@ -292,7 +301,15 @@ def evaluate_action_layer(
         }
 
     # 1. Promotional marketing negation (unless critical security/compromise is present)
-    if (PROMO_NEGATION.search(text) or final_priority == "P4") and not re.search(r"\b(security alert|unauthorized|password reset)\b", text, re.I):
+    is_protected_action = bool(
+        ACTION_SECURITY_PATTERNS.search(text) or
+        ACTION_SERVICE_PATTERNS.search(text) or
+        ACTION_ACTIVATION_PATTERNS.search(text) or
+        ACTION_VERIFICATION_PATTERNS.search(text) or
+        re.search(r"\b(security alert|unauthorized|password reset|monitor is down|services? have been suspended|shared (?:some )?google account data|third-party (?:app )?access|new (?:login|sign-in))\b", text, re.I)
+    )
+
+    if (PROMO_NEGATION.search(text) or final_priority == "P4") and not is_protected_action:
         if not (deadline_detected and ACTION_SUBMISSION_PATTERNS.search(text)):
             return False, None, {
                 "imperative": False,
@@ -869,6 +886,14 @@ def refine_priority(
         refined_priority = "P1"
         reason = "Urgent transactional notice: overdue payment or pending account suspension"
 
+    # 1b. Critical Infrastructure / Outage Alert (P1)
+    if not refined_priority:
+        m_infra = INFRA_P1_OUTAGE.search(text)
+        if m_infra:
+            signals.append(m_infra.group(0))
+            refined_priority = "P1"
+            reason = "Critical operational incident: service downtime or server outage"
+
     # 2. Critical Security Alert: Account Compromise or Lockout (P1)
     if not refined_priority:
         m_sec1_comp = SEC_P1_COMPROMISE.search(text)
@@ -898,6 +923,14 @@ def refine_priority(
             signals.append(m_sec2_auth.group(0))
             refined_priority = "P2"
             reason = "Security verification: account access or verification notice"
+        elif re.search(r"\b(shared (?:some )?google account data|third-party (?:app )?access granted|google account data|account data with)\b", text, re.I):
+            signals.append("google account data sharing")
+            refined_priority = "P2"
+            reason = "Security verification: third-party account data sharing review"
+        elif "accounts.google.com" in sender.lower() and any(k in subj.lower() for k in ["security alert", "sign-in", "login", "access"]):
+            signals.append("google security alert")
+            refined_priority = "P2"
+            reason = "Security verification: Google account security alert review required"
 
     # 5. Actionable Academic Notice: Assignment with Active Submission Deadline (P2)
     if not refined_priority and not is_promo:
@@ -960,6 +993,22 @@ def refine_priority(
             signals.append(m_tx3.group(0))
             refined_priority = "P3"
             reason = "Transactional record: payment receipt or booking confirmation"
+
+    # 9. Newsletter & Digest De-escalation (Demote false P2 -> P3/P4)
+    if not refined_priority and model_priority in ("P1", "P2"):
+        is_newsletter_sender = bool(
+            re.search(r"@(?:substack\.com|quora\.com|techgig\.com|medium\.com|newsletters?\.[\w\-]+|unstop\.news)\b", sender, re.I)
+        )
+        is_digest_title = bool(
+            re.search(r"\b(?:digest|weekly stack|top stories|newsletter|roundup|edition|stories for you|3-prompt guide)\b", subj, re.I)
+        )
+        if (is_newsletter_sender or is_digest_title) and not (
+            (m_sec2_auth and m_sec2_act) or m_tx1 or m_tx2 or
+            re.search(r"\b(security alert|unauthorized|verification code|password reset)\b", text, re.I)
+        ):
+            refined_priority = "P3"
+            reason = "Informational newsletter or content digest de-escalation"
+            signals.append("newsletter digest")
 
     # Guardrails: High Confidence Model Preservation
     if confidence >= 0.75 and refined_priority != "P1":

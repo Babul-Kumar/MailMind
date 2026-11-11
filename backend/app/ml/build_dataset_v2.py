@@ -64,7 +64,7 @@ REVIEWED_MODERN_TRAIN_EXAMPLES = [
         "final_label": "P2"
     },
 
-    # --- P1: Critical security incidents, unauthorized compromise, emergency lockout ---
+    # --- P1: Critical security incidents, unauthorized compromise, emergency lockout, infrastructure outage ---
     {
         "review_id": "MOD_P1_SEC_COMPROMISE_01",
         "email_id": "em_mod_sec_comp_01",
@@ -85,6 +85,64 @@ REVIEWED_MODERN_TRAIN_EXAMPLES = [
         "subject": "Emergency Notice: Account locked due to multiple failed breach attempts",
         "body": "Your corporate account has been placed under emergency security lockout following 50 consecutive failed authorization attempts. Contact IT security support immediately to verify identity.",
         "final_label": "P1"
+    },
+    {
+        "review_id": "MOD_P1_MONITOR_DOWN",
+        "email_id": "em_mod_monitor_down",
+        "subject": "Monitor is DOWN: flight-delay-predictor-ki7a.onrender.com/",
+        "body": "UptimeRobot Alert: Your service monitor is DOWN (HTTP 502 Bad Gateway). The service has been unreachable for 5 minutes. Immediate operational investigation required.",
+        "final_label": "P1"
+    },
+
+    # --- P2: Google Security Alerts, OAuth Data Grants, Infrastructure Actions ---
+    {
+        "review_id": "MOD_P2_GOOGLE_DATA_GRANT_01",
+        "email_id": "em_mod_google_data_01",
+        "subject": "You shared some Google Account data with CodeChef",
+        "body": "You granted CodeChef access to some of your Google Account data. If you did not make this authorization, review your account security settings immediately to revoke access.",
+        "final_label": "P2"
+    },
+    {
+        "review_id": "MOD_P2_GOOGLE_DATA_GRANT_02",
+        "email_id": "em_mod_google_data_02",
+        "subject": "You shared some Google Account data with GeeksforGeeks",
+        "body": "Google Account Notice: You granted GeeksforGeeks access to your Google profile and email address. Review third-party app permissions in your Google Account security center.",
+        "final_label": "P2"
+    },
+    {
+        "review_id": "MOD_P2_GOOGLE_SIGNIN_ALERT",
+        "email_id": "em_mod_google_signin",
+        "subject": "Security alert: New sign-in on Windows",
+        "body": "Your Google Account was just signed in to from a new Windows device. Check activity to make sure that it was you. If you don't recognize this activity, secure your account now.",
+        "final_label": "P2"
+    },
+    {
+        "review_id": "MOD_P2_CODECHEF_LOGIN",
+        "email_id": "em_mod_codechef_login",
+        "subject": "New login on CodeChef",
+        "body": "Login Alert: New IP Address Detected. We have detected a login to your account from a new IP address. If this was not you, please reset your password and verify your account credentials immediately.",
+        "final_label": "P2"
+    },
+    {
+        "review_id": "MOD_P2_RENDER_SUSPENDED",
+        "email_id": "em_mod_render_suspended",
+        "subject": "[Important] Your free services have been suspended",
+        "body": "Your free web services on Render have exceeded available compute hours and have been suspended. Upgrade your plan or resume instance to restore service availability.",
+        "final_label": "P2"
+    },
+    {
+        "review_id": "MOD_P2_NEON_DEPRECATION",
+        "email_id": "em_mod_neon_deprecate",
+        "subject": "Action Required: Your inactive Neon Azure projects will be deleted in 5 days",
+        "body": "Action Required: We noticed your Neon Azure project has been inactive. In accordance with policy, inactive projects will be permanently deleted in 5 days unless you sign in and keep active.",
+        "final_label": "P2"
+    },
+    {
+        "review_id": "MOD_P2_SUPABASE_PAUSED",
+        "email_id": "em_mod_supabase_paused",
+        "subject": "Your Supabase Project Portfolio is going to be paused.",
+        "body": "Your free tier Supabase database has had no active connections for over 7 days and is scheduled to be paused in 48 hours. Unpause your project or make an API request to keep it active.",
+        "final_label": "P2"
     },
 
     # --- P3: Informational verification notices, routine updates, no action required ---

@@ -20,9 +20,12 @@ from backend.app.ml.registry import model_registry, compute_sha256
 
 
 def format_text(subject: Any, body: Any) -> str:
+    """Formats text with subject repetition to prevent L2 signal dilution in long email bodies."""
     s = str(subject).strip() if pd.notna(subject) else ""
     b = str(body).strip() if pd.notna(body) else ""
-    return f"{s} {b}".strip()
+    if s and b:
+        return f"{s} {s} {s} {b}".strip()
+    return s or b or ""
 
 
 def build_pipeline() -> Pipeline:
