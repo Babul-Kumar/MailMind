@@ -14,6 +14,9 @@ from backend.app.core.config import DATA_DIR
 CACHE_DIR = os.path.join(DATA_DIR, "cache")
 DB_PATH = os.path.join(CACHE_DIR, "mailmind_cache.db")
 MAX_L1_PER_USER = 500  # Strict memory ceiling per user (~2-5MB) preventing OOM on 512MB RAM containers
+MAX_L1_USERS = 50      # Multi-user LRU ceiling: max 50 active users concurrently in L1 memory
+MAX_QUERY_CACHE_PER_USER = 50  # Bounded query cache per user
+QUERY_CACHE_TTL = 60.0  # Seconds before cached query results or stats expire
 ACTIVE_MODEL_HASH = "8524ad73965859ee022f1271caee0040928e7805ab7d32c49b2f26e994f98c06"
 
 
