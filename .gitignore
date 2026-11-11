@@ -43,3 +43,8 @@ scratch/
 dataset/monitoring/shadow_logs/
 dataset/monitoring/prediction_logs/
 
+# Agent skills & temporary runtime
+.agents/
+.gravitas/
+skills-lock.json
+

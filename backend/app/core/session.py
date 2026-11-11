@@ -4,16 +4,47 @@ import time
 import json
 import secrets
 import threading
+import base64
+import hashlib
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from fastapi import Request
 from google.oauth2.credentials import Credentials
+from cryptography.fernet import Fernet, InvalidToken
 from backend.app.core.config import BASE_DIR, DATA_DIR, GMAIL_SCOPES
 
 SESSION_COOKIE_NAME = "mailmind_session"
 SESSION_DURATION_SECONDS = 7 * 24 * 3600  # 7 days
 SESSIONS_DIR = os.path.join(DATA_DIR, "sessions")
 _handoff_lock = threading.Lock()
+
+# Derive deterministic 32-byte Fernet key from SESSION_SECRET for at-rest token encryption
+_session_secret_raw = os.getenv("SESSION_SECRET", "mailmind-default-secure-dev-secret-key-32b").encode("utf-8")
+_fernet_key = base64.urlsafe_b64encode(hashlib.sha256(_session_secret_raw).digest())
+_cipher = Fernet(_fernet_key)
+
+
+def encrypt_session_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Encrypts session payload at rest on disk to protect OAuth refresh tokens."""
+    raw_json = json.dumps(data).encode("utf-8")
+    token = _cipher.encrypt(raw_json).decode("utf-8")
+    return {"version": "enc_v1", "encrypted": token}
+
+
+def decrypt_session_data(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Decrypts session payload, supporting envelope enc_v1 and legacy plaintext JSON."""
+    if not isinstance(data, dict):
+        return None
+    if data.get("version") == "enc_v1" and "encrypted" in data:
+        try:
+            decrypted_bytes = _cipher.decrypt(data["encrypted"].encode("utf-8"))
+            return json.loads(decrypted_bytes.decode("utf-8"))
+        except (InvalidToken, Exception):
+            return None
+    # Backward compatibility: legacy plaintext session files
+    if "session_id" in data and "user_id" in data:
+        return data
+    return None
 
 
 @dataclass
@@ -48,38 +79,41 @@ class SessionManager:
         self._load_persisted_sessions()
 
     def _load_persisted_sessions(self):
-        """Restores unexpired sessions across server restarts."""
+        """Restores unexpired sessions across server restarts, decrypting tokens at rest."""
         try:
             for fname in os.listdir(SESSIONS_DIR):
                 if fname.endswith(".json") and not fname.startswith("_"):
                     fpath = os.path.join(SESSIONS_DIR, fname)
                     try:
                         with open(fpath, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                            session = SessionData(**data)
-                            if not session.is_expired():
-                                self._sessions[session.session_id] = session
-                            else:
-                                try:
-                                    os.remove(fpath)
-                                except Exception:
-                                    pass
+                            raw = json.load(f)
+                            data = decrypt_session_data(raw)
+                            if data:
+                                session = SessionData(**data)
+                                if not session.is_expired():
+                                    self._sessions[session.session_id] = session
+                                else:
+                                    try:
+                                        os.remove(fpath)
+                                    except Exception:
+                                        pass
                     except Exception:
                         pass
         except Exception as e:
             print(f"[SessionManager Warning] Could not load persisted sessions: {e}")
 
     def _persist_session(self, session: SessionData):
-        """Persists session to disk so active users aren't logged out on restart."""
+        """Persists session to disk encrypted at rest so active users aren't logged out on restart."""
         if not self._is_safe_session_id(session.session_id):
             print(f"[SessionManager Warning] Refusing to persist invalid session ID: {session.session_id}")
             return
         try:
             fpath = os.path.join(SESSIONS_DIR, f"{session.session_id}.json")
+            envelope = encrypt_session_data(session.to_dict())
             flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
             fd = os.open(fpath, flags, 0o600)
             with open(fd, "w", encoding="utf-8") as f:
-                json.dump(session.to_dict(), f, indent=2)
+                json.dump(envelope, f, indent=2)
             try:
                 os.chmod(fpath, 0o600)
             except Exception:
@@ -142,11 +176,13 @@ class SessionManager:
             if os.path.exists(fpath):
                 try:
                     with open(fpath, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                        s = SessionData(**data)
-                        if not s.is_expired():
-                            self._sessions[session_id] = s
-                            return s
+                        raw = json.load(f)
+                        data = decrypt_session_data(raw)
+                        if data:
+                            s = SessionData(**data)
+                            if not s.is_expired():
+                                self._sessions[session_id] = s
+                                return s
                 except Exception:
                     pass
             return None

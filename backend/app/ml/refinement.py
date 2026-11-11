@@ -912,7 +912,7 @@ def refine_priority(
             reason = "Actionable financial notice: upcoming payment or bill deadline"
 
     # 4. Actionable Security Alert: Authorization / New Device / Verification (P2)
-    if not refined_priority and not is_promo:
+    if not refined_priority and not is_promo and model_priority != "P1":
         m_sec2_auth = SEC_P2_AUTH.search(text)
         m_sec2_act = SEC_P2_ACTION.search(text)
         if m_sec2_auth and m_sec2_act:

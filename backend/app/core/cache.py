@@ -60,6 +60,20 @@ class UserEmailCache:
                 pass
             self._local.conn = None
 
+    def _execute_write(self, write_func, max_retries: int = 3, initial_delay: float = 0.05):
+        """Executes a database write transaction with exponential backoff on SQLite lock contention."""
+        delay = initial_delay
+        for attempt in range(max_retries):
+            try:
+                with self._lock:
+                    return write_func()
+            except sqlite3.OperationalError as e:
+                if "locked" in str(e).lower() and attempt < max_retries - 1:
+                    time.sleep(delay)
+                    delay *= 2
+                else:
+                    raise
+
     def _init_db(self):
         """Initializes tables and indexes, ensuring version-aware composite primary key."""
         with self._lock:
@@ -345,7 +359,7 @@ class UserEmailCache:
         if not rows:
             return
 
-        with self._lock:
+        def _commit_batch():
             conn = self._get_connection()
             conn.executemany("""
                 INSERT OR REPLACE INTO user_email_cache (
@@ -358,6 +372,8 @@ class UserEmailCache:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, rows)
             conn.commit()
+
+        self._execute_write(_commit_batch)
 
     def store_raw_history_batch(self, user_id: str, items: List[Dict[str, Any]]):
         """Stores synchronized email headers/metadata into cache without running ML prediction."""

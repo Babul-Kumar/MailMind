@@ -52,8 +52,7 @@ def sync_incoming_emails(
     now = time.time()
     with _user_sync_lock:
         last_check = _last_user_sync_time.get(user_id, 0.0)
-        cooldown = 3.0 if force else 15.0
-        if (now - last_check) < cooldown:
+        if not force and (now - last_check) < 15.0:
             return 0
         _last_user_sync_time[user_id] = now
 

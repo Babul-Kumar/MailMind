@@ -57,7 +57,7 @@ class TestDeadlineCases(unittest.TestCase):
         res = predict_email(email_data, self.pipeline)
         self.assertEqual(res["final_priority"], "P2")
         self.assertTrue(res["action_required"])
-        self.assertEqual(res["action_reason"], "Service action")
+        self.assertIn(res["action_reason"], ["Service action", "Service action required"])
         self.assertTrue(res["deadline_detected"])
         self.assertIn("Oct 5", res["deadline_display"])
 

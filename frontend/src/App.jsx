@@ -972,11 +972,17 @@ export default function App() {
   }
 
   // Calculate Gmail pagination numbers
-  const totalEmails = emailsHook.pagination?.total_emails || emails.length;
+  const isPrioritySynced = !priorityFilter || emailsHook.activeFilter === priorityFilter;
+  const isCustomFiltered = Boolean((categoryTab !== 'all') || search.trim());
+  const totalEmails = (isCustomFiltered || !isPrioritySynced)
+    ? visibleEmails.length
+    : (view === 'attention' ? (attentionCount || visibleEmails.length) : (emailsHook.pagination?.total_emails || visibleEmails.length));
+
   const currentPage = emailsHook.pagination?.page || 1;
   const pageSize = emailsHook.pagination?.page_size || 50;
-  const startNum = visibleEmails.length === 0 ? 0 : 1;
-  const endNum = Math.min(visibleEmails.length, totalEmails);
+  const startNum = visibleEmails.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
+  const endNum = visibleEmails.length === 0 ? 0 : Math.min(startNum + visibleEmails.length - 1, totalEmails);
+  const hasNextPage = (!isCustomFiltered && isPrioritySynced) ? Boolean(emailsHook.pagination?.has_next) : false;
 
   const activeWindowLabel = WINDOWS.find((w) => w.id === windowId)?.label || 'Last 3 months';
   const currentPriority = currentEmail ? (PRIORITIES[currentEmail.priority] || PRIORITIES.P3) : null;
@@ -1456,7 +1462,7 @@ export default function App() {
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
-                  disabled={!emailsHook.pagination?.has_next || !!readingEmailId}
+                  disabled={!hasNextPage || !!readingEmailId}
                   onClick={() => emailsHook.loadMore?.()}
                   className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
                     dark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
@@ -1527,6 +1533,24 @@ export default function App() {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Offline / Backend Unreachable Banner */}
+          {emailsHook.isOfflineMode && (
+            <div className={`mx-4 mt-2 mb-1 px-4 py-2.5 rounded-xl text-xs flex items-center justify-between border ${
+              dark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-800'
+            }`}>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>Backend server unreachable at http://127.0.0.1:8000. Displaying cached local emails.</span>
+              </div>
+              <button
+                onClick={() => emailsHook.refresh?.()}
+                className="underline hover:opacity-80 font-medium cursor-pointer"
+              >
+                Retry Connection
+              </button>
             </div>
           )}
 
@@ -1685,7 +1709,7 @@ export default function App() {
                 )}
 
                 {/* Bottom Pagination Button */}
-                {emailsHook.pagination?.has_next && (
+                {hasNextPage && (
                   <div className="p-4 text-center">
                     <button
                       onClick={async () => {

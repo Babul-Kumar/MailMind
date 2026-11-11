@@ -21,6 +21,41 @@ import {
   syncIncomingEmails,
 } from '../services/api';
 
+function sanitizeEmailForCache(email) {
+  if (!email || typeof email !== 'object') return null;
+  return {
+    id: email.id || email.email_id,
+    email_id: email.email_id || email.id,
+    thread_id: email.thread_id,
+    sender: email.sender,
+    subject: email.subject,
+    date: email.date,
+    snippet: (email.snippet || email.body || '').slice(0, 160),
+    predicted_priority: email.predicted_priority,
+    final_priority: email.final_priority,
+    priority: email.priority || email.final_priority || email.predicted_priority,
+    action_required: email.action_required,
+    action_reason: email.action_reason,
+    deadline_detected: email.deadline_detected,
+    deadline_display: email.deadline_display,
+    deadline_status: email.deadline_status,
+    needs_attention: email.needs_attention,
+    is_unread: email.is_unread,
+  };
+}
+
+function sanitizeActionQueueForCache(queue) {
+  if (!queue || typeof queue !== 'object') return undefined;
+  return {
+    urgent_count: queue.urgent_count || 0,
+    important_count: queue.important_count || 0,
+    older_count: queue.older_count || 0,
+    urgent_items: (queue.urgent_items || []).slice(0, 10).map(sanitizeEmailForCache).filter(Boolean),
+    important_items: (queue.important_items || []).slice(0, 10).map(sanitizeEmailForCache).filter(Boolean),
+    older_actionable: (queue.older_actionable || []).slice(0, 10).map(sanitizeEmailForCache).filter(Boolean),
+  };
+}
+
 export function useEmails(isAuthenticated = false, user = null) {
   const [emails, setEmails] = useState([]);
   const [stats, setStats] = useState(null);
@@ -160,23 +195,48 @@ export function useEmails(isAuthenticated = false, user = null) {
     paginationRef.current = pagination;
   }, [emails, stats, profile, pagination]);
 
-  // Helper to persist bounded account-scoped cache
+  // Helper to persist bounded account-scoped cache with strict quota preservation
   const saveAccountCache = useCallback((u, patch = {}) => {
     const uid = u?.user_id || u?.id || u?.email;
     if (!uid) return;
+    const key = `mailmind_cache_${uid}`;
+
+    // Sanitize emails: keep max 25 lightweight items without large HTML/body strings (< 8KB total)
+    const rawEmails = patch.emails !== undefined ? patch.emails : emailsRef.current || [];
+    const leanEmails = (rawEmails || []).slice(0, 25).map(sanitizeEmailForCache).filter(Boolean);
+
+    const toStore = {
+      emails: leanEmails,
+      stats: patch.stats !== undefined ? patch.stats : statsRef.current,
+      profile: patch.profile !== undefined ? patch.profile : profileRef.current,
+      pagination: patch.pagination !== undefined ? patch.pagination : paginationRef.current,
+      actionQueue: patch.actionQueue !== undefined ? sanitizeActionQueueForCache(patch.actionQueue) : undefined,
+      lastUpdated: new Date().toISOString(),
+    };
+
     try {
-      const key = `mailmind_cache_${uid}`;
-      const toStore = {
-        emails: (patch.emails !== undefined ? patch.emails : emailsRef.current || []).slice(0, 100),
-        stats: patch.stats !== undefined ? patch.stats : statsRef.current,
-        profile: patch.profile !== undefined ? patch.profile : profileRef.current,
-        pagination: patch.pagination !== undefined ? patch.pagination : paginationRef.current,
-        actionQueue: patch.actionQueue !== undefined ? patch.actionQueue : undefined,
-        lastUpdated: new Date().toISOString(),
-      };
       localStorage.setItem(key, JSON.stringify(toStore));
     } catch (e) {
-      console.warn('Failed to save account cache:', e);
+      // Handle browser QuotaExceededError defensively
+      try {
+        // Evict older caches if storage is congested
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('mailmind_cache_') && k !== key) {
+            localStorage.removeItem(k);
+          }
+        }
+        // Minimal fallback: store only stats & profile (under 1KB)
+        const minimalStore = {
+          stats: toStore.stats,
+          profile: toStore.profile,
+          pagination: toStore.pagination,
+          lastUpdated: toStore.lastUpdated,
+        };
+        localStorage.setItem(key, JSON.stringify(minimalStore));
+      } catch {
+        // Silently ignore if browser has completely exhausted or disabled localStorage
+      }
     }
   }, []);
 
