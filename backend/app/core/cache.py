@@ -223,6 +223,33 @@ class UserEmailCache:
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_status ON analysis_jobs(user_id, status);")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_created ON analysis_jobs(user_id, created_at DESC);")
+
+            # Schema migration: Automatic timestamp consistency repair
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS _schema_migrations (
+                migration_id TEXT PRIMARY KEY,
+                applied_at REAL NOT NULL
+            );
+            """)
+            has_mig = conn.execute("SELECT 1 FROM _schema_migrations WHERE migration_id = 'repair_internal_date_v1'").fetchone()
+            if not has_mig:
+                try:
+                    from email.utils import parsedate_to_datetime
+                    cur = conn.execute("SELECT user_id, message_id, internal_date, date_str FROM user_email_cache WHERE date_str IS NOT NULL AND date_str != ''")
+                    repairs = []
+                    for u_id, m_id, i_dt, d_str in cur.fetchall():
+                        try:
+                            real_ms = int(parsedate_to_datetime(d_str).timestamp() * 1000)
+                            if abs(i_dt - real_ms) > 3600 * 1000:
+                                repairs.append((real_ms, u_id, m_id))
+                        except Exception:
+                            pass
+                    if repairs:
+                        conn.executemany("UPDATE user_email_cache SET internal_date = ? WHERE user_id = ? AND message_id = ?", repairs)
+                    conn.execute("INSERT OR REPLACE INTO _schema_migrations (migration_id, applied_at) VALUES ('repair_internal_date_v1', ?)", (time.time(),))
+                except Exception as mig_err:
+                    logger.warning("Migration repair_internal_date_v1 skipped: %s", mig_err)
+
             conn.commit()
 
     def _l1_get(self, user_id: str, key: Any) -> Optional[Dict[str, Any]]:
@@ -326,12 +353,26 @@ class UserEmailCache:
                 date_str = item.get("date", "")
 
                 internal_date = item.get("internal_date")
+                if not internal_date and date_str:
+                    try:
+                        from email.utils import parsedate_to_datetime
+                        dt = parsedate_to_datetime(date_str)
+                        internal_date = int(dt.timestamp() * 1000)
+                    except Exception:
+                        pass
                 if not internal_date:
                     internal_date = int(now * 1000)
+                else:
+                    try:
+                        val = int(internal_date)
+                        internal_date = val if val > 1e11 else int(val * 1000)
+                    except (ValueError, TypeError):
+                        internal_date = int(now * 1000)
 
                 item_copy = dict(item)
                 item_copy["id"] = mid
                 item_copy["email_id"] = mid
+                item_copy["internal_date"] = int(internal_date)
                 item_copy["_cached_at"] = now
                 item_copy["content_hash"] = c_hash
                 item_copy["model_version"] = model_ver
@@ -408,11 +449,27 @@ class UserEmailCache:
                 c_hash = item.get("content_hash") or compute_content_hash(subject, snippet, body)
                 thread_id = item.get("thread_id", "")
                 date_str = item.get("date", "")
-                internal_date = item.get("internal_date") or int(now * 1000)
+                internal_date = item.get("internal_date")
+                if not internal_date and date_str:
+                    try:
+                        from email.utils import parsedate_to_datetime
+                        dt = parsedate_to_datetime(date_str)
+                        internal_date = int(dt.timestamp() * 1000)
+                    except Exception:
+                        pass
+                if not internal_date:
+                    internal_date = int(now * 1000)
+                else:
+                    try:
+                        val = int(internal_date)
+                        internal_date = val if val > 1e11 else int(val * 1000)
+                    except (ValueError, TypeError):
+                        internal_date = int(now * 1000)
 
                 item_copy = dict(item)
                 item_copy["id"] = mid
                 item_copy["email_id"] = mid
+                item_copy["internal_date"] = int(internal_date)
                 item_copy["_cached_at"] = now
                 item_copy["content_hash"] = c_hash
                 item_copy["model_version"] = "none"

@@ -6,12 +6,16 @@ import secrets
 import threading
 import base64
 import hashlib
+import logging
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from fastapi import Request
 from google.oauth2.credentials import Credentials
 from cryptography.fernet import Fernet, InvalidToken
 from backend.app.core.config import BASE_DIR, DATA_DIR, GMAIL_SCOPES
+
+logger = logging.getLogger("mailmind.session")
 
 SESSION_COOKIE_NAME = "mailmind_session"
 SESSION_DURATION_SECONDS = 7 * 24 * 3600  # 7 days
@@ -79,8 +83,9 @@ class SessionManager:
         self._load_persisted_sessions()
 
     def _load_persisted_sessions(self):
-        """Restores unexpired sessions across server restarts, decrypting tokens at rest."""
+        """Restores unexpired sessions across server restarts, renewing valid credentialed sessions."""
         try:
+            now = time.time()
             for fname in os.listdir(SESSIONS_DIR):
                 if fname.endswith(".json") and not fname.startswith("_"):
                     fpath = os.path.join(SESSIONS_DIR, fname)
@@ -90,8 +95,14 @@ class SessionManager:
                             data = decrypt_session_data(raw)
                             if data:
                                 session = SessionData(**data)
+                                has_creds = bool(session.credentials and (session.credentials.get("refresh_token") or session.credentials.get("token")))
                                 if not session.is_expired():
                                     self._sessions[session.session_id] = session
+                                elif has_creds:
+                                    # Sliding renewal for active users with valid credentials
+                                    session.expires_at = now + SESSION_DURATION_SECONDS
+                                    self._sessions[session.session_id] = session
+                                    self._persist_session(session)
                                 else:
                                     try:
                                         os.remove(fpath)
@@ -132,13 +143,25 @@ class SessionManager:
         now = time.time()
 
         if isinstance(credentials, Credentials):
+            expiry = getattr(credentials, "expiry", None)
+            expiry_str = None
+            if expiry is not None:
+                if hasattr(expiry, "isoformat"):
+                    try:
+                        expiry_str = expiry.isoformat()
+                    except Exception:
+                        expiry_str = str(expiry)
+                elif isinstance(expiry, str):
+                    expiry_str = expiry
+
             creds_dict = {
-                "token": credentials.token,
-                "refresh_token": credentials.refresh_token,
-                "token_uri": credentials.token_uri,
-                "client_id": credentials.client_id,
-                "client_secret": credentials.client_secret,
-                "scopes": credentials.scopes,
+                "token": getattr(credentials, "token", None),
+                "refresh_token": getattr(credentials, "refresh_token", None),
+                "token_uri": getattr(credentials, "token_uri", None),
+                "client_id": getattr(credentials, "client_id", None),
+                "client_secret": getattr(credentials, "client_secret", None),
+                "scopes": getattr(credentials, "scopes", None),
+                "expiry": expiry_str,
             }
         elif isinstance(credentials, dict):
             creds_dict = credentials
@@ -166,9 +189,10 @@ class SessionManager:
         return bool(re.match(r"^[A-Za-z0-9_\-~]{16,128}$", session_id))
 
     def get_session(self, session_id: Optional[str]) -> Optional[SessionData]:
-        """Retrieves an active, unexpired session by ID."""
+        """Retrieves an active session by ID, implementing sliding expiration for active users."""
         if not self._is_safe_session_id(session_id):
             return None
+        now = time.time()
         session = self._sessions.get(session_id)
         if not session:
             # Check disk in case another worker saved it
@@ -190,7 +214,95 @@ class SessionManager:
         if session.is_expired():
             self.delete_session(session_id)
             return None
+
+        # Sliding expiration: extend session if it has passed at least 1 hour of its lifespan
+        if session.expires_at - now < (SESSION_DURATION_SECONDS - 3600):
+            session.expires_at = now + SESSION_DURATION_SECONDS
+            self._persist_session(session)
+
         return session
+
+    def get_or_create_dev_session(self) -> Optional[SessionData]:
+        """
+        In non-production development environments, retrieves an existing active session
+        or seeds a persistent developer session from local token.json if available and valid.
+        """
+        is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+        if is_production:
+            return None
+
+        # Check existing active sessions for dev user
+        for s in list(self._sessions.values()):
+            if s.email and "babulkumar" in s.email:
+                if not s.credentials:
+                    return s
+                creds = self.get_credentials(s)
+                if creds and creds.valid:
+                    return s
+                if creds and creds.expired and creds.refresh_token:
+                    try:
+                        from google.auth.transport.requests import Request
+                        creds.refresh(Request())
+                        s.credentials["token"] = creds.token
+                        if creds.expiry:
+                            s.credentials["expiry"] = creds.expiry.isoformat()
+                        self._persist_session(s)
+                        return s
+                    except Exception as ref_err:
+                        if "invalid_grant" in str(ref_err).lower():
+                            logger.warning(
+                                "Dev session credentials revoked or expired for %s: %s. Clearing credentials.",
+                                s.email, ref_err
+                            )
+                            s.credentials = None
+                            self._persist_session(s)
+                            return s
+
+        from backend.app.core.config import TOKEN_FILE
+        if os.path.exists(TOKEN_FILE):
+            try:
+                from google.auth.transport.requests import Request
+                creds = Credentials.from_authorized_user_file(TOKEN_FILE, GMAIL_SCOPES)
+                if creds and creds.expired and creds.refresh_token:
+                    try:
+                        creds.refresh(Request())
+                        with open(TOKEN_FILE, "w", encoding="utf-8") as f:
+                            f.write(creds.to_json())
+                    except Exception as ref_err:
+                        err_msg = str(ref_err)
+                        if "invalid_grant" in err_msg.lower():
+                            logger.warning(
+                                "Local token in %s has been revoked or expired by Google (%s). "
+                                "Quarantining invalid token. Please sign in via Google OAuth.",
+                                TOKEN_FILE, err_msg
+                            )
+                            try:
+                                os.rename(TOKEN_FILE, TOKEN_FILE + ".revoked")
+                            except Exception:
+                                pass
+                            return None
+
+                with open(TOKEN_FILE, "r", encoding="utf-8") as f:
+                    creds_dict = json.load(f)
+                return self.create_session(
+                    user_id="1795488",
+                    email="babulkumar0220@gmail.com",
+                    credentials=creds_dict
+                )
+            except Exception as e:
+                logger.warning("Could not seed dev session from token.json: %s", e)
+        return None
+
+    def invalidate_credentials(self, session_id: Optional[str]) -> bool:
+        """Clears OAuth credentials on a session when revoked by Google without destroying the user session."""
+        if not self._is_safe_session_id(session_id):
+            return False
+        session = self._sessions.get(session_id)
+        if session:
+            session.credentials = None
+            self._persist_session(session)
+            return True
+        return False
 
     def delete_session(self, session_id: Optional[str]) -> bool:
         """Deletes and invalidates an active session."""
@@ -276,6 +388,20 @@ class SessionManager:
         if not session or not session.credentials:
             return None
         try:
+            raw_expiry = session.credentials.get("expiry")
+            parsed_expiry = None
+            if raw_expiry:
+                if isinstance(raw_expiry, str):
+                    try:
+                        clean_exp = raw_expiry.replace("Z", "+00:00")
+                        parsed_expiry = datetime.fromisoformat(clean_exp)
+                        if parsed_expiry.tzinfo is not None:
+                            parsed_expiry = parsed_expiry.astimezone(timezone.utc).replace(tzinfo=None)
+                    except Exception:
+                        pass
+                elif isinstance(raw_expiry, (int, float)):
+                    parsed_expiry = datetime.fromtimestamp(raw_expiry, tz=timezone.utc).replace(tzinfo=None)
+
             return Credentials(
                 token=session.credentials.get("token"),
                 refresh_token=session.credentials.get("refresh_token"),
@@ -283,9 +409,10 @@ class SessionManager:
                 client_id=session.credentials.get("client_id"),
                 client_secret=session.credentials.get("client_secret"),
                 scopes=session.credentials.get("scopes", GMAIL_SCOPES),
+                expiry=parsed_expiry,
             )
         except Exception as e:
-            print(f"[SessionManager Error] Failed to reconstruct credentials: {e}")
+            logger.error("Failed to reconstruct credentials: %s", e)
             return None
 
 
@@ -312,6 +439,23 @@ def get_session_from_request(request: Request) -> Optional[SessionData]:
         session = session_manager.get_session(session_id)
         if session:
             return session
+
+    # 3. Explicit dev header
+    dev_header = request.headers.get("X-MailMind-Dev-Session")
+    if dev_header:
+        session = session_manager.get_session(dev_header.strip())
+        if session:
+            return session
+
+    # 4. Explicit session_id query param
+    try:
+        query_session = request.query_params.get("session_id")
+        if query_session:
+            session = session_manager.get_session(query_session.strip())
+            if session:
+                return session
+    except Exception:
+        pass
 
     return None
 

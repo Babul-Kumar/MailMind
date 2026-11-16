@@ -385,7 +385,7 @@ export function useEmails(isAuthenticated = false, user = null) {
         setInitialFetchComplete(true);
       }
     }
-  }, [isAuthenticated, user, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, saveAccountCache]);
+  }, [isAuthenticated, user, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod, saveAccountCache]);
 
   // Check and update scan status
   const checkScanStatus = useCallback(async () => {
@@ -588,9 +588,15 @@ export function useEmails(isAuthenticated = false, user = null) {
     }
   }, [isAuthenticated, checkScanStatus]);
 
+  const isLoadMoreRef = useRef(false);
+
   // Subsequent data fetch when query, page, or filters change
   useEffect(() => {
     if (isAuthenticated && initialLoadedRef.current) {
+      if (isLoadMoreRef.current) {
+        isLoadMoreRef.current = false;
+        return;
+      }
       loadDataRef.current();
     }
   }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
@@ -782,8 +788,9 @@ export function useEmails(isAuthenticated = false, user = null) {
 
   // Handle changing analysis period
   const changeAnalysisPeriod = useCallback(async (newPeriod, newCustomStart, newCustomEnd) => {
-    if (!isAuthenticated) return;
+    if (!newPeriod) return;
     setAnalysisPeriod(newPeriod);
+    setPage(1);
     if (newCustomStart !== undefined) setCustomStartDate(newCustomStart);
     if (newCustomEnd !== undefined) setCustomEndDate(newCustomEnd);
     try {
@@ -792,19 +799,22 @@ export function useEmails(isAuthenticated = false, user = null) {
       if (newCustomEnd) localStorage.setItem('mailmind_custom_end', newCustomEnd);
     } catch {}
 
+    if (!isAuthenticated) return;
+
     setIsAnalyzing(true);
     try {
       await updateAnalysisConfig({
         period: newPeriod,
         custom_start_date: newCustomStart,
         custom_end_date: newCustomEnd,
-      });
+      }).catch(() => {});
 
       const startRes = await startIncrementalAnalysis({
         period: newPeriod,
         custom_start_date: newCustomStart,
         custom_end_date: newCustomEnd,
-      });
+      }).catch(() => null);
+
       if (startRes?.data) {
         setScanStatus({
           status: 'ANALYZING',
@@ -836,11 +846,12 @@ export function useEmails(isAuthenticated = false, user = null) {
           setIsAnalyzing(false);
         }
       }, 1500);
-
-      loadDataRef.current(1, pageSize, undefined, undefined, undefined, newPeriod, true);
     } catch (err) {
-      console.error('Error changing analysis period:', err);
+      console.warn('Error changing analysis period:', err);
+    } finally {
       setIsAnalyzing(false);
+      // Immediately load the emails for the selected timeframe from cache/backend!
+      loadDataRef.current(1, pageSize, undefined, undefined, undefined, newPeriod, false);
     }
   }, [isAuthenticated, pageSize]);
 
@@ -921,6 +932,7 @@ export function useEmails(isAuthenticated = false, user = null) {
 
       if (data?.pagination) {
         setPagination(data.pagination);
+        isLoadMoreRef.current = true;
         setPage(data.pagination.page || nextPage);
       } else if (!data?.emails || data.emails.length === 0) {
         setPagination((prev) => ({ ...(prev || {}), has_next: false }));

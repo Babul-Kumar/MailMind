@@ -26,9 +26,17 @@ def get_user_gmail_service(
                 creds.refresh(Request())
                 # Update session with refreshed token
                 session.credentials["token"] = creds.token
+                if creds.expiry:
+                    session.credentials["expiry"] = creds.expiry.isoformat()
                 session_manager._persist_session(session)
             except Exception as e:
-                print(f"[OAuth Warning] Token refresh failed for user {session.email}: {e}")
+                err_msg = str(e).lower()
+                if "invalid_grant" in err_msg or "revoked" in err_msg or "unauthorized_client" in err_msg:
+                    print(f"[OAuth Warning] Google authorization expired or revoked for user {session.email}. Invalidating session credentials.")
+                    session_manager.invalidate_credentials(session.session_id)
+                else:
+                    print(f"[OAuth Warning] Token refresh failed for user {session.email}: {e}")
+                raise PermissionError(f"OAuth credentials expired or revoked: {e}")
 
     # Enforce strict session requirement for web requests: NO dev token fallback
     if not creds or not creds.valid:
@@ -52,7 +60,15 @@ def get_dev_cli_gmail_service():
             with open(TOKEN_FILE, "w", encoding="utf-8") as f:
                 f.write(creds.to_json())
         except Exception as e:
-            print(f"[OAuth Warning] Dev token refresh failed: {e}")
+            err_msg = str(e).lower()
+            if "invalid_grant" in err_msg or "revoked" in err_msg:
+                print(f"[OAuth Warning] Dev token has been revoked or expired by Google ({e}). Quarantining {TOKEN_FILE}.")
+                try:
+                    os.rename(TOKEN_FILE, TOKEN_FILE + ".revoked")
+                except Exception:
+                    pass
+            else:
+                print(f"[OAuth Warning] Dev token refresh failed: {e}")
 
     if not creds or not creds.valid:
         raise PermissionError("Valid Google OAuth credentials not found in developer token.")

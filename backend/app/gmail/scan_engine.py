@@ -629,11 +629,22 @@ class MailboxScanJob:
             return dict(self.state)
 
         except Exception as e:
-            logger.error(f"Fatal error in scan job for {self.user_id}: {e}", exc_info=True)
-            with self._lock:
-                self.state["status"] = ScanJobState.FAILED
-                self.state["error"] = str(e)
-                self.state["completed_at"] = datetime.now(timezone.utc).isoformat()
+            err_msg = str(e).lower()
+            if "invalid_grant" in err_msg or "refresh_grant" in err_msg:
+                logger.warning(
+                    "Mailbox scan halted for user %s: Google OAuth authorization expired or revoked. Please reconnect account.",
+                    self.user_id
+                )
+                with self._lock:
+                    self.state["status"] = ScanJobState.FAILED
+                    self.state["error"] = "Google authorization expired. Please connect your Gmail account."
+                    self.state["completed_at"] = datetime.now(timezone.utc).isoformat()
+            else:
+                logger.error(f"Fatal error in scan job for {self.user_id}: {e}", exc_info=True)
+                with self._lock:
+                    self.state["status"] = ScanJobState.FAILED
+                    self.state["error"] = str(e)
+                    self.state["completed_at"] = datetime.now(timezone.utc).isoformat()
             self._persist()
             return dict(self.state)
 

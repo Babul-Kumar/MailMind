@@ -68,7 +68,11 @@ def get_single_email(service, message_id: str) -> Optional[Dict[str, Any]]:
         raw_msg = get_message(service, message_id, format_type="full")
         return parse_message(raw_msg)
     except Exception as e:
-        print(f"[Warning] Failed to fetch full message {message_id}: {e}")
+        err_msg = str(e).lower()
+        if "invalid_grant" in err_msg:
+            print(f"[OAuth Warning] Cannot fetch full message {message_id}: Google authorization expired.")
+        else:
+            print(f"[Warning] Failed to fetch full message {message_id}: {e}")
         return None
 
 
@@ -82,7 +86,11 @@ def _fetch_single_message_safe(service, msg_id: str) -> Optional[Dict[str, Any]]
         print(f"[Warning] Failed to fetch message {msg_id}: {http_err}")
         return None
     except Exception as err:
-        print(f"[Warning] Error parsing message {msg_id}: {err}")
+        err_msg = str(err).lower()
+        if "invalid_grant" in err_msg:
+            print(f"[OAuth Warning] Error fetching message {msg_id}: Google authorization expired.")
+        else:
+            print(f"[Warning] Error parsing message {msg_id}: {err}")
         return None
 
 

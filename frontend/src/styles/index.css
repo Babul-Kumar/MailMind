@@ -68,13 +68,13 @@ body.mobile-drawer-open {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.25);
+  background: rgba(88, 28, 135, 0.25);
   border-radius: var(--radius-full);
   transition: background var(--transition-fast);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.5);
+  background: rgba(245, 158, 11, 0.75);
 }
 
 /* Responsive email detail drawer */
@@ -459,11 +459,11 @@ body.mobile-drawer-open {
 }
 
 .sidebar-nav-btn.is-active {
-  background: linear-gradient(90deg, var(--bg-surface-selected) 0%, rgba(99, 102, 241, 0.06) 100%);
+  background: linear-gradient(90deg, var(--bg-surface-selected) 0%, rgba(126, 34, 206, 0.08) 100%);
   color: var(--text-main);
   font-weight: 600;
-  border-color: rgba(99, 102, 241, 0.22);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(99, 102, 241, 0.1);
+  border-color: rgba(126, 34, 206, 0.25);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(126, 34, 206, 0.1);
   transform: none;
 }
 
@@ -570,7 +570,7 @@ body.mobile-drawer-open {
 
 .searchbar-input:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px var(--accent-light), 0 1px 4px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-light), 0 1px 4px rgba(126, 34, 206, 0.15);
   background-color: var(--bg-surface);
 }
 
@@ -627,12 +627,12 @@ body.mobile-drawer-open {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   margin-bottom: 1rem;
-  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(99, 102, 241, 0.04);
+  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(126, 34, 206, 0.05);
   transition: box-shadow var(--transition-fast);
 }
 
 .priority-summary-card:hover {
-  box-shadow: var(--shadow-md), 0 0 0 1px rgba(99, 102, 241, 0.08);
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(126, 34, 206, 0.10);
 }
 
 .priority-summary-hero {
@@ -830,12 +830,12 @@ body.mobile-drawer-open {
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.07) 0%, rgba(168, 85, 247, 0.04) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: linear-gradient(135deg, rgba(126, 34, 206, 0.08) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border: 1px solid rgba(126, 34, 206, 0.22);
   border-radius: var(--radius-lg);
   margin-bottom: 14px;
   color: var(--accent);
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 2px 10px rgba(126, 34, 206, 0.08);
   animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -876,7 +876,7 @@ body.mobile-drawer-open {
 .scan-status-track {
   width: 100%;
   height: 5px;
-  background-color: rgba(99, 102, 241, 0.16);
+  background-color: rgba(126, 34, 206, 0.16);
   border-radius: 99px;
   overflow: hidden;
   margin: 3px 0;
@@ -884,7 +884,7 @@ body.mobile-drawer-open {
 
 .scan-status-fill {
   height: 100%;
-  background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  background: linear-gradient(90deg, #7e22ce 0%, #f59e0b 50%, #cbd5e1 100%);
   background-size: 200% 100%;
   border-radius: 99px;
   transition: width 0.35s ease;
@@ -965,7 +965,7 @@ body.mobile-drawer-open {
   color: var(--text-main);
   font-weight: 600;
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 2px 8px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 1px rgba(126, 34, 206, 0.2), 0 2px 8px rgba(126, 34, 206, 0.15);
 }
 
 .mobile-chip-dot {
@@ -1066,7 +1066,7 @@ body.mobile-drawer-open {
   background-color: var(--bg-surface-selected);
   color: var(--text-main);
   font-weight: 600;
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(126, 34, 206, 0.3);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -1074,7 +1074,7 @@ body.mobile-drawer-open {
   background-color: var(--accent-light);
   color: var(--accent);
   border-color: var(--accent);
-  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 1px 4px rgba(126, 34, 206, 0.2);
 }
 
 .inbox-controls-row {
@@ -1169,7 +1169,7 @@ body.mobile-drawer-open {
 .topbar-sync-btn:not([disabled]):hover {
   filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(126, 34, 206, 0.3) !important;
 }
 
 .topbar-sync-btn:not([disabled]):active {
@@ -1238,7 +1238,7 @@ button:focus-visible,
 /* Scan status fill animation improvement */
 .scan-status-fill {
   height: 100%;
-  background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  background: linear-gradient(90deg, #7e22ce 0%, #f59e0b 50%, #cbd5e1 100%);
   background-size: 200% 100%;
   border-radius: 99px;
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1275,7 +1275,7 @@ button:focus-visible,
 }
 
 [data-theme="dark"] .app-shell-layout {
-  background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.04) 0%, var(--bg-app) 60%);
+  background: radial-gradient(ellipse at top, rgba(126, 34, 206, 0.08) 0%, var(--bg-app) 60%);
 }
 
 /* Topbar mobile account button improved hover */
@@ -1309,7 +1309,7 @@ button:focus-visible,
 .detail-open-gmail-btn:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(126, 34, 206, 0.4) !important;
 }
 
 .detail-open-gmail-btn:active {
@@ -1334,7 +1334,7 @@ button:focus-visible,
 /* Period selector button styling */
 .period-selector-btn:hover:not([disabled]) {
   background-color: var(--bg-surface-hover) !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
+  border-color: rgba(126, 34, 206, 0.3) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -1349,5 +1349,5 @@ button:focus-visible,
 }
 
 .inbox-sort-select:hover {
-  border-color: rgba(99, 102, 241, 0.35) !important;
+  border-color: rgba(126, 34, 206, 0.35) !important;
 }

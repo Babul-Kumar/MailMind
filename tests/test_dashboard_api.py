@@ -24,6 +24,7 @@ class TestDashboardAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.client = TestClient(app)
+        session_created = False
         if os.path.exists(TOKEN_FILE):
             try:
                 creds = Credentials.from_authorized_user_file(TOKEN_FILE, GMAIL_SCOPES)
@@ -33,8 +34,16 @@ class TestDashboardAPI(unittest.TestCase):
                     credentials=creds
                 )
                 cls.client.cookies.set("mailmind_session", session.session_id)
+                session_created = True
             except Exception as e:
-                print(f"Warning: Could not create test session in test_dashboard_api: {e}")
+                print(f"Warning: Could not create test session from token file in test_dashboard_api: {e}")
+        if not session_created:
+            session = session_manager.create_session(
+                user_id="test_dashboard_user",
+                email="dev@mailmind.local",
+                credentials={"token": "mock_dashboard_token"}
+            )
+            cls.client.cookies.set("mailmind_session", session.session_id)
 
     # 1. Dashboard Backend Health Check
     def test_01_health_endpoint(self):

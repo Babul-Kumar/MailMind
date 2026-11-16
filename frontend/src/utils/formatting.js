@@ -240,3 +240,37 @@ export function getDeadlineState(email, now = new Date()) {
     daysUntil,
   };
 }
+
+export function isItemInWindow(item, windowId, now = new Date()) {
+  if (!item) return false;
+  let ts = 0;
+  if (item.internal_date) {
+    const val = Number(item.internal_date);
+    if (!isNaN(val) && val > 0) {
+      ts = val > 1e11 ? val : val * 1000;
+    }
+  }
+  if (!ts && item.timestamp) {
+    const val = Number(item.timestamp);
+    if (!isNaN(val) && val > 0) ts = val;
+  }
+  if (!ts && item.date) {
+    const parsed = new Date(item.date).getTime();
+    if (!isNaN(parsed)) ts = parsed;
+  }
+  if (!ts && item.daysAgo !== undefined) {
+    ts = now.getTime() - Number(item.daysAgo) * 86400000;
+  }
+  if (!ts) return true;
+
+  if (windowId === 'this_month') {
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
+    return ts >= firstOfMonth;
+  }
+  if (windowId === 'last_3_months') {
+    // 3 calendar months back (1st of that month) or 90 days ago: whichever accommodates the calendar window cleanly
+    const threeMonthsAgoDate = new Date(now.getFullYear(), now.getMonth() - 3, 1, 0, 0, 0, 0).getTime();
+    return ts >= threeMonthsAgoDate;
+  }
+  return true;
+}

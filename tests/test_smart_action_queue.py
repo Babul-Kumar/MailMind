@@ -716,10 +716,11 @@ class TestAnnouncementRegression(unittest.TestCase):
 
     # 5. A P3 email containing a meaningful upcoming deadline
     def test_case5_p3_with_meaningful_upcoming_deadline(self):
+        target_dl = (datetime.now(timezone.utc) + timedelta(days=20)).strftime("%b %d, %Y")
         email = {
             "id": "case5_upcoming_deadline",
             "subject": "NPTEL October 2026: Workshop and Webinar Schedule",
-            "body": "Dear Learner, Registration closes on Nov 15, 2026. Feel free to join our online session.",
+            "body": f"Dear Learner, Registration closes on {target_dl}. Feel free to join our online session.",
             "sender": "onlinecourses@nptel.iitm.ac.in",
             "date": (self.now_dt - timedelta(days=1)).isoformat()
         }

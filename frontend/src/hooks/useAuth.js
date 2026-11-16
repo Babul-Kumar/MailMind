@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchAuthStatus, fetchAuthLogin, fetchAuthExchange, logout as apiLogout } from '../services/api';
+import { fetchAuthStatus, fetchAuthLogin, fetchAuthExchange, fetchAuthDevLogin, logout as apiLogout } from '../services/api';
 
 const AUTH_BROADCAST_CHANNEL = 'mailmind_auth_sync';
 
@@ -88,6 +88,29 @@ export function useAuth() {
           localStorage.setItem('mailmind_last_user', JSON.stringify(data.user));
         } catch (_) {}
       } else {
+        // In local development, automatically connect to the local active developer mailbox if available
+        const isLocal = typeof window !== 'undefined' && (
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.port === '5173' ||
+          window.location.port === '5174'
+        );
+        if (isLocal) {
+          try {
+            const devData = await fetchAuthDevLogin();
+            if (devData && devData.authenticated && devData.user) {
+              setUser(devData.user);
+              setIsAuthenticated(true);
+              setIsOffline(false);
+              setError(null);
+              try {
+                localStorage.setItem('mailmind_last_user', JSON.stringify(devData.user));
+              } catch (_) {}
+              return;
+            }
+          } catch (_) {}
+        }
+
         setUser(null);
         setIsAuthenticated(false);
         setIsOffline(false);
@@ -115,7 +138,7 @@ export function useAuth() {
         setError(initialError || err.message || 'Authentication check failed');
         setUser(null);
         setIsAuthenticated(false);
-        setIsOffline(false);
+        setIsOffline(true);
       }
     } finally {
       setIsLoading(false);
@@ -178,6 +201,29 @@ export function useAuth() {
     checkStatus();
   }, [checkStatus]);
 
+  // Active auto-reconnect polling when backend is offline or cold starting
+  useEffect(() => {
+    if (!isOffline) return;
+    let isCancelled = false;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const data = await fetchAuthStatus();
+        if (!isCancelled && data) {
+          setIsOffline(false);
+          checkStatus();
+        }
+      } catch (_) {
+        // Backend still starting up; continue polling quietly
+      }
+    }, 2000);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [isOffline, checkStatus]);
+
   const login = useCallback(async () => {
     setError(null);
     try {
@@ -189,7 +235,13 @@ export function useAuth() {
       }
     } catch (err) {
       console.error('OAuth login initiation failed:', err);
-      setError(err.message || 'Failed to start Google sign-in.');
+      const errMsg = err?.message || '';
+      if (errMsg.includes('503')) {
+        setIsOffline(true);
+        setError('Backend server is connecting... Retrying automatically.');
+      } else {
+        setError(errMsg || 'Failed to start Google sign-in.');
+      }
     }
   }, []);
 
@@ -213,7 +265,13 @@ export function useAuth() {
       }
     } catch (err) {
       console.error('Account switch initiation failed:', err);
-      setError(err.message || 'Failed to initiate account switch.');
+      const errMsg = err?.message || '';
+      if (errMsg.includes('503')) {
+        setIsOffline(true);
+        setError('Backend server is connecting... Retrying automatically.');
+      } else {
+        setError(errMsg || 'Failed to initiate account switch.');
+      }
     }
   }, [clearClientCaches]);
 
@@ -233,6 +291,38 @@ export function useAuth() {
     }
   }, [clearClientCaches]);
 
+  const devLogin = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchAuthDevLogin();
+      if (data && data.authenticated && data.user) {
+        setUser(data.user);
+        setIsAuthenticated(true);
+        setIsOffline(false);
+        try {
+          localStorage.setItem('mailmind_last_user', JSON.stringify(data.user));
+          if (channelRef.current) {
+            channelRef.current.postMessage({ type: 'LOGIN', user: data.user });
+          }
+        } catch (_) {}
+        return data;
+      }
+    } catch (err) {
+      console.warn('Dev login failed:', err);
+      const errMsg = err?.message || '';
+      const isServerOffline = errMsg.includes('503') || errMsg.includes('Failed to fetch') || errMsg.includes('Network');
+      if (isServerOffline) {
+        setIsOffline(true);
+        setError('Backend server is connecting... Retrying automatically.');
+        return;
+      }
+      return login();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [login]);
+
   return {
     user,
     isAuthenticated,
@@ -240,6 +330,7 @@ export function useAuth() {
     isOffline,
     error,
     login,
+    devLogin,
     switchAccount,
     logout,
     refreshStatus: checkStatus,

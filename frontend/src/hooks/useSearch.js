@@ -42,6 +42,24 @@ export function useSearch(emails, options = {}) {
       });
     }
 
+    // Helper for robust timestamp extraction (prioritizing internal_date epoch ms)
+    const getEmailTimestamp = (item) => {
+      if (!item) return 0;
+      if (item.internal_date) {
+        const n = Number(item.internal_date);
+        if (!isNaN(n) && n > 0) return n > 1e11 ? n : n * 1000;
+      }
+      if (item.timestamp) {
+        const n = Number(item.timestamp);
+        if (!isNaN(n) && n > 0) return n;
+      }
+      if (item.date) {
+        const t = new Date(item.date).getTime();
+        if (!isNaN(t)) return t;
+      }
+      return 0;
+    };
+
     // Sorting: skip client-side sort if backend already returned date_desc order
     if (sortBy !== 'date_desc' || !options.serverFiltered) {
       list.sort((a, b) => {
@@ -57,7 +75,7 @@ export function useSearch(emails, options = {}) {
           if (a.deadline_datetime && b.deadline_datetime) {
             return new Date(a.deadline_datetime).getTime() - new Date(b.deadline_datetime).getTime();
           }
-          return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+          return getEmailTimestamp(b) - getEmailTimestamp(a);
         }
         if (sortBy === 'sender_asc') {
           return (a.sender || '').localeCompare(b.sender || '');
@@ -66,14 +84,14 @@ export function useSearch(emails, options = {}) {
           return (b.confidence || 0) - (a.confidence || 0);
         }
         if (sortBy === 'date_asc') {
-          return new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime();
+          return getEmailTimestamp(a) - getEmailTimestamp(b);
         }
-        return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+        return getEmailTimestamp(b) - getEmailTimestamp(a);
       });
     }
 
     return list;
-  }, [emails, activeFilter, searchQuery, sortBy, options.serverFiltered]);
+  }, [emails, activeFilter, actionFilter, searchQuery, sortBy, options.serverFiltered]);
 
   const attentionCount = useMemo(() => {
     if (!emails) return 0;

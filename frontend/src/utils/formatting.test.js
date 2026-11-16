@@ -143,3 +143,32 @@ test('10. cleanSenderName cleans display name, quotes, and addresses', () => {
   });
 });
 
+test('11. isItemInWindow strictly filters this_month and last_3_months', async () => {
+  const { isItemInWindow } = await import('./formatting.js');
+  const now = new Date(2026, 10, 16, 12, 0, 0); // Nov 16, 2026
+
+  // Item from Nov 5, 2026 (this month)
+  const itemThisMonth = {
+    date: '2026-11-05T10:00:00Z',
+    daysAgo: 11
+  };
+  assert.equal(isItemInWindow(itemThisMonth, 'this_month', now), true);
+  assert.equal(isItemInWindow(itemThisMonth, 'last_3_months', now), true);
+
+  // Item from Oct 10, 2026 (last month / 37 days ago)
+  const itemLastMonth = {
+    date: '2026-10-10T10:00:00Z',
+    daysAgo: 37
+  };
+  assert.equal(isItemInWindow(itemLastMonth, 'this_month', now), false);
+  assert.equal(isItemInWindow(itemLastMonth, 'last_3_months', now), true);
+
+  // Item from June 1, 2026 (> 5 months ago)
+  const itemOld = {
+    date: '2026-06-01T10:00:00Z',
+    daysAgo: 168
+  };
+  assert.equal(isItemInWindow(itemOld, 'this_month', now), false);
+  assert.equal(isItemInWindow(itemOld, 'last_3_months', now), false);
+});
+

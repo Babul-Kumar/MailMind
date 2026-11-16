@@ -109,6 +109,11 @@ def sync_incoming_emails(
 
         ordered_missing = [raw_missing[mid] for mid in missing_ids if mid in raw_missing]
         predicted_items = predict_batch(ordered_missing, pipeline=pipeline)
+        for orig, pred in zip(ordered_missing, predicted_items):
+            if orig.get("internal_date"):
+                pred["internal_date"] = orig["internal_date"]
+            if orig.get("date"):
+                pred["date"] = orig["date"]
 
         user_email_cache.store_batch(
             user_id=user_id,
@@ -124,7 +129,13 @@ def sync_incoming_emails(
         return len(predicted_items)
 
     except Exception as err:
-        logger.warning("Error during incremental incoming email sync for %s: %s", mask_email(user_id), err)
+        err_msg = str(err).lower()
+        if "invalid_grant" in err_msg or "unauthorized_client" in err_msg:
+            logger.warning("Incoming email sync paused for user %s: Google authorization expired or revoked.", mask_email(user_id))
+            if session and session.session_id:
+                session_manager.invalidate_credentials(session.session_id)
+        else:
+            logger.warning("Error during incremental incoming email sync for %s: %s", mask_email(user_id), err)
         return 0
 
 
@@ -598,68 +609,38 @@ def get_classified_emails(
     user_id = session.user_id
     user_id_hash = hashlib.sha256(user_id.encode("utf-8")).hexdigest()[:12]
 
-    try:
-        service = get_user_gmail_service(session=session)
-    except PermissionError:
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required. Please connect your Gmail account."
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
-
-    user_email = session.email
-    profile = {"emailAddress": session.email, "messagesTotal": 0, "threadsTotal": 0}
-    try:
-        fetched_profile = get_profile(service)
-        if isinstance(fetched_profile, dict):
-            profile = fetched_profile
-            user_email = profile.get("emailAddress", session.email)
-    except Exception as prof_err:
-        logger.warning("Could not refresh profile for user %s: %s", user_id_hash, prof_err)
-
-    # Allow tests that mock or patch fetch_emails directly to simulate exceptions or custom fetching
-    from unittest.mock import Mock
-    if isinstance(fetch_emails, Mock):
-        try:
-            mock_result = fetch_emails(service=service, max_emails=max_emails, query=query)
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to fetch and process emails: {str(e)}")
-
     # Check User-Scoped Cache using Canary Router
     from backend.app.ml.canary_router import canary_router
     pipeline, route_info = canary_router.get_pipeline_for_user(user_id)
     user_model_version = route_info["model_version"]
     canary_group = route_info["canary_group"]
 
-    # Period boundary filtering if period parameter is specified
+    # Period boundary filtering - prioritize passed period or saved user preference
     start_ts_sec: Optional[float] = None
     end_ts_sec: Optional[float] = None
     active_period = None
-    if period:
-        active_period = str(period).lower().strip()
-        from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
-        if active_period in SUPPORTED_PERIODS:
-            pref = user_email_cache.get_analysis_preference(user_id, session.email)
-            if active_period != pref.get("period"):
-                try:
-                    user_email_cache.set_analysis_preference(user_id, session.email, period=active_period)
-                except Exception:
-                    pass
-            if active_period != "all_time":
-                boundaries = calculate_period_boundaries(
-                    period=active_period,
-                    tz_name=pref.get("timezone", "UTC"),
-                    custom_start_date=pref.get("custom_start_date"),
-                    custom_end_date=pref.get("custom_end_date")
-                )
-                start_ts_sec = boundaries["start_ts_sec"] if boundaries["start_ts_sec"] > 0 else None
-                if active_period == "custom" and pref.get("custom_end_date"):
-                    end_ts_sec = boundaries["end_ts_sec"]
-                else:
-                    end_ts_sec = None
+    pref = user_email_cache.get_analysis_preference(user_id, session.email)
+    effective_period = (period or pref.get("period") or "last_3_months").lower().strip()
+    from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
+    if effective_period in SUPPORTED_PERIODS:
+        active_period = effective_period
+        if period and active_period != pref.get("period"):
+            try:
+                user_email_cache.set_analysis_preference(user_id, session.email, period=active_period)
+            except Exception:
+                pass
+        if active_period != "all_time":
+            boundaries = calculate_period_boundaries(
+                period=active_period,
+                tz_name=pref.get("timezone", "UTC"),
+                custom_start_date=pref.get("custom_start_date"),
+                custom_end_date=pref.get("custom_end_date")
+            )
+            start_ts_sec = boundaries["start_ts_sec"] if boundaries["start_ts_sec"] > 0 else None
+            if active_period == "custom" and pref.get("custom_end_date"):
+                end_ts_sec = boundaries["end_ts_sec"]
+            else:
+                end_ts_sec = None
 
     stats_db = user_email_cache.get_mailbox_stats(
         user_id,
@@ -670,12 +651,67 @@ def get_classified_emails(
     total_cached = stats_db.get("total_analyzed", 0)
     has_explicit_max = "max_emails" in request.query_params
 
-    # Auto-initiate background mailbox discovery if mailbox cache is empty
-    if not has_explicit_max and total_cached == 0 and not scan_manager.is_scanning(user_id):
+    # Attempt to obtain live Gmail service, but do not fail immediately if mailbox is already cached
+    service = None
+    service_error = None
+    try:
+        service = get_user_gmail_service(session=session)
+    except PermissionError as pe:
+        service_error = pe
+    except Exception as e:
+        service_error = e
+
+    from unittest.mock import Mock
+    is_mock_fetch = isinstance(fetch_emails, Mock)
+
+    if not service and not is_mock_fetch:
+        if total_cached == 0 or has_explicit_max:
+            if isinstance(service_error, PermissionError):
+                raise HTTPException(
+                    status_code=401,
+                    detail="Authentication required. Please connect your Gmail account."
+                )
+            raise HTTPException(
+                status_code=502,
+                detail=f"Gmail API connection error: {str(service_error)}"
+            )
+        logger.warning(
+            "Live Gmail service unavailable for user %s (%s). Serving from cache (%d analyzed emails).",
+            user_id_hash, service_error, total_cached
+        )
+
+    user_email = session.email
+    profile = {"emailAddress": session.email, "messagesTotal": total_cached, "threadsTotal": total_cached}
+    if service:
+        try:
+            fetched_profile = get_profile(service)
+            if isinstance(fetched_profile, dict):
+                profile = fetched_profile
+                user_email = profile.get("emailAddress", session.email)
+        except Exception as prof_err:
+            err_msg = str(prof_err).lower()
+            if "invalid_grant" in err_msg:
+                logger.warning("Google authorization expired for user %s. Serving cached profile.", user_id_hash)
+                if session and session.session_id:
+                    session_manager.invalidate_credentials(session.session_id)
+                service = None
+            else:
+                logger.warning("Could not refresh profile for user %s: %s", user_id_hash, prof_err)
+
+    # Allow tests that mock or patch fetch_emails directly to simulate exceptions or custom fetching
+    if is_mock_fetch:
+        try:
+            mock_result = fetch_emails(service=service, max_emails=max_emails, query=query)
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch and process emails: {str(e)}")
+
+    # Auto-initiate background mailbox discovery if mailbox cache is empty and live service is available
+    if service and not has_explicit_max and total_cached == 0 and not scan_manager.is_scanning(user_id):
         try:
             pref = user_email_cache.get_analysis_preference(user_id, session.email)
             auto_period = (period or pref.get("period") or "last_3_months").lower().strip()
-            from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
             if auto_period not in SUPPORTED_PERIODS:
                 auto_period = "last_3_months"
 
@@ -720,8 +756,8 @@ def get_classified_emails(
 
     use_display_pagination = (not has_explicit_max and total_cached > 0) or has_explicit_page or has_explicit_priority or has_explicit_action or has_explicit_query
 
-    # Incremental incoming check: If user already has cached emails, check Gmail for new arrivals
-    if not has_explicit_max and total_cached > 0 and (page == 1 or sync) and not has_explicit_query:
+    # Incremental incoming check: If user already has cached emails and service is available, check Gmail for new arrivals
+    if service and not has_explicit_max and total_cached > 0 and (page == 1 or sync) and not has_explicit_query:
         try:
             sync_query = boundaries.get("gmail_query") if "boundaries" in locals() and boundaries else None
             new_synced = sync_incoming_emails(
@@ -859,7 +895,12 @@ def get_classified_emails(
                 all_emails.append(newly_classified[mid])
 
         # Refresh stats after caching
-        stats_db = user_email_cache.get_mailbox_stats(user_id, model_version=user_model_version)
+        stats_db = user_email_cache.get_mailbox_stats(
+            user_id,
+            model_version=user_model_version,
+            start_ts=start_ts_sec,
+            end_ts=end_ts_sec
+        )
         total_cached = stats_db.get("total_analyzed", 0)
 
         if use_display_pagination and total_cached > len(all_emails):
@@ -870,7 +911,9 @@ def get_classified_emails(
                 page=page,
                 page_size=page_size,
                 action_required=action_required,
-                model_version=user_model_version
+                model_version=user_model_version,
+                start_ts=start_ts_sec,
+                end_ts=end_ts_sec
             )
             total_analyzed = total_matching
             stats = stats_db
@@ -945,6 +988,7 @@ def get_classified_emails(
         # Preserve original ML classification in final_priority and predicted_priority
         item_copy["final_priority"] = item.get("final_priority") or policy_eval["original_priority"]
         item_copy["predicted_priority"] = item.get("predicted_priority") or policy_eval["original_priority"]
+        item_copy["priority"] = item_copy["final_priority"]
         item_copy["is_resolved"] = policy_eval["is_resolved"]
         item_copy["is_snoozed"] = policy_eval["is_snoozed"]
         item_copy["snoozed_until"] = policy_eval["snoozed_until"]
@@ -1035,17 +1079,8 @@ def get_email_detail(request: Request, email_id: str):
             status_code=401,
             detail="Authentication required. Please connect your Gmail account."
         )
-    try:
-        service = get_user_gmail_service(session=session)
-        user_email = session.email
-        user_id = session.user_id
-    except PermissionError:
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required. Please connect your Gmail account."
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
+    user_email = session.email
+    user_id = session.user_id
 
     from backend.app.ml.canary_router import canary_router
     pipeline, route_info = canary_router.get_pipeline_for_user(user_id)
@@ -1062,12 +1097,25 @@ def get_email_detail(request: Request, email_id: str):
     if has_real_content:
         target_email = cached
     else:
-        # Fetch on-demand from Gmail with full MIME structure
+        service = None
         try:
-            full_email = get_single_email(service, email_id)
-        except Exception as e:
-            logger.warning("Could not fetch full email %s from Gmail: %s", email_id, e)
-            full_email = None
+            service = get_user_gmail_service(session=session)
+        except Exception:
+            service = None
+
+        full_email = None
+        if service:
+            try:
+                full_email = get_single_email(service, email_id)
+            except Exception as e:
+                err_msg = str(e).lower()
+                if "invalid_grant" in err_msg:
+                    logger.warning("Google authorization expired for user %s while fetching email %s.", user_id, email_id)
+                    if session and session.session_id:
+                        session_manager.invalidate_credentials(session.session_id)
+                else:
+                    logger.warning("Could not fetch full email %s from Gmail: %s", email_id, e)
+                full_email = None
 
         if full_email:
             classified = predict_email(full_email, pipeline=pipeline)
@@ -1082,6 +1130,11 @@ def get_email_detail(request: Request, email_id: str):
                 pass
         elif cached:
             target_email = cached
+        elif not service:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required. Please connect your Gmail account."
+            )
         else:
             raise HTTPException(status_code=404, detail="Email not found in mailbox.")
 

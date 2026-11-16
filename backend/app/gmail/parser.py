@@ -195,6 +195,14 @@ def parse_message(msg_data: Dict[str, Any]) -> Dict[str, Any]:
         except (ValueError, TypeError):
             internal_date = None
 
+    if not internal_date and date_str:
+        try:
+            from email.utils import parsedate_to_datetime
+            dt = parsedate_to_datetime(date_str)
+            internal_date = int(dt.timestamp() * 1000)
+        except Exception:
+            pass
+
     return {
         "id": msg_id,
         "thread_id": thread_id,

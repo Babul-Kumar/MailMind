@@ -18,6 +18,32 @@ _CACHED_PIPELINE = None
 _CACHED_VERSION = None
 
 
+def _extract_email_timestamp_ms(email_data: Dict[str, Any]) -> Optional[int]:
+    int_d = email_data.get("internal_date")
+    if int_d is not None:
+        try:
+            val = int(int_d)
+            return val if val > 1e11 else int(val * 1000)
+        except (ValueError, TypeError):
+            pass
+    date_str = email_data.get("date") or email_data.get("date_str")
+    if date_str:
+        try:
+            from email.utils import parsedate_to_datetime
+            dt = parsedate_to_datetime(str(date_str))
+            return int(dt.timestamp() * 1000)
+        except Exception:
+            pass
+        try:
+            from datetime import datetime
+            clean_str = str(date_str).strip().replace("Z", "+00:00")
+            dt = datetime.fromisoformat(clean_str)
+            return int(dt.timestamp() * 1000)
+        except Exception:
+            pass
+    return None
+
+
 def invalidate_cached_pipeline():
     """Resets the in-memory cached pipeline so next inference reloads active version."""
     global _CACHED_PIPELINE, _CACHED_VERSION
@@ -111,6 +137,7 @@ def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
             "email_id": email_data.get("email_id") or email_data.get("id", ""),
             "thread_id": email_data.get("thread_id", ""),
             "date": date_str,
+            "internal_date": _extract_email_timestamp_ms(email_data),
 
             "sender": sender,
             "recipients": recipients,
@@ -200,6 +227,7 @@ def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
         "email_id": email_data.get("email_id") or email_data.get("id", ""),
         "thread_id": email_data.get("thread_id", ""),
         "date": date_str,
+        "internal_date": _extract_email_timestamp_ms(email_data),
 
         "sender": sender,
         "recipients": recipients,
@@ -279,6 +307,7 @@ def predict_batch(emails: List[Dict[str, Any]], pipeline=None) -> List[Dict[str,
                 "email_id": email_data.get("email_id") or email_data.get("id", ""),
                 "thread_id": email_data.get("thread_id", ""),
                 "date": date_str,
+                "internal_date": _extract_email_timestamp_ms(email_data),
 
                 "sender": sender,
                 "recipients": recipients,
@@ -362,6 +391,7 @@ def predict_batch(emails: List[Dict[str, Any]], pipeline=None) -> List[Dict[str,
             "email_id": email_data.get("email_id") or email_data.get("id", ""),
             "thread_id": email_data.get("thread_id", ""),
             "date": date_str,
+            "internal_date": _extract_email_timestamp_ms(email_data),
 
             "sender": sender,
             "recipients": recipients,

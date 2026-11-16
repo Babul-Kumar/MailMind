@@ -245,6 +245,17 @@ def get_cookie_security_flags(request: Request) -> tuple[str, bool]:
     This allows the browser to include the session cookie in cross-site fetch
     requests from Vercel with credentials: 'include'.
     """
+    # 0. Local HTTP development check: In non-production development mode over plain HTTP on localhost/loopback/testserver,
+    # cookies MUST NOT be marked Secure, otherwise browsers and test clients immediately drop them (RFC 6265).
+    is_prod_env = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    if not is_prod_env:
+        host = (request.headers.get("host") or "").lower()
+        origin = (request.headers.get("origin") or "").lower()
+        is_local_req = any(h in host for h in ("localhost", "127.0.0.1", "testserver")) or any(h in origin for h in ("localhost", "127.0.0.1"))
+        req_is_http = (request.url.scheme == "http") and (request.headers.get("x-forwarded-proto") != "https")
+        if is_local_req and req_is_http:
+            return "lax", False
+
     # 1. Explicit override via COOKIE_SAMESITE environment variable
     explicit_samesite = os.getenv("COOKIE_SAMESITE", "").strip().lower()
     if explicit_samesite in ("none", "lax", "strict"):
@@ -474,6 +485,16 @@ def auth_callback(
             credentials=credentials
         )
 
+        # In non-production development mode, save working token for dev CLI and scripts
+        if os.getenv("ENVIRONMENT", "development").lower() != "production":
+            try:
+                from backend.app.core.config import TOKEN_FILE
+                os.makedirs(os.path.dirname(TOKEN_FILE), exist_ok=True)
+                with open(TOKEN_FILE, "w", encoding="utf-8") as tf:
+                    tf.write(credentials.to_json())
+            except Exception as tf_err:
+                print(f"[OAuth Callback] Note: Could not update local TOKEN_FILE: {tf_err}")
+
         # Generate short-lived (120s), single-use cryptographic handoff code
         handoff_code = session_manager.create_handoff(new_session.session_id)
 
@@ -578,7 +599,8 @@ def auth_status(request: Request):
     cookie_present = SESSION_COOKIE_NAME in request.cookies
     session = get_session_from_request(request)
     if session:
-        return {
+        cookie_samesite, cookie_secure = get_cookie_security_flags(request)
+        res = JSONResponse(content={
             "authenticated": True,
             "mode": "session",
             "user": {
@@ -587,7 +609,18 @@ def auth_status(request: Request):
                 "user_id": session.user_id,
                 "is_admin": is_admin_user(session, request),
             }
-        }
+        })
+        if not cookie_present:
+            res.set_cookie(
+                key=SESSION_COOKIE_NAME,
+                value=session.session_id,
+                max_age=SESSION_DURATION_SECONDS,
+                httponly=True,
+                samesite=cookie_samesite,
+                secure=cookie_secure,
+                path="/"
+            )
+        return res
 
     print(f"[Auth Status] Request unauthenticated. Cookie present: {cookie_present}, Origin: {request.headers.get('origin')}")
     return {
@@ -595,6 +628,43 @@ def auth_status(request: Request):
         "mode": "unauthenticated",
         "user": None
     }
+
+
+@router.api_route("/dev-login", methods=["GET", "POST"])
+def auth_dev_login(request: Request):
+    """
+    Developer convenience endpoint to connect local developer session in non-production.
+    Sets the session cookie for babulkumar0220@gmail.com and returns user metadata.
+    """
+    is_production = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    if is_production:
+        raise HTTPException(status_code=403, detail="Dev login is disabled in production.")
+
+    dev_session = session_manager.get_or_create_dev_session()
+    if not dev_session:
+        raise HTTPException(status_code=404, detail="No local developer credentials or sessions found.")
+
+    cookie_samesite, cookie_secure = get_cookie_security_flags(request)
+    res = JSONResponse(content={
+        "status": "success",
+        "authenticated": True,
+        "user": {
+            "email": dev_session.email,
+            "masked_email": mask_email(dev_session.email),
+            "user_id": dev_session.user_id,
+            "is_admin": is_admin_user(dev_session, request),
+        }
+    })
+    res.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=dev_session.session_id,
+        max_age=SESSION_DURATION_SECONDS,
+        httponly=True,
+        samesite=cookie_samesite,
+        secure=cookie_secure,
+        path="/"
+    )
+    return res
 
 
 @router.post("/logout")

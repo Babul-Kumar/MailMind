@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 5173,
+      strictPort: true,
       proxy: {
         '/api': {
           target,
@@ -38,12 +39,16 @@ export default defineConfig(({ mode }) => {
           configure: (proxy) => {
             proxy.on('error', (err, req, res) => {
               if (!res.headersSent) {
-                res.writeHead(503, { 'Content-Type': 'application/json' });
+                res.writeHead(503, {
+                  'Content-Type': 'application/json',
+                  'Retry-After': '2',
+                  'Cache-Control': 'no-store, no-cache, must-revalidate',
+                });
                 res.end(
                   JSON.stringify({
                     status: 'backend_offline',
                     message:
-                      `Backend server is unreachable at ${target}. Ensure FastAPI is running on http://127.0.0.1:8000.`,
+                      `Backend server is starting up or unreachable at ${target}. Ensure FastAPI is running on http://127.0.0.1:8000.`,
                     code: err.code || 'ECONNREFUSED',
                   })
                 );

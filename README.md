@@ -331,7 +331,12 @@ cd ..
 
 **Single-Command Full-Stack (Recommended):**
 ```bash
+# Windows 1-Click Batch (auto-detects .venv, checks dependencies, opens browser):
+run.bat
+
+# OR with npm / Node:
 npm run dev
+
 # OR with Python:
 python run_dev.py
 ```

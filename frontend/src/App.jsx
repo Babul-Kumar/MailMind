@@ -40,7 +40,7 @@ import {
 import { useAuth } from './hooks/useAuth';
 import { useEmails } from './hooks/useEmails';
 import { AuthCallback } from './components/auth/AuthCallback';
-import { cleanSenderName, formatEmailDate } from './utils/formatting';
+import { cleanSenderName, formatEmailDate, isItemInWindow } from './utils/formatting';
 import { submitFeedback, fetchEmailDetail } from './services/api';
 
 // ============================================================================
@@ -49,16 +49,14 @@ import { submitFeedback, fetchEmailDetail } from './services/api';
 
 const PRIORITIES = {
   P1: { id: 'P1', name: 'Urgent', color: '#E11D48' },
-  P2: { id: 'P2', name: 'Important', color: '#D97706' },
-  P3: { id: 'P3', name: 'Routine', color: '#2563EB' },
-  P4: { id: 'P4', name: 'Low', color: '#A1A1AA' }
+  P2: { id: 'P2', name: 'Important', color: '#F59E0B' },
+  P3: { id: 'P3', name: 'Routine', color: '#7E22CE' },
+  P4: { id: 'P4', name: 'Low', color: '#94A3B8' }
 };
 
 const WINDOWS = [
   { id: 'this_month', label: 'This month', days: 30 },
-  { id: 'last_3_months', label: 'Last 3 months', days: 90 },
-  { id: 'last_1_year', label: 'Last 1 year', days: 365 },
-  { id: 'all_time', label: 'All time', days: 9999 }
+  { id: 'last_3_months', label: 'Last 3 months', days: 90 }
 ];
 
 // ============================================================================
@@ -75,6 +73,8 @@ const INITIAL_EMAILS = [
     subject: 'Elevated 5xx latency on production API',
     time: '10:42 AM',
     fullDate: 'Nov 5, 10:42 AM',
+    date: '2026-11-05T10:42:00Z',
+    timestamp: Date.now() - 1000 * 60 * 18,
     daysAgo: 0,
     unread: true,
     analyzed: true,
@@ -99,6 +99,8 @@ const INITIAL_EMAILS = [
     subject: '849201 is your device verification code',
     time: '10:38 AM',
     fullDate: 'Nov 5, 10:38 AM',
+    date: '2026-11-05T10:38:00Z',
+    timestamp: Date.now() - 1000 * 60 * 22,
     daysAgo: 0,
     unread: true,
     analyzed: true,
@@ -122,6 +124,8 @@ const INITIAL_EMAILS = [
     subject: 'CSE472 final viva slot confirmation',
     time: '9:15 AM',
     fullDate: 'Nov 5, 9:15 AM',
+    date: '2026-11-05T09:15:00Z',
+    timestamp: Date.now() - 1000 * 60 * 105,
     daysAgo: 0,
     unread: true,
     analyzed: true,
@@ -145,6 +149,8 @@ const INITIAL_EMAILS = [
     subject: 'Download provisional hall ticket for Autumn term',
     time: 'Yesterday',
     fullDate: 'Nov 4, 4:20 PM',
+    date: '2026-11-04T16:20:00Z',
+    timestamp: Date.now() - 1000 * 60 * 60 * 20,
     daysAgo: 1,
     unread: false,
     analyzed: true,
@@ -168,6 +174,8 @@ const INITIAL_EMAILS = [
     subject: 'The Hidden Work Behind Every Database Request',
     time: 'Nov 3',
     fullDate: 'Nov 3, 2:10 PM',
+    date: '2026-11-03T14:10:00Z',
+    timestamp: Date.now() - 1000 * 60 * 60 * 48,
     daysAgo: 2,
     unread: false,
     analyzed: true,
@@ -181,6 +189,81 @@ const INITIAL_EMAILS = [
       'When an application executes a simple SQL query, dozens of kernel and storage operations fire in parallel under the hood.',
       'From buffer pool lookups and WAL synchronization to lock managers, understanding execution engine internals helps prevent database brownouts under peak loads.'
     ]
+  },
+  {
+    id: 'e6',
+    sender: 'Stripe Billing',
+    email: 'invoices@stripe.com',
+    initials: 'ST',
+    avatarBg: 'bg-violet-100/70 text-violet-900',
+    subject: 'Your October subscription invoice and receipt',
+    time: 'Oct 12',
+    fullDate: 'Oct 12, 11:30 AM',
+    date: '2026-10-12T11:30:00Z',
+    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 36,
+    daysAgo: 36,
+    unread: false,
+    analyzed: true,
+    priority: 'P2',
+    needsAttention: false,
+    matched: 'invoice, subscription, payment receipt',
+    note: 'Paid invoice',
+    otp: null,
+    attachment: { name: 'Invoice_OCT_2026.pdf', size: '120 KB' },
+    paragraphs: [
+      'Your monthly invoice for Cloud Pro tier has been processed successfully.',
+      'A copy of receipt #INV-2026-10-848 is attached for your accounting records.'
+    ]
+  },
+  {
+    id: 'e7',
+    sender: 'DeepLearning.AI',
+    email: 'certs@deeplearning.ai',
+    initials: 'DL',
+    avatarBg: 'bg-sky-100/70 text-sky-900',
+    subject: 'Certificate of Completion: Applied Generative Models',
+    time: 'Sep 24',
+    fullDate: 'Sep 24, 4:15 PM',
+    date: '2026-09-24T16:15:00Z',
+    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 54,
+    daysAgo: 54,
+    unread: false,
+    analyzed: true,
+    priority: 'P3',
+    needsAttention: false,
+    matched: 'certificate, course completion',
+    note: 'Course certificate',
+    otp: null,
+    attachment: null,
+    paragraphs: [
+      'Congratulations on completing the specialization! Your verified certificate is ready to share on LinkedIn.',
+      'Review your capstone score and download your credentials from your learner dashboard.'
+    ]
+  },
+  {
+    id: 'e8',
+    sender: 'GitHub Security',
+    email: 'security-alerts@github.com',
+    initials: 'GH',
+    avatarBg: 'bg-rose-100/70 text-rose-900',
+    subject: 'Security Advisory: Dependabot alert resolved',
+    time: 'Aug 29',
+    fullDate: 'Aug 29, 3:00 PM',
+    date: '2026-08-29T15:00:00Z',
+    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 80,
+    daysAgo: 80,
+    unread: false,
+    analyzed: true,
+    priority: 'P3',
+    needsAttention: false,
+    matched: 'dependabot, vulnerability resolved',
+    note: 'Advisory resolved',
+    otp: null,
+    attachment: null,
+    paragraphs: [
+      'Dependabot detected that advisory CVE-2026-3829 has been mitigated in your repository dependency manifest.',
+      'No further remediation steps are required at this time.'
+    ]
   }
 ];
 
@@ -190,29 +273,31 @@ const INITIAL_EMAILS = [
 
 function BrandMark() {
   return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      className="w-5 h-5 shrink-0"
-      aria-hidden="true"
-    >
-      <rect
-        x="2"
-        y="3.5"
-        width="16"
-        height="13"
-        rx="3"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path
-        d="M2.5 5.5L10 11.5L17.5 5.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#3B0764] via-[#581C87] to-[#1A072A] flex items-center justify-center shadow-sm border border-[#7E22CE]/40 shrink-0">
+      <svg
+        viewBox="0 0 20 20"
+        fill="none"
+        className="w-4 h-4 shrink-0 text-[#F59E0B]"
+        aria-hidden="true"
+      >
+        <rect
+          x="2"
+          y="3.5"
+          width="16"
+          height="13"
+          rx="3"
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M2.5 5.5L10 11.5L17.5 5.5"
+          stroke="#FBBF24"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
   );
 }
 
@@ -262,7 +347,7 @@ function HtmlEmailViewer({ html, dark }) {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           font-size: 14px;
           line-height: 1.6;
-          color: ${dark ? '#EDEDED' : '#1F2937'};
+          color: ${dark ? '#F8FAFC' : '#1D0B2B'};
           background-color: transparent !important;
           word-break: break-word;
           overflow-wrap: break-word;
@@ -275,13 +360,13 @@ function HtmlEmailViewer({ html, dark }) {
           max-width: 100% !important;
         }
         a {
-          color: #2563EB;
+          color: ${dark ? '#C084FC' : '#7E22CE'};
         }
         blockquote {
-          border-left: 2px solid ${dark ? '#3F3F46' : '#E5E7EB'};
+          border-left: 2px solid ${dark ? '#3B1E52' : '#E2E8F0'};
           margin: 8px 0;
           padding-left: 12px;
-          color: ${dark ? '#A1A1AA' : '#6B7280'};
+          color: ${dark ? '#94A3B8' : '#786B84'};
         }
       </style>
     `;
@@ -358,7 +443,7 @@ function FormattedTextEmail({ text, dark }) {
             href={token}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:underline break-all"
+            className={`${dark ? 'text-[#C084FC] hover:text-[#E9D5FF]' : 'text-[#7E22CE] hover:text-[#581C87]'} font-medium hover:underline break-all`}
           >
             {token}
           </a>
@@ -378,7 +463,7 @@ function FormattedTextEmail({ text, dark }) {
 
   return (
     <div className={`space-y-4 text-[14.5px] leading-relaxed select-text break-words overflow-hidden ${
-      dark ? 'text-[#E4E4E7]' : 'text-[#27272A]'
+      dark ? 'text-[#F8FAFC]' : 'text-[#1E1231]'
     }`}>
       {paragraphs.map((p, idx) => (
         <p key={idx} className="whitespace-pre-wrap">
@@ -438,9 +523,21 @@ function formatRealEmail(item, index) {
       ? { name: `${item.subject.slice(0, 20)}.pdf`, size: '180 KB' }
       : null;
 
+  let timestamp = 0;
+  if (item.internal_date) {
+    const val = Number(item.internal_date);
+    timestamp = val > 1e11 ? val : val * 1000;
+  } else if (item.date) {
+    const parsed = new Date(item.date).getTime();
+    if (!isNaN(parsed)) timestamp = parsed;
+  }
+  if (!timestamp && item.daysAgo !== undefined) {
+    timestamp = Date.now() - item.daysAgo * 86400000;
+  }
+
   let daysAgo = 0;
-  if (item.date) {
-    const diffMs = Date.now() - new Date(item.date).getTime();
+  if (timestamp) {
+    const diffMs = Date.now() - timestamp;
     daysAgo = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
   }
 
@@ -468,6 +565,8 @@ function formatRealEmail(item, index) {
     subject: item.subject || '(No Subject)',
     time,
     fullDate,
+    date: item.date,
+    timestamp,
     daysAgo,
     unread: Boolean(item.is_unread || item.unread),
     analyzed: Boolean(item.predicted_priority || item.final_priority),
@@ -565,6 +664,15 @@ export default function App() {
   const [windowId, setWindowId] = useState('last_3_months');
   const [search, setSearch] = useState('');
   const [mobileReading, setMobileReading] = useState(false);
+
+  // Synchronize windowId with emailsHook.analysisPeriod when restored
+  useEffect(() => {
+    if (emailsHook.analysisPeriod && emailsHook.analysisPeriod !== windowId) {
+      if (WINDOWS.some((w) => w.id === emailsHook.analysisPeriod)) {
+        setWindowId(emailsHook.analysisPeriod);
+      }
+    }
+  }, [emailsHook.analysisPeriod, windowId]);
 
   // Checkbox selection & Starred State
   const [checkedIds, setCheckedIds] = useState(() => new Set());
@@ -714,21 +822,22 @@ export default function App() {
     return { primary, updates, promotions, social };
   }, [emails]);
 
-  // Filtered List Items (Meticulous Gmail Tab & Folder Filtering)
+  // Filtered List Items (Meticulous Gmail Tab & Folder Filtering with Timeframe & Strict Time Sorting)
   const visibleEmails = useMemo(() => {
-    return emails.filter((item) => {
-      const st = statusMap[item.id]?.state;
-      const isStarred = starredIds.has(item.id);
+    const filtered = emails.filter((item) => {
+      // 1. Timeframe window filter: strictly enforce "This month" or "Last 3 months"
+      if (!isItemInWindow(item, windowId)) {
+        return false;
+      }
 
-      // View filtering
+      // 2. View filtering
       if (view === 'attention') {
         if (!item.needsAttention) return false;
       } else if (view === 'recent') {
-        if (item.daysAgo > cutoffDays) return false;
+        if (item.daysAgo > 30) return false;
       }
-      // 'all' shows all emails
 
-      // Category Tab Filtering
+      // 3. Category Tab Filtering
       if (categoryTab !== 'all') {
         const cat = getEmailCategory(item);
         if (cat !== categoryTab) {
@@ -756,7 +865,31 @@ export default function App() {
 
       return true;
     });
-  }, [emails, view, categoryTab, statusMap, starredIds, priorityFilter, search]);
+
+    // 4. Strict chronological sort by time (Newest first)
+    return filtered.slice().sort((a, b) => {
+      const getEmailTime = (em) => {
+        if (!em) return 0;
+        if (em.internal_date) {
+          const val = Number(em.internal_date);
+          if (!isNaN(val) && val > 0) return val > 1e11 ? val : val * 1000;
+        }
+        if (em.timestamp) {
+          const val = Number(em.timestamp);
+          if (!isNaN(val) && val > 0) return val;
+        }
+        if (em.date) {
+          const parsed = new Date(em.date).getTime();
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+        if (em.daysAgo !== undefined) {
+          return Date.now() - Number(em.daysAgo) * 86400000;
+        }
+        return 0;
+      };
+      return getEmailTime(b) - getEmailTime(a);
+    });
+  }, [emails, view, categoryTab, statusMap, starredIds, priorityFilter, search, windowId]);
 
   // Active email
   const currentEmail = useMemo(() => {
@@ -947,13 +1080,10 @@ export default function App() {
     setWindowMenuOpen(false);
     setSyncing(true);
 
-    if (nextId === 'all_time') {
-      setView('all');
-      setCategoryTab('all');
-    }
-
     if (emailsHook.changeAnalysisPeriod) {
       emailsHook.changeAnalysisPeriod(nextId);
+    } else if (emailsHook.refresh) {
+      emailsHook.refresh(nextId);
     }
 
     setTimeout(() => {
@@ -996,36 +1126,36 @@ export default function App() {
       ref={rootRef}
       onClick={closeAllMenus}
       className={`h-screen w-full overflow-hidden flex flex-col relative select-none transition-colors duration-200 ${
-        dark ? 'bg-[#18181B] text-[#F4F4F5]' : 'bg-[#FFFFFF] text-[#18181B]'
+        dark ? 'bg-[#10141D] text-[#F8FAFC]' : 'bg-[#EEF2F7] text-[#1E1231]'
       }`}
     >
-      {/* Sleek 2px Top Sync Progress Line */}
-      <div className="fixed top-0 left-0 right-0 h-[2px] z-50 pointer-events-none overflow-hidden">
+      {/* Sleek 2.5px Top Sync Progress Line - Deep Aubergine to Radiant Marigold to Ice Silver */}
+      <div className="fixed top-0 left-0 right-0 h-[2.5px] z-50 pointer-events-none overflow-hidden">
         <div
-          className={`h-full bg-[#2563EB] transition-all duration-500 ease-out ${
+          className={`h-full bg-gradient-to-r from-[#581C87] via-[#F59E0B] to-[#CBD5E1] transition-all duration-500 ease-out ${
             syncing ? 'w-full opacity-100' : 'w-0 opacity-0'
           }`}
         />
       </div>
 
       {/* ==================================================================== */}
-      {/* TOP BAR: GMAIL HEADER WITH EXPANSIVE PILL SEARCH, LOGO, USER AVATAR  */}
+      {/* TOP BAR: CLASSY HEADER WITH EXPANSIVE PILL SEARCH, LOGO, USER AVATAR */}
       {/* ==================================================================== */}
       <header
-        className={`h-16 px-4 sm:px-6 flex items-center justify-between border-b shrink-0 z-20 ${
+        className={`h-16 px-4 sm:px-6 flex items-center justify-between border-b shrink-0 z-20 backdrop-blur-md transition-colors duration-200 ${
           dark
-            ? 'bg-[#121214] border-[#27272A]'
-            : 'bg-[#F5F5F4] border-[#E4E4E7]'
+            ? 'bg-[#181D29]/95 border-[#2D3648] text-[#F8FAFC]'
+            : 'bg-[#F5F8FC]/90 border-[#CBD5E1] text-[#1E1231] shadow-[0_1px_3px_rgba(88,28,135,0.03)]'
         }`}
       >
         {/* Left: Hamburger + Logo */}
         <div className="flex items-center gap-3 w-56 shrink-0">
           <button
             onClick={() => setSidebarOpen((o) => !o)}
-            className={`p-2 rounded-full transition cursor-pointer ${
+            className={`p-2 rounded-full transition cursor-pointer hover:scale-105 active:scale-95 ${
               dark
-                ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800'
-                : 'text-[#71717A] hover:text-black hover:bg-zinc-200'
+                ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-xs'
             }`}
             title="Main menu"
           >
@@ -1041,20 +1171,22 @@ export default function App() {
             className="flex items-center gap-2.5 font-semibold text-lg tracking-tight cursor-pointer"
           >
             <BrandMark />
-            <span className="font-medium tracking-tight">MailMind</span>
+            <span className={`font-bold tracking-tight text-lg ${dark ? 'text-[#F8FAFC]' : 'text-[#2E084D]'}`}>
+              MailMind<span className="text-[#F59E0B] ml-0.5">•</span>
+            </span>
           </div>
         </div>
 
-        {/* Center: Expansive Rounded Pill Search Bar (Exactly like Gmail) */}
+        {/* Center: Expansive Rounded Pill Search Bar */}
         <div className="flex-1 max-w-2xl px-2 sm:px-6">
           <div
             className={`flex items-center h-11 px-4 rounded-full transition-all border ${
               dark
-                ? 'bg-zinc-800/80 border-transparent focus-within:bg-[#18181B] focus-within:border-zinc-700 focus-within:shadow-md'
-                : 'bg-zinc-200/60 border-transparent focus-within:bg-white focus-within:border-zinc-300 focus-within:shadow-md'
+                ? 'bg-[#141822] border-[#2D3648] focus-within:bg-[#181D29] focus-within:border-[#F59E0B] focus-within:ring-2 focus-within:ring-[#F59E0B]/25 focus-within:shadow-md'
+                : 'bg-white border-[#CBD5E1] hover:border-[#94A3B8] focus-within:bg-white focus-within:border-[#581C87] focus-within:ring-2 focus-within:ring-[#581C87]/15 focus-within:shadow-[0_2px_12px_rgba(88,28,135,0.08)]'
             }`}
           >
-            <Search className="w-4 h-4 text-zinc-400 shrink-0 mr-3" />
+            <Search className={`w-4 h-4 shrink-0 mr-3 ${dark ? 'text-[#94A3B8]' : 'text-[#581C87]'}`} />
             <input
               type="text"
               value={search}
@@ -1065,21 +1197,21 @@ export default function App() {
               placeholder="Search in emails..."
               className={`w-full bg-transparent text-[13.5px] focus:outline-none ${
                 dark
-                  ? 'text-white placeholder-zinc-400'
-                  : 'text-zinc-900 placeholder-zinc-500'
+                  ? 'text-[#F8FAFC] placeholder-[#94A3B8]'
+                  : 'text-[#1E1231] placeholder-[#786B84]'
               }`}
             />
             {search ? (
               <button
                 onClick={() => setSearch('')}
-                className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                className={`p-1 transition ${dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#786B84] hover:text-[#1E1231]'}`}
               >
                 <X className="w-4 h-4" />
               </button>
             ) : (
               <button
                 title="Search options"
-                className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                className={`p-1 transition ${dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#786B84] hover:text-[#1E1231]'}`}
               >
                 <SlidersHorizontal className="w-4 h-4" />
               </button>
@@ -1091,55 +1223,66 @@ export default function App() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => emailsHook.refresh?.(windowId)}
-            className={`p-2 rounded-full transition cursor-pointer ${
+            className={`p-2 rounded-full transition cursor-pointer hover:scale-105 active:scale-95 ${
               dark
-                ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800'
-                : 'text-[#71717A] hover:text-black hover:bg-zinc-200'
+                ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-xs'
             }`}
             title="Sync mailbox"
           >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin text-[#F59E0B]' : ''}`} />
           </button>
 
           <button
             onClick={() => setDark((d) => !d)}
-            className={`p-2 rounded-full transition cursor-pointer ${
+            className={`p-2 rounded-full transition cursor-pointer hover:scale-105 active:scale-95 ${
               dark
-                ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800'
-                : 'text-[#71717A] hover:text-black hover:bg-zinc-200'
+                ? 'text-[#CBD5E1] hover:text-[#F59E0B] hover:bg-[#202737]'
+                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-xs'
             }`}
             title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-[#581C87]" />}
           </button>
 
           {/* User Profile Avatar Dropdown */}
           <div className="relative ml-2" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => {
-                setUserMenuOpen((o) => !o);
-                setWindowMenuOpen(false);
-              }}
-              className={`w-8 h-8 rounded-full text-xs font-semibold flex items-center justify-center shrink-0 ring-2 cursor-pointer transition ${
-                dark
-                  ? 'bg-zinc-800 text-white ring-zinc-700 hover:ring-zinc-500'
-                  : 'bg-zinc-200 text-zinc-900 ring-zinc-300 hover:ring-zinc-400'
-              }`}
-            >
-              {userInitials}
-            </button>
+            {auth.isAuthenticated ? (
+              <button
+                onClick={() => {
+                  setUserMenuOpen((o) => !o);
+                  setWindowMenuOpen(false);
+                }}
+                className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ring-2 cursor-pointer transition ${
+                  dark
+                    ? 'bg-gradient-to-br from-[#2E084D] to-[#120420] text-[#F8FAFC] ring-[#F59E0B] hover:ring-[#FBBF24]'
+                    : 'bg-gradient-to-br from-[#2E084D] to-[#1A042D] text-white ring-[#F59E0B] hover:ring-[#D97706] shadow-sm'
+                }`}
+                title={auth.user?.email || 'Active Account'}
+              >
+                {userInitials}
+              </button>
+            ) : (
+              <button
+                onClick={() => auth.devLogin ? auth.devLogin() : auth.login()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-[#2E084D] to-[#581C87] hover:from-[#3B0A63] hover:to-[#6B21A8] text-white shadow-sm border border-[#7E22CE]/40 transition cursor-pointer"
+                title="Connect your Gmail account"
+              >
+                <span>Connect Gmail</span>
+              </button>
+            )}
 
-            {userMenuOpen && (
+            {userMenuOpen && auth.isAuthenticated && (
               <div
                 className={`absolute right-0 top-11 w-56 rounded-2xl p-2 shadow-xl border z-50 ${
                   dark
-                    ? 'bg-[#1F1F23] border-[#27272A] text-[#F4F4F5]'
-                    : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
+                    ? 'bg-[#1E0F2B] border-[#361A4B] text-[#F8FAFC]'
+                    : 'bg-[#FFFFFF] border-[#E2E8F0] text-[#1D0B2B]'
                 }`}
               >
-                <div className="px-3 py-2 border-b border-zinc-200/40 dark:border-zinc-800/60 mb-1">
+                <div className="px-3 py-2 border-b border-[#361A4B]/40 dark:border-[#361A4B] mb-1">
                   <p className="text-xs font-semibold truncate">{userName}</p>
-                  <p className="text-[11px] text-[#71717A] truncate">{auth.user?.email || 'Connected'}</p>
+                  <p className="text-[11px] text-[#94A3B8] dark:text-[#94A3B8] truncate">{auth.user?.email || 'Connected'}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -1148,8 +1291,8 @@ export default function App() {
                   }}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
                     dark
-                      ? 'hover:bg-zinc-800 text-rose-400'
-                      : 'hover:bg-zinc-100 text-rose-600'
+                      ? 'hover:bg-[#281438] text-rose-400'
+                      : 'hover:bg-[#EDF2F7] text-rose-600'
                   }`}
                 >
                   <LogOut className="w-4 h-4" />
@@ -1173,33 +1316,33 @@ export default function App() {
             sidebarOpen ? 'w-60' : 'w-16'
           } hidden md:flex flex-col justify-between shrink-0 border-r py-3 transition-all duration-200 ${
             dark
-              ? 'bg-[#121214] border-[#27272A]'
-              : 'bg-[#F5F5F4] border-[#E4E4E7]'
+              ? 'bg-[#141822] border-[#252D3C]'
+              : 'bg-[#F5F8FC]/80 backdrop-blur-md border-[#CBD5E1]'
           }`}
         >
           <div className="space-y-3 px-3">
-            {/* Gmail-style Compose Button */}
+            {/* Classy Luxury Compose Button */}
             <div className="pt-0.5">
               <button
                 onClick={() => {
                   setComposeOpen(true);
                   setComposeMinimized(false);
                 }}
-                className={`flex items-center gap-3.5 py-3 rounded-2xl font-medium text-sm transition-all shadow-sm cursor-pointer border ${
+                className={`flex items-center gap-3 py-3 rounded-2xl font-semibold text-sm transition-all shadow-md cursor-pointer border hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
                   sidebarOpen ? 'px-5 w-full justify-start' : 'w-10 h-10 justify-center px-0 mx-auto'
                 } ${
                   dark
-                    ? 'bg-[#2B3945] hover:bg-[#344453] text-[#C2E7FF] border-blue-900/40'
-                    : 'bg-[#C2E7FF] hover:bg-[#B3DCF5] text-[#001D35] border-blue-200/60'
+                    ? 'bg-gradient-to-r from-[#2E084D] via-[#4A0E6E] to-[#60148D] hover:from-[#3B0A63] hover:to-[#7419AB] text-[#F8FAFC] border-[#7E22CE]/50 shadow-[0_4px_16px_rgba(126,34,206,0.3)]'
+                    : 'bg-gradient-to-r from-[#581C87] via-[#6B21A8] to-[#7E22CE] hover:from-[#4A0E6E] hover:to-[#6D28D9] text-white border border-[#F59E0B]/40 shadow-[0_4px_16px_rgba(88,28,135,0.22)] hover:shadow-[0_6px_24px_rgba(88,28,135,0.32)]'
                 }`}
                 title="Compose"
               >
-                <PenLine className="w-4 h-4 shrink-0 text-blue-500 dark:text-blue-400" />
-                {sidebarOpen && <span className="font-semibold tracking-wide">Compose</span>}
+                <PenLine className="w-4 h-4 shrink-0 text-[#F59E0B] drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
+                {sidebarOpen && <span className="tracking-wide">Compose</span>}
               </button>
             </div>
 
-            {/* Primary Views (Gmail Style + AI Email Triage) */}
+            {/* Primary Views */}
             <nav className="space-y-1">
               {[
                 { id: 'all', label: 'Inbox', icon: Inbox, count: totalEmails },
@@ -1227,25 +1370,28 @@ export default function App() {
                         emailsHook.setActiveFilter?.('ALL');
                       }
                     }}
-                    className={`w-full flex items-center justify-between py-2 rounded-r-full text-[13.5px] transition cursor-pointer ${
-                      sidebarOpen ? 'pl-4 pr-3' : 'px-2 justify-center rounded-xl'
+                    className={`w-full flex items-center justify-between py-2 rounded-xl text-[13.5px] transition cursor-pointer ${
+                      sidebarOpen ? 'pl-3.5 pr-3' : 'px-2 justify-center'
                     } ${
                       active
                         ? dark
-                          ? 'bg-zinc-800/90 text-white font-semibold'
-                          : 'bg-zinc-200 text-zinc-900 font-semibold'
+                          ? 'bg-[#2E1A40] text-[#F8FAFC] font-semibold border-l-4 border-[#F59E0B] shadow-sm'
+                          : 'bg-white text-[#3B0764] font-bold shadow-sm border border-[#E2E8F0] shadow-[0_2px_8px_rgba(88,28,135,0.06)] ring-1 ring-[#581C87]/10'
                         : dark
-                        ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800/40'
-                        : 'text-[#71717A] hover:text-zinc-900 hover:bg-zinc-200/50'
+                        ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                        : 'text-[#524365] hover:text-[#2E084D] hover:bg-white/70 hover:shadow-xs'
                     }`}
                     title={nav.label}
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {active && !dark && (
+                        <span className="w-1.5 h-4.5 rounded-full bg-gradient-to-b from-[#F59E0B] to-[#D97706] shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0" />
+                      )}
                       <IconComponent
-                        className={`w-4 h-4 shrink-0 ${
+                        className={`w-4 h-4 shrink-0 transition-colors ${
                           active
-                            ? 'text-blue-500'
-                            : 'text-zinc-500'
+                            ? dark ? 'text-[#F59E0B]' : 'text-[#581C87]'
+                            : dark ? 'text-[#94A3B8]' : 'text-[#716080]'
                         }`}
                       />
                       {sidebarOpen && <span className="truncate">{nav.label}</span>}
@@ -1253,10 +1399,14 @@ export default function App() {
 
                     {sidebarOpen && nav.count > 0 && (
                       <span
-                        className={`text-xs tabular-nums font-medium ${
+                        className={`text-xs tabular-nums font-bold px-2 py-0.5 rounded-full transition-colors ${
                           active
-                            ? dark ? 'text-white' : 'text-zinc-900'
-                            : 'text-[#71717A]'
+                            ? dark
+                              ? 'bg-[#F59E0B] text-[#1E082B] shadow-sm'
+                              : 'bg-[#F59E0B]/20 text-[#B45309] border border-[#F59E0B]/35 shadow-xs'
+                            : dark
+                            ? 'text-[#94A3B8] bg-[#22293A]'
+                            : 'text-[#64748B] bg-[#E2E8F0]/80'
                         }`}
                       >
                         {nav.count.toLocaleString()}
@@ -1269,8 +1419,8 @@ export default function App() {
 
             {/* Priority Section */}
             {sidebarOpen && (
-              <div className="pt-3 border-t border-zinc-200/40 dark:border-zinc-800/60">
-                <div className="px-4 pb-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+              <div className="pt-3 border-t border-[#CBD5E1] dark:border-[#361A4B]">
+                <div className="px-3 pb-1.5 text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
                   Priority
                 </div>
                 {Object.values(PRIORITIES).map((tier) => {
@@ -1285,25 +1435,25 @@ export default function App() {
                         setReadingEmailId(null);
                         emailsHook.setActiveFilter?.(nextPriority || 'ALL');
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-1.5 rounded-r-full text-[13px] transition cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition cursor-pointer ${
                         active
                           ? dark
-                            ? 'bg-zinc-800/90 text-white font-medium'
-                            : 'bg-zinc-200 text-zinc-900 font-medium'
+                            ? 'bg-[#2E1A40] text-[#F8FAFC] font-semibold'
+                            : 'bg-white text-[#3B0764] font-semibold shadow-xs border border-[#E2E8F0]'
                           : dark
-                          ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800/40'
-                          : 'text-[#71717A] hover:text-zinc-900 hover:bg-zinc-200/50'
+                          ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                          : 'text-[#524365] hover:text-[#2E084D] hover:bg-white/60'
                       }`}
                     >
-                      <span className="flex items-center gap-3">
+                      <span className="flex items-center gap-2.5">
                         <span
-                          className="w-2 h-2 rounded-full shrink-0"
+                          className="w-2 h-2 rounded-full shrink-0 shadow-sm"
                           style={{ backgroundColor: tier.color }}
                         />
                         <span>{tier.name}</span>
                       </span>
                       {active && (
-                        <span className="text-[11px] text-zinc-400">Clear</span>
+                        <span className="text-[11px] text-[#F59E0B] hover:text-[#D97706] font-bold">Clear</span>
                       )}
                     </button>
                   );
@@ -1314,22 +1464,22 @@ export default function App() {
 
           {/* Footer of Sidebar: Timeframe Selector */}
           {sidebarOpen && (
-            <div className="px-3 pt-3 border-t border-zinc-200/40 dark:border-zinc-800/60">
+            <div className="px-3 pt-3 border-t border-[#CBD5E1] dark:border-[#252D3C]">
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => {
                     setWindowMenuOpen((o) => !o);
                     setUserMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer border ${
                     dark
-                      ? 'text-[#A1A1AA] hover:text-white hover:bg-zinc-800/50'
-                      : 'text-[#71717A] hover:text-zinc-900 hover:bg-zinc-200/50'
+                      ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737] border-[#2D3648]'
+                      : 'bg-white/70 hover:bg-white text-[#4D3A5B] hover:text-[#2E084D] hover:border-[#94A3B8] border-[#CBD5E1] shadow-xs hover:shadow-sm'
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                    <span>{activeWindowLabel}</span>
+                    <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#F59E0B]' : 'text-[#F59E0B]'}`} />
+                    <span className="font-medium">{activeWindowLabel}</span>
                   </span>
                   <ChevronDown className="w-3.5 h-3.5 opacity-60" />
                 </button>
@@ -1338,8 +1488,8 @@ export default function App() {
                   <div
                     className={`absolute bottom-11 left-0 w-48 rounded-2xl p-1.5 shadow-xl border z-50 ${
                       dark
-                        ? 'bg-[#1F1F23] border-[#27272A] text-[#F4F4F5]'
-                        : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
+                        ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]'
+                        : 'bg-white/95 backdrop-blur-md border-[#CBD5E1] shadow-xl text-[#1E1231]'
                     }`}
                   >
                     {WINDOWS.map((w) => (
@@ -1349,15 +1499,15 @@ export default function App() {
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
                           windowId === w.id
                             ? dark
-                              ? 'bg-zinc-800 font-medium'
-                              : 'bg-zinc-100 font-medium'
+                              ? 'bg-[#2E1A40] font-semibold text-[#F8FAFC]'
+                              : 'bg-[#581C87]/10 font-bold text-[#3B0764] border border-[#581C87]/15'
                             : dark
-                            ? 'hover:bg-zinc-800/60 text-[#A1A1AA]'
-                            : 'hover:bg-zinc-50 text-[#71717A]'
+                            ? 'hover:bg-[#202737] text-[#CBD5E1]'
+                            : 'hover:bg-[#F1F5F9] text-[#4D3A5B] hover:text-[#1E1231]'
                         }`}
                       >
                         <span>{w.label}</span>
-                        {windowId === w.id && <Check className="w-3 h-3 text-blue-500" />}
+                        {windowId === w.id && <Check className="w-3 h-3 text-[#F59E0B]" />}
                       </button>
                     ))}
                   </div>
@@ -1371,14 +1521,14 @@ export default function App() {
         {/* MAIN MAILBOX WORKSPACE: TOOLBAR + TABS + TABLE ROWS OR READING PANE */}
         {/* ================================================================== */}
         <main
-          className={`flex-1 flex flex-col overflow-hidden ${
-            dark ? 'bg-[#18181B]' : 'bg-[#FFFFFF]'
+          className={`flex-1 flex flex-col overflow-hidden m-2 sm:m-3 rounded-2xl border shadow-sm transition-colors ${
+            dark ? 'bg-[#181D29] border-[#2C3547]' : 'bg-[#FFFFFF] border-[#CBD5E1]/90 shadow-[0_2px_14px_rgba(88,28,135,0.04),0_1px_3px_rgba(0,0,0,0.03)]'
           }`}
         >
-          {/* 1. GMAIL ACTION TOOLBAR */}
+          {/* 1. ACTION TOOLBAR */}
           <div
-            className={`h-12 px-4 flex items-center justify-between border-b shrink-0 text-xs ${
-              dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+            className={`h-12 px-4 flex items-center justify-between border-b shrink-0 text-xs backdrop-blur-sm ${
+              dark ? 'bg-[#161B26]/90 border-[#252D3C]' : 'bg-[#FFFFFF]/95 border-[#E2E8F0]'
             }`}
           >
             {/* Left Controls: Checkbox Dropdown, Refresh, Batch Actions */}
@@ -1389,11 +1539,11 @@ export default function App() {
                   onClick={() => setReadingEmailId(null)}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer ${
                     dark
-                      ? 'text-zinc-300 hover:text-white hover:bg-zinc-800'
-                      : 'text-zinc-700 hover:text-black hover:bg-zinc-100'
+                      ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                      : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-[#F1F5F9]'
                   }`}
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4 text-[#F59E0B]" />
                   <span>Back to all mail</span>
                 </button>
               ) : (
@@ -1401,15 +1551,15 @@ export default function App() {
                   {/* Select All Checkbox */}
                   <button
                     onClick={toggleSelectAll}
-                    className={`p-1.5 rounded-md transition cursor-pointer ${
-                      dark ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-zinc-600 hover:text-black hover:bg-zinc-100'
+                    className={`p-1.5 rounded-md transition cursor-pointer hover:scale-105 active:scale-95 ${
+                      dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#F1F5F9]'
                     }`}
                     title="Select all"
                   >
                     {checkedIds.size === visibleEmails.length && visibleEmails.length > 0 ? (
-                      <CheckSquare className="w-4 h-4 text-blue-500" />
+                      <CheckSquare className="w-4 h-4 text-[#F59E0B]" />
                     ) : checkedIds.size > 0 ? (
-                      <MinusSquare className="w-4 h-4 text-blue-500" />
+                      <MinusSquare className="w-4 h-4 text-[#F59E0B]" />
                     ) : (
                       <Square className="w-4 h-4" />
                     )}
@@ -1417,24 +1567,26 @@ export default function App() {
 
                   <button
                     onClick={() => emailsHook.refresh?.(windowId)}
-                    className={`p-1.5 rounded-md transition cursor-pointer ${
-                      dark ? 'text-zinc-400 hover:text-white hover:bg-zinc-800' : 'text-zinc-600 hover:text-black hover:bg-zinc-100'
+                    className={`p-1.5 rounded-md transition cursor-pointer hover:scale-105 active:scale-95 ${
+                      dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#F1F5F9]'
                     }`}
                     title="Refresh"
                   >
-                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin text-[#F59E0B]' : ''}`} />
                   </button>
 
                   {/* Batch actions when checkboxes selected */}
                   {checkedIds.size > 0 && (
-                    <div className="flex items-center gap-2 ml-2 pl-3 border-l border-zinc-300 dark:border-zinc-700">
-                      <span className="font-medium text-xs">
+                    <div className="flex items-center gap-2 ml-2 pl-3 border-l border-[#CBD5E1] dark:border-[#2D3648]">
+                      <span className="font-semibold text-xs text-[#F59E0B]">
                         {checkedIds.size} selected
                       </span>
 
                       <button
                         onClick={() => setCheckedIds(new Set())}
-                        className="px-2 py-1 rounded-md text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                        className={`px-2 py-1 rounded-md text-xs font-medium transition ${
+                          dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#64748B] hover:text-[#3B0764] hover:bg-[#F1F5F9]'
+                        }`}
                       >
                         Clear
                       </button>
@@ -1446,7 +1598,7 @@ export default function App() {
 
             {/* Right Controls: Pagination 1-50 of 7,044 + Arrow Navigation */}
             <div className="flex items-center gap-3">
-              <span className={`tabular-nums ${dark ? 'text-zinc-400' : 'text-zinc-500'}`}>
+              <span className={`tabular-nums ${dark ? 'text-[#94A3B8]' : 'text-[#64748B]'}`}>
                 {startNum}–{endNum} of {totalEmails.toLocaleString()}
               </span>
 
@@ -1454,8 +1606,8 @@ export default function App() {
                 <button
                   disabled={currentPage <= 1 || !!readingEmailId}
                   onClick={() => emailsHook.setPage?.((p) => Math.max(1, p - 1))}
-                  className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
-                    dark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
+                  className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 ${
+                    dark ? 'hover:bg-[#202737] text-[#CBD5E1]' : 'hover:bg-[#F1F5F9] text-[#4D3A5B]'
                   }`}
                   title="Newer"
                 >
@@ -1463,9 +1615,9 @@ export default function App() {
                 </button>
                 <button
                   disabled={!hasNextPage || !!readingEmailId}
-                  onClick={() => emailsHook.loadMore?.()}
-                  className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
-                    dark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
+                  onClick={() => emailsHook.setPage?.((p) => p + 1)}
+                  className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 ${
+                    dark ? 'hover:bg-[#202737] text-[#CBD5E1]' : 'hover:bg-[#F1F5F9] text-[#4D3A5B]'
                   }`}
                   title="Older"
                 >
@@ -1479,12 +1631,12 @@ export default function App() {
                   setLayoutMode((m) => (m === 'table' ? 'split' : 'table'));
                   if (layoutMode === 'split') setReadingEmailId(null);
                 }}
-                className={`p-1.5 rounded-md transition cursor-pointer ${
+                className={`p-1.5 rounded-md transition cursor-pointer hover:scale-105 active:scale-95 ${
                   layoutMode === 'split'
-                    ? 'bg-blue-500/10 text-blue-500'
+                    ? 'bg-[#F59E0B]/15 text-[#92400E] border border-[#F59E0B]/30 font-semibold'
                     : dark
-                    ? 'text-zinc-400 hover:bg-zinc-800'
-                    : 'text-zinc-600 hover:bg-zinc-100'
+                    ? 'text-[#94A3B8] hover:bg-[#202737] hover:text-white'
+                    : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#3B0764]'
                 }`}
                 title={layoutMode === 'split' ? 'Switch to Full Table View' : 'Switch to Split Reading View'}
               >
@@ -1493,19 +1645,19 @@ export default function App() {
             </div>
           </div>
 
-          {/* 2. GMAIL CATEGORY TABS (Primary, Updates, Promotions, Social, All) */}
+          {/* 2. CATEGORY TABS (Primary, Updates, Promotions, Social, All) */}
           {!readingEmailId && (
             <div
-              className={`flex items-center border-b shrink-0 px-2 sm:px-4 ${
-                dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+              className={`flex items-center border-b shrink-0 px-2 sm:px-4 gap-1 ${
+                dark ? 'bg-[#161B26] border-[#252D3C]' : 'bg-[#FFFFFF] border-[#E2E8F0]'
               }`}
             >
               {[
-                { id: 'primary', label: 'Primary', icon: Inbox, count: categoryCounts.primary, badgeColor: 'bg-blue-500' },
-                { id: 'promotions', label: 'Promotions', icon: Tag, count: categoryCounts.promotions, badgeColor: 'bg-emerald-600' },
-                { id: 'social', label: 'Social', icon: Users, count: categoryCounts.social, badgeColor: 'bg-blue-600' },
-                { id: 'updates', label: 'Updates', icon: Info, count: categoryCounts.updates, badgeColor: 'bg-amber-600' },
-                { id: 'all', label: 'All', icon: Archive, count: emails.length, badgeColor: 'bg-zinc-500' }
+                { id: 'primary', label: 'Primary', icon: Inbox, count: categoryCounts.primary },
+                { id: 'promotions', label: 'Promotions', icon: Tag, count: categoryCounts.promotions },
+                { id: 'social', label: 'Social', icon: Users, count: categoryCounts.social },
+                { id: 'updates', label: 'Updates', icon: Info, count: categoryCounts.updates },
+                { id: 'all', label: 'All', icon: Archive, count: emails.length }
               ].map((tab) => {
                 const active = categoryTab === tab.id;
                 const IconComponent = tab.icon;
@@ -1513,19 +1665,35 @@ export default function App() {
                   <button
                     key={tab.id}
                     onClick={() => setCategoryTab(tab.id)}
-                    className={`flex items-center gap-3 px-4 sm:px-6 py-3 text-[13.5px] font-medium transition cursor-pointer border-b-2 -mb-[2px] ${
+                    className={`group flex items-center gap-2 px-3 sm:px-5 py-2.5 text-[13.5px] font-medium transition cursor-pointer border-b-2 -mb-[1px] rounded-t-xl ${
                       active
                         ? dark
-                          ? 'border-blue-500 text-blue-400'
-                          : 'border-blue-600 text-blue-600'
-                        : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/30'
+                          ? 'border-[#F59E0B] text-[#FBBF24] font-bold bg-[#F59E0B]/5'
+                          : 'border-[#581C87] text-[#3B0764] font-bold bg-[#581C87]/6 shadow-[inset_0_-2px_0_0_#581C87]'
+                        : dark
+                        ? 'border-transparent text-[#94A3B8] hover:text-white hover:bg-[#202737]'
+                        : 'border-transparent text-[#64748B] hover:text-[#3B0764] hover:bg-[#F1F5F9]'
                     }`}
                   >
-                    <IconComponent className="w-4 h-4 shrink-0" />
+                    <IconComponent
+                      className={`w-4 h-4 shrink-0 transition-colors ${
+                        active
+                          ? dark ? 'text-[#F59E0B]' : 'text-[#581C87]'
+                          : dark ? 'text-[#94A3B8] group-hover:text-white' : 'text-[#94A3B8] group-hover:text-[#581C87]'
+                      }`}
+                    />
                     <span>{tab.label}</span>
                     {tab.count > 0 && (
                       <span
-                        className={`text-[10px] font-semibold text-white px-1.5 py-0.2 rounded-full ${tab.badgeColor}`}
+                        className={`text-xs tabular-nums px-2 py-0.5 rounded-full font-bold transition-all ${
+                          active
+                            ? dark
+                              ? 'bg-[#F59E0B] text-[#1E082B] shadow-sm'
+                              : 'bg-[#581C87] text-white shadow-xs'
+                            : dark
+                            ? 'bg-[#252D3C] text-[#94A3B8]'
+                            : 'bg-[#F1F5F9] text-[#64748B] border border-[#E2E8F0] group-hover:border-[#CBD5E1]'
+                        }`}
                       >
                         {tab.count}
                       </span>
@@ -1561,13 +1729,13 @@ export default function App() {
               <div
                 className={`flex-1 flex flex-col overflow-y-auto ${
                   layoutMode === 'split' ? 'w-full md:w-[420px] lg:w-[480px] shrink-0 border-r' : 'w-full'
-                } ${dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'}`}
+                } ${dark ? 'border-[#2D153E]' : 'border-[#E2E8F0]'}`}
               >
                 {visibleEmails.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-zinc-400">
-                    <Inbox className="w-12 h-12 stroke-[1.2] mb-3 opacity-40" />
-                    <p className="text-sm font-medium">All caught up</p>
-                    <p className="text-xs text-zinc-500 mt-1">No messages match the active view or filter</p>
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-[#94A3B8]">
+                    <Inbox className="w-12 h-12 stroke-[1.2] mb-3 opacity-40 text-[#7E22CE]" />
+                    <p className="text-sm font-semibold text-[#CBD5E1] dark:text-[#CBD5E1]">All caught up</p>
+                    <p className="text-xs text-[#94A3B8] mt-1">No messages match the active view or filter</p>
                   </div>
                 ) : (
                   visibleEmails.map((item) => {
@@ -1580,84 +1748,84 @@ export default function App() {
                       <div
                         key={item.id}
                         onClick={() => selectEmail(item)}
-                        className={`group flex items-center h-10 sm:h-11 px-3 sm:px-4 border-b transition-colors cursor-pointer text-[13px] sm:text-[13.5px] select-none ${
+                        className={`group flex items-center h-10 sm:h-11 px-3 sm:px-4 border-b transition-all duration-150 cursor-pointer text-[13px] sm:text-[13.5px] select-none relative ${
                           isSelected && layoutMode === 'split'
-                            ? dark ? 'bg-[#1E293B]' : 'bg-[#E0E7FF]/70'
+                            ? dark ? 'bg-[#2E1A40] shadow-[inset_3.5px_0_0_0_#F59E0B]' : 'bg-[#FAF5FF] shadow-[inset_3.5px_0_0_0_#581C87] border-[#DDD6FE]'
                             : isChecked
-                            ? dark ? 'bg-zinc-800/80' : 'bg-blue-50/60'
+                            ? dark ? 'bg-[#242B3D]' : 'bg-[#F5F3FF] border-[#DDD6FE]'
                             : item.unread
-                            ? dark ? 'bg-zinc-900/60 hover:bg-zinc-800/50' : 'bg-white hover:bg-zinc-100/90'
-                            : dark ? 'bg-[#18181B] hover:bg-zinc-800/40 opacity-85' : 'bg-zinc-50/50 hover:bg-zinc-100'
-                        } ${dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'}`}
+                            ? dark ? 'bg-[#181D29] hover:bg-[#202737]' : 'bg-[#FFFFFF] hover:bg-[#F3F7FC] hover:shadow-[0_2px_8px_rgba(88,28,135,0.05)] hover:z-10'
+                            : dark ? 'bg-[#141822] hover:bg-[#1C2230]' : 'bg-[#FAFCFE] hover:bg-[#F3F7FC] hover:shadow-[0_2px_8px_rgba(88,28,135,0.05)] hover:z-10'
+                        } ${dark ? 'border-[#22293A]' : 'border-[#EBF0F5]'}`}
                       >
                         {/* Checkbox column */}
                         <button
                           onClick={(e) => toggleCheckEmail(item.id, e)}
-                          className="p-1 -ml-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition shrink-0"
+                          className="p-1 -ml-1 transition shrink-0 cursor-pointer hover:scale-110 active:scale-95 duration-150"
                           title="Select"
                         >
                           {isChecked ? (
-                            <CheckSquare className="w-4 h-4 text-blue-500" />
+                            <CheckSquare className="w-4 h-4 text-[#F59E0B] drop-shadow-[0_0_4px_rgba(245,158,11,0.35)]" />
                           ) : (
-                            <Square className="w-4 h-4" />
+                            <Square className={`w-4 h-4 transition-colors ${dark ? 'text-[#64748B] hover:text-[#CBD5E1]' : 'text-[#94A3B8] hover:text-[#581C87]'}`} />
                           )}
                         </button>
 
                         {/* Star column */}
                         <button
                           onClick={(e) => toggleStarEmail(item.id, e)}
-                          className="p-1 text-zinc-400 hover:text-amber-400 transition shrink-0"
+                          className="p-1 transition shrink-0 cursor-pointer hover:scale-125 active:scale-95 duration-150"
                           title={isStarred ? "Starred" : "Not starred"}
                         >
-                          <Star className={`w-4 h-4 ${isStarred ? "fill-amber-400 text-amber-400" : "text-zinc-400"}`} />
+                          <Star className={`w-4 h-4 transition ${isStarred ? "fill-[#F59E0B] text-[#F59E0B] drop-shadow-[0_0_6px_rgba(245,158,11,0.55)]" : dark ? "text-[#64748B] hover:text-[#F59E0B]" : "text-[#CBD5E1] hover:text-[#F59E0B]"}`} />
                         </button>
 
                         {/* Priority indicator dot */}
                         <span
-                          className="w-2 h-2 rounded-full shrink-0 ml-1 mr-3"
+                          className="w-2 h-2 rounded-full shrink-0 ml-1 mr-3 shadow-xs group-hover:scale-125 transition-transform duration-150"
                           style={{ backgroundColor: tier.color }}
                           title={`${tier.id} · ${tier.name}`}
                         />
 
-                        {/* Sender Column: fixed width, strictly aligned down the screen! */}
+                        {/* Sender Column */}
                         <div
                           className={`${
                             layoutMode === 'split' ? 'w-28 sm:w-36' : 'w-36 sm:w-48 lg:w-56'
-                          } shrink-0 truncate pr-2 sm:pr-3 ${
+                          } shrink-0 truncate pr-2 sm:pr-3 transition-colors ${
                             item.unread
-                              ? dark ? 'font-semibold text-white' : 'font-semibold text-zinc-950'
-                              : dark ? 'font-normal text-zinc-300' : 'font-normal text-zinc-700'
+                              ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
+                              : dark ? 'font-normal text-[#CBD5E1]' : 'font-medium text-[#4D3A5B]'
                           }`}
                         >
                           {item.sender}
                         </div>
 
-                        {/* Subject & Snippet Column: flexible width with clean ellipsis */}
+                        {/* Subject & Snippet Column */}
                         <div className="flex-1 min-w-0 flex items-center gap-1.5 truncate pr-3">
                           <span
-                            className={`shrink-0 truncate max-w-[50%] ${
+                            className={`shrink-0 truncate max-w-[50%] transition-colors ${
                               item.unread
-                                ? dark ? 'font-semibold text-white' : 'font-semibold text-zinc-900'
-                                : dark ? 'font-normal text-zinc-200' : 'font-normal text-zinc-800'
+                                ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
+                                : dark ? 'font-normal text-[#CBD5E1]' : 'font-medium text-[#2E1840]'
                             }`}
                           >
                             {item.subject}
                           </span>
-                          <span className="text-zinc-400 shrink-0">—</span>
+                          <span className={`shrink-0 ${dark ? 'text-[#64748B]' : 'text-[#CBD5E1]'}`}>—</span>
                           <span className={`truncate text-xs sm:text-[13px] ${
-                            dark ? 'text-zinc-400' : 'text-zinc-500'
+                            dark ? 'text-[#94A3B8]' : 'text-[#6B5E78]'
                           }`}>
                             {item.paragraphs?.[0] || item.snippet || ''}
                           </span>
 
                           {/* Inline Tag Chips: OTP, Attachment */}
                           {item.otp && (
-                            <span className="ml-2 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            <span className="ml-2 shrink-0 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D] shadow-xs">
                               OTP: {item.otp}
                             </span>
                           )}
                           {item.attachment && (
-                            <Paperclip className="w-3.5 h-3.5 text-zinc-400 shrink-0 ml-1" />
+                            <Paperclip className={`w-3.5 h-3.5 shrink-0 ml-1 ${dark ? 'text-[#94A3B8]' : 'text-[#64748B]'}`} />
                           )}
                         </div>
 
@@ -1667,8 +1835,8 @@ export default function App() {
                           <span
                             className={`text-xs tabular-nums text-right group-hover:hidden ${
                               item.unread
-                                ? dark ? 'font-semibold text-white' : 'font-semibold text-zinc-900'
-                                : dark ? 'text-zinc-400' : 'text-zinc-500'
+                                ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
+                                : dark ? 'text-[#94A3B8]' : 'text-[#716080]'
                             }`}
                           >
                             {item.time}
@@ -1678,17 +1846,18 @@ export default function App() {
                           <div
                             onClick={(e) => e.stopPropagation()}
                             className={`hidden group-hover:flex items-center gap-1 ${
-                              dark ? 'bg-zinc-800' : 'bg-zinc-100'
-                            } px-1.5 py-0.5 rounded-md`}
+                              dark ? 'bg-[#202737] border border-[#2D3648]' : 'bg-white/95 backdrop-blur-xs border border-[#CBD5E1] shadow-sm'
+                            } px-1.5 py-0.5 rounded-lg`}
                           >
-
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 triggerToast('Snoozed for 3 hours');
                               }}
                               title="Snooze"
-                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                              className={`p-1 rounded-md transition cursor-pointer hover:scale-110 active:scale-95 ${
+                                dark ? 'text-[#94A3B8] hover:text-[#F59E0B] hover:bg-[#2D3648]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#581C87]/10'
+                              }`}
                             >
                               <Clock className="w-3.5 h-3.5" />
                             </button>
@@ -1697,7 +1866,9 @@ export default function App() {
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Open in Gmail"
-                              className="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                              className={`p-1 rounded-md transition cursor-pointer hover:scale-110 active:scale-95 ${
+                                dark ? 'text-[#94A3B8] hover:text-[#F59E0B] hover:bg-[#2D3648]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#581C87]/10'
+                              }`}
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>
@@ -1725,15 +1896,15 @@ export default function App() {
                         }
                       }}
                       disabled={emailsHook.isLoadingMore}
-                      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer shadow-sm ${
+                      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow-sm border ${
                         dark
-                          ? 'bg-zinc-800 text-white hover:bg-zinc-700 disabled:opacity-50'
-                          : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200 disabled:opacity-50'
+                          ? 'bg-[#241232] text-[#F8FAFC] border-[#3B1E52] hover:bg-[#2E163F] hover:border-[#F59E0B]/40 disabled:opacity-50'
+                          : 'bg-[#FFFFFF] text-[#1D0B2B] border-[#CBD5E1] hover:bg-[#F8FAFC] hover:border-[#7E22CE]/40 disabled:opacity-50'
                       }`}
                     >
                       {emailsHook.isLoadingMore ? (
                         <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#F59E0B]" />
                           <span>Loading more emails...</span>
                         </>
                       ) : (
@@ -1749,7 +1920,7 @@ export default function App() {
             {(readingEmailId || layoutMode === 'split') && (
               <div
                 className={`flex-1 flex flex-col overflow-y-auto ${
-                  dark ? 'bg-[#18181B]' : 'bg-[#FFFFFF]'
+                  dark ? 'bg-[#140A1D]' : 'bg-[#FFFFFF]'
                 }`}
               >
                 {currentEmail ? (
@@ -1757,7 +1928,7 @@ export default function App() {
                     {/* Action Header Strip for Email */}
                     <div
                       className={`h-12 px-6 flex items-center justify-between border-b shrink-0 ${
-                        dark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+                        dark ? 'bg-[#1A0C24]/80 border-[#2D153E]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
                       }`}
                     >
                       {/* Left: Priority Badge Popover + View Toggle */}
@@ -1767,14 +1938,14 @@ export default function App() {
                             onClick={() => {
                               setPriorityMenuOpen((o) => !o);
                             }}
-                            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition cursor-pointer ${
+                            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer border ${
                               dark
-                                ? 'bg-zinc-800 text-white hover:bg-zinc-700'
-                                : 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200'
+                                ? 'bg-[#281438] text-[#F8FAFC] border-[#3B1E52] hover:bg-[#341A49]'
+                                : 'bg-[#FFFFFF] text-[#1D0B2B] border-[#CBD5E1] hover:bg-[#F1F5F9]'
                             }`}
                           >
                             <span
-                              className="w-2 h-2 rounded-full"
+                              className="w-2 h-2 rounded-full shadow-sm"
                               style={{ backgroundColor: currentPriority?.color }}
                             />
                             <span>{currentPriority?.id} · {currentPriority?.name}</span>
@@ -1785,23 +1956,23 @@ export default function App() {
                             <div
                               className={`absolute left-0 top-9 z-50 w-64 rounded-2xl p-3 shadow-xl border space-y-3 ${
                                 dark
-                                  ? 'bg-[#1F1F23] border-[#27272A] text-white'
-                                  : 'bg-[#FFFFFF] border-[#E4E4E7] text-zinc-900'
+                                  ? 'bg-[#1E0F2B] border-[#361A4B] text-[#F8FAFC]'
+                                  : 'bg-[#FFFFFF] border-[#E2E8F0] text-[#1D0B2B]'
                               }`}
                             >
                               <div className="text-xs space-y-1">
-                                <p>Matched: <span className="text-zinc-400">{currentEmail.matched}</span></p>
-                                {currentEmail.note && <p className="text-zinc-400">{currentEmail.note}</p>}
+                                <p>Matched: <span className="text-[#F59E0B] font-medium">{currentEmail.matched}</span></p>
+                                {currentEmail.note && <p className="text-[#94A3B8]">{currentEmail.note}</p>}
                               </div>
-                              <div className="pt-2 border-t grid grid-cols-4 gap-1 border-zinc-200 dark:border-zinc-800">
+                              <div className="pt-2 border-t grid grid-cols-4 gap-1 border-[#361A4B] dark:border-[#361A4B]">
                                 {Object.values(PRIORITIES).map((tier) => (
                                   <button
                                     key={tier.id}
                                     onClick={() => changePriority(currentEmail, tier.id)}
-                                    className={`py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 transition ${
+                                    className={`py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition ${
                                       currentEmail.priority === tier.id
-                                        ? dark ? 'bg-zinc-700 text-white' : 'bg-zinc-200 text-zinc-900'
-                                        : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400'
+                                        ? dark ? 'bg-[#341A49] text-white border border-[#7E22CE]/50' : 'bg-[#EDE9FE] text-[#2E103F] border border-[#7E22CE]/30'
+                                        : dark ? 'hover:bg-[#281438] text-[#94A3B8]' : 'hover:bg-[#EDF2F7] text-[#64748B]'
                                     }`}
                                   >
                                     <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tier.color }} />
@@ -1816,24 +1987,24 @@ export default function App() {
                         {/* Mode toggle (Rich HTML vs Text) */}
                         {rawHtml && (
                           <div className={`flex items-center p-0.5 rounded-lg border text-xs ${
-                            dark ? 'border-[#27272A] bg-zinc-900/60' : 'border-[#E4E4E7] bg-zinc-100/70'
+                            dark ? 'border-[#361A4B] bg-[#180B23]' : 'border-[#E2E8F0] bg-[#F1F5F9]'
                           }`}>
                             <button
                               onClick={() => setViewMode('rich')}
-                              className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                              className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
                                 viewMode === 'rich'
-                                  ? dark ? 'bg-zinc-800 text-white shadow-sm' : 'bg-white text-zinc-900 shadow-sm'
-                                  : 'text-zinc-500'
+                                  ? dark ? 'bg-[#2E163F] text-[#F8FAFC] shadow-sm' : 'bg-[#FFFFFF] text-[#1D0B2B] shadow-sm'
+                                  : 'text-[#94A3B8]'
                               }`}
                             >
                               Rich HTML
                             </button>
                             <button
                               onClick={() => setViewMode('plain')}
-                              className={`px-2.5 py-1 rounded-md font-medium transition cursor-pointer ${
+                              className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
                                 viewMode === 'plain'
-                                  ? dark ? 'bg-zinc-800 text-white shadow-sm' : 'bg-white text-zinc-900 shadow-sm'
-                                  : 'text-zinc-500'
+                                  ? dark ? 'bg-[#2E163F] text-[#F8FAFC] shadow-sm' : 'bg-[#FFFFFF] text-[#1D0B2B] shadow-sm'
+                                  : 'text-[#94A3B8]'
                               }`}
                             >
                               Text
@@ -1849,8 +2020,8 @@ export default function App() {
                             href={`https://mail.google.com/mail/u/0/#inbox/${currentEmail.thread_id || currentEmail.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
-                              dark ? 'hover:bg-zinc-800 text-zinc-300' : 'hover:bg-zinc-100 text-zinc-700'
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                              dark ? 'hover:bg-[#281438] text-[#CBD5E1] hover:text-[#F59E0B]' : 'hover:bg-[#EDF2F7] text-[#4D3A5B] hover:text-[#7E22CE]'
                             }`}
                             title="Open in Gmail"
                           >
@@ -1859,14 +2030,12 @@ export default function App() {
                           </a>
                         )}
 
-
-
                         {/* Navigation buttons for next/prev email */}
-                        <div className="flex items-center gap-0.5 ml-2 pl-2 border-l border-zinc-200 dark:border-zinc-800">
+                        <div className="flex items-center gap-0.5 ml-2 pl-2 border-l border-[#361A4B] dark:border-[#361A4B]">
                           <button
                             disabled={!prevEmail}
                             onClick={() => selectEmail(prevEmail)}
-                            className="p-1.5 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 disabled:opacity-30"
+                            className="p-1.5 rounded text-[#94A3B8] hover:text-white disabled:opacity-30"
                             title="Previous email"
                           >
                             <ChevronLeft className="w-4 h-4" />
@@ -1874,7 +2043,7 @@ export default function App() {
                           <button
                             disabled={!nextEmail}
                             onClick={() => selectEmail(nextEmail)}
-                            className="p-1.5 rounded text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 disabled:opacity-30"
+                            className="p-1.5 rounded text-[#94A3B8] hover:text-white disabled:opacity-30"
                             title="Next email"
                           >
                             <ChevronRight className="w-4 h-4" />
@@ -1885,33 +2054,35 @@ export default function App() {
 
                     {/* Email Reader Canvas */}
                     <article className="px-6 sm:px-12 py-8 max-w-4xl w-full select-text">
-                      <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-6">
+                      <h1 className={`text-xl sm:text-2xl font-bold tracking-tight mb-6 ${dark ? 'text-[#F8FAFC]' : 'text-[#1D0B2B]'}`}>
                         {currentEmail.subject}
                       </h1>
 
                       {/* Sender row header */}
-                      <div className="flex items-start justify-between gap-4 mb-8 pb-6 border-b border-zinc-200/60 dark:border-zinc-800/60">
+                      <div className={`flex items-start justify-between gap-4 mb-8 pb-6 border-b ${
+                        dark ? 'border-[#2D153E]' : 'border-[#E2E8F0]'
+                      }`}>
                         <div className="flex items-center gap-3.5 min-w-0">
                           <div
                             className={`w-10 h-10 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ${
-                              dark ? 'bg-zinc-800 text-white' : currentEmail.avatarBg
+                              dark ? 'bg-[#281438] text-[#F8FAFC] ring-1 ring-[#3B1E52]' : 'bg-[#EDE9FE] text-[#3B0764] ring-1 ring-[#CBD5E1]'
                             }`}
                           >
                             {currentEmail.initials}
                           </div>
                           <div className="min-w-0 truncate">
                             <div className="flex items-baseline gap-2">
-                              <span className="text-sm font-semibold truncate">{currentEmail.sender}</span>
-                              <span className="text-xs text-zinc-500 truncate">&lt;{currentEmail.email}&gt;</span>
+                              <span className={`text-sm font-semibold truncate ${dark ? 'text-[#F8FAFC]' : 'text-[#1D0B2B]'}`}>{currentEmail.sender}</span>
+                              <span className="text-xs text-[#94A3B8] truncate">&lt;{currentEmail.email}&gt;</span>
                             </div>
-                            <div className="text-xs text-zinc-400 mt-0.5">to: me</div>
+                            <div className="text-xs text-[#94A3B8] mt-0.5">to: me</div>
                           </div>
                         </div>
 
                         <div className="flex flex-col items-end shrink-0">
-                          <span className="text-xs text-zinc-500">{currentEmail.fullDate}</span>
+                          <span className="text-xs text-[#94A3B8]">{currentEmail.fullDate}</span>
                           {loadingDetail && (
-                            <span className="text-[11px] text-blue-500 flex items-center gap-1 mt-1">
+                            <span className="text-[11px] text-[#F59E0B] flex items-center gap-1 mt-1 font-semibold">
                               <RefreshCw className="w-3 h-3 animate-spin" />
                               Loading...
                             </span>
@@ -1923,10 +2094,10 @@ export default function App() {
                       <div className="min-h-[220px]">
                         {loadingDetail && !rawHtml && !rawBody ? (
                           <div className="py-8 space-y-4 animate-pulse">
-                            <div className={`h-4 rounded w-3/4 ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
-                            <div className={`h-4 rounded w-full ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
-                            <div className={`h-4 rounded w-5/6 ${dark ? 'bg-zinc-800' : 'bg-zinc-200'}`} />
-                            <div className={`h-36 rounded w-full ${dark ? 'bg-zinc-800/50' : 'bg-zinc-100'}`} />
+                            <div className={`h-4 rounded w-3/4 ${dark ? 'bg-[#281438]' : 'bg-[#EDF2F7]'}`} />
+                            <div className={`h-4 rounded w-full ${dark ? 'bg-[#281438]' : 'bg-[#EDF2F7]'}`} />
+                            <div className={`h-4 rounded w-5/6 ${dark ? 'bg-[#281438]' : 'bg-[#EDF2F7]'}`} />
+                            <div className={`h-36 rounded w-full ${dark ? 'bg-[#241232]' : 'bg-[#F8FAFC]'}`} />
                           </div>
                         ) : viewMode === 'rich' && rawHtml ? (
                           <HtmlEmailViewer html={rawHtml} dark={dark} />
@@ -1940,23 +2111,23 @@ export default function App() {
 
                       {/* Attachment Pills */}
                       {currentEmail.attachment && (
-                        <div className="mt-8 pt-6 border-t border-zinc-200/60 dark:border-zinc-800/60">
+                        <div className={`mt-8 pt-6 border-t ${dark ? 'border-[#2D153E]' : 'border-[#E2E8F0]'}`}>
                           <button
                             onClick={() => triggerToast(`Downloaded ${currentEmail.attachment.name}`)}
-                            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition cursor-pointer ${
-                              dark ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'
+                            className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer border ${
+                              dark ? 'bg-[#281438] text-[#F8FAFC] border-[#3B1E52] hover:bg-[#341A49]' : 'bg-[#FFFFFF] text-[#1D0B2B] border-[#CBD5E1] hover:bg-[#F1F5F9]'
                             }`}
                           >
-                            <Paperclip className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="font-medium">{currentEmail.attachment.name}</span>
-                            <span className="text-zinc-500">· {currentEmail.attachment.size}</span>
+                            <Paperclip className="w-3.5 h-3.5 text-[#F59E0B]" />
+                            <span>{currentEmail.attachment.name}</span>
+                            <span className="text-[#94A3B8]">· {currentEmail.attachment.size}</span>
                           </button>
                         </div>
                       )}
                     </article>
                   </>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">
+                  <div className="flex-1 flex items-center justify-center text-[#94A3B8] text-sm">
                     No message selected
                   </div>
                 )}
@@ -1968,19 +2139,21 @@ export default function App() {
 
 
 
-      {/* Floating Compose Dialog (Gmail style) */}
+      {/* Floating Compose Dialog */}
       {composeOpen && (
         <div
           className={`fixed bottom-0 right-4 sm:right-12 z-50 rounded-t-2xl shadow-2xl border transition-all duration-200 overflow-hidden flex flex-col ${
             composeMinimized ? 'w-72 h-11' : 'w-[95vw] sm:w-[540px] h-[480px]'
           } ${
-            dark ? 'bg-[#1E1E22] border-zinc-700 text-zinc-100' : 'bg-white border-zinc-300 text-zinc-900'
+            dark ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]' : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#1D0B2B]'
           }`}
         >
           {/* Compose Header */}
           <div
             className={`px-4 py-2.5 flex items-center justify-between border-b cursor-pointer select-none ${
-              dark ? 'bg-[#26262B] border-zinc-700/80' : 'bg-zinc-100 border-zinc-200'
+              dark
+                ? 'bg-gradient-to-r from-[#2E084D] via-[#4A0E6E] to-[#60148D] border-[#2D3648] text-[#F8FAFC]'
+                : 'bg-gradient-to-r from-[#4A0E6E] via-[#581C87] to-[#6D28D9] text-white shadow-sm'
             }`}
             onClick={() => setComposeMinimized((m) => !m)}
           >
@@ -1988,14 +2161,14 @@ export default function App() {
             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setComposeMinimized((m) => !m)}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                className="p-1 rounded hover:bg-white/10 text-white/80 hover:text-white"
                 title={composeMinimized ? 'Expand' : 'Minimize'}
               >
                 {composeMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
               </button>
               <button
                 onClick={() => setComposeOpen(false)}
-                className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                className="p-1 rounded hover:bg-white/10 text-white/80 hover:text-white"
                 title="Close"
               >
                 <X className="w-3.5 h-3.5" />
@@ -2006,8 +2179,8 @@ export default function App() {
           {!composeMinimized && (
             <>
               {/* Recipients Input */}
-              <div className="flex items-center px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 text-xs">
-                <span className="text-zinc-400 w-12 shrink-0">To:</span>
+              <div className={`flex items-center px-4 py-2 border-b text-xs ${dark ? 'border-[#232B3B]' : 'border-[#E2E8F0]'}`}>
+                <span className="text-[#94A3B8] w-12 shrink-0">To:</span>
                 <input
                   type="email"
                   value={composeData.to}
@@ -2018,8 +2191,8 @@ export default function App() {
               </div>
 
               {/* Subject Input */}
-              <div className="flex items-center px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 text-xs">
-                <span className="text-zinc-400 w-12 shrink-0">Subject:</span>
+              <div className={`flex items-center px-4 py-2 border-b text-xs ${dark ? 'border-[#232B3B]' : 'border-[#E2E8F0]'}`}>
+                <span className="text-[#94A3B8] w-12 shrink-0">Subject:</span>
                 <input
                   type="text"
                   value={composeData.subject}
@@ -2041,7 +2214,7 @@ export default function App() {
 
               {/* Compose Action Footer */}
               <div className={`px-4 py-3 border-t flex items-center justify-between ${
-                dark ? 'border-zinc-800 bg-[#1A1A1D]' : 'border-zinc-200 bg-zinc-50'
+                dark ? 'border-[#232B3B] bg-[#141822]' : 'border-[#E2E8F0] bg-[#F8FAFC]'
               }`}>
                 <div className="flex items-center gap-2">
                   <button
@@ -2050,31 +2223,35 @@ export default function App() {
                       setComposeData({ to: '', subject: '', body: '' });
                       setComposeOpen(false);
                     }}
-                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition shadow-sm cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#4A0E6E] via-[#581C87] to-[#6D28D9] hover:from-[#3B0764] hover:to-[#581C87] text-white transition shadow-sm border border-[#F59E0B]/30 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                   >
                     <span>Send</span>
-                    <Send className="w-3.5 h-3.5" />
+                    <Send className="w-3.5 h-3.5 text-[#F59E0B]" />
                   </button>
                   <a
                     href={`https://mail.google.com/mail/u/0/?view=cm&fs=1&to=${encodeURIComponent(composeData.to)}&su=${encodeURIComponent(composeData.subject)}&body=${encodeURIComponent(composeData.body)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-zinc-400 hover:text-zinc-200 px-2 py-1 rounded"
+                    className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded transition ${
+                      dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#64748B] hover:text-[#1D0B2B]'
+                    }`}
                     title="Open draft directly in Gmail"
                   >
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-3 h-3 text-[#F59E0B]" />
                     <span>In Gmail</span>
                   </a>
                 </div>
 
-                <div className="flex items-center gap-1 text-zinc-400">
+                <div className="flex items-center gap-1 text-[#94A3B8]">
                   <button
                     onClick={() => {
                       setComposeData({ to: '', subject: '', body: '' });
                       setComposeOpen(false);
                       triggerToast('Draft discarded');
                     }}
-                    className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-rose-500 transition cursor-pointer"
+                    className={`p-1.5 rounded transition cursor-pointer ${
+                      dark ? 'hover:bg-[#202737] hover:text-rose-400' : 'hover:bg-[#EDF2F7] hover:text-rose-600'
+                    }`}
                     title="Discard draft"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -2089,10 +2266,10 @@ export default function App() {
       {/* Floating Undo / Action Toast */}
       {toast && (
         <div
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl shadow-lg border text-xs font-medium flex items-center gap-3 z-50 ${
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl shadow-2xl border text-xs font-medium flex items-center gap-3 z-50 ${
             dark
-              ? 'bg-[#1F1F23] border-[#27272A] text-white'
-              : 'bg-zinc-900 border-zinc-800 text-white'
+              ? 'bg-[#241232] border-[#3B1E52] text-[#F8FAFC]'
+              : 'bg-[#1D0B2B] border-[#3B1254] text-[#F8FAFC]'
           }`}
         >
           <span>{toast.message}</span>
@@ -2102,7 +2279,7 @@ export default function App() {
                 toast.undo();
                 setToast(null);
               }}
-              className="text-amber-400 hover:underline font-semibold"
+              className="text-[#F59E0B] hover:underline font-semibold cursor-pointer"
             >
               Undo
             </button>

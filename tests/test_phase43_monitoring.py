@@ -51,6 +51,7 @@ def _make_client_with_session(user_id: str, email: str) -> TestClient:
             creds = MagicMock(spec=Credentials)
             creds.token = "fake_token"
             creds.valid = True
+            creds.expiry = None
         session = session_manager.create_session(
             user_id=user_id, email=email, credentials=creds
         )

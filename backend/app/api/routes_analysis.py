@@ -278,13 +278,12 @@ def start_analysis_job(request: Request, body: AnalysisStartRequest):
             scan_manager.cancel_scan(user_id)
             time.sleep(0.1)
 
-    # Verify Gmail service connectivity
+    # Verify Gmail service connectivity (non-fatal if mailbox is already cached)
+    service = None
     try:
         service = get_user_gmail_service(session=session)
-    except PermissionError:
-        raise HTTPException(status_code=401, detail="Authentication required. Please connect your Gmail account.")
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
+        logger.warning("Live Gmail service unavailable for analysis period %s: %s", target_period, e)
 
     # Check cached stats in date range
     try:
@@ -302,6 +301,9 @@ def start_analysis_job(request: Request, body: AnalysisStartRequest):
     )
     cached_count = stats.get("total_analyzed", 0)
 
+    if not service and cached_count == 0:
+        raise HTTPException(status_code=401, detail="Authentication required. Please connect your Gmail account.")
+
     # Create persistent job in database
     job_record, is_new = user_email_cache.create_or_get_analysis_job(
         user_id=user_id,
@@ -314,17 +316,25 @@ def start_analysis_job(request: Request, body: AnalysisStartRequest):
         reused_from_cache=cached_count
     )
 
-    # Launch background scan engine scoped to date boundaries
-    scan_manager.start_scan(
-        user_id=user_id,
-        service=service,
-        scope="mailbox",
-        mode="full" if body.force_reanalysis else "incremental",
-        query=boundaries["gmail_query"] or None,
-        force_rescan=body.force_reanalysis,
-        period=target_period,
-        analysis_job_id=job_record["job_id"]
-    )
+    if service:
+        # Launch background scan engine scoped to date boundaries
+        scan_manager.start_scan(
+            user_id=user_id,
+            service=service,
+            scope="mailbox",
+            mode="full" if body.force_reanalysis else "incremental",
+            query=boundaries["gmail_query"] or None,
+            force_rescan=body.force_reanalysis,
+            period=target_period,
+            analysis_job_id=job_record["job_id"]
+        )
+    else:
+        user_email_cache.update_analysis_job(
+            job_id=job_record["job_id"],
+            already_analyzed=cached_count,
+            reused_from_cache=cached_count,
+            status="completed"
+        )
 
     return {
         "status": "success",

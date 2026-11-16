@@ -128,6 +128,12 @@ export async function logout() {
   return res.json();
 }
 
+export async function fetchAuthDevLogin() {
+  const res = await apiFetch('/api/auth/dev-login', { method: 'POST' });
+  if (!res.ok) throw new Error(`Dev login failed: HTTP ${res.status}`);
+  return res.json();
+}
+
 export async function fetchProfile() {
   const res = await apiFetch('/api/profile');
   if (!res.ok) {
