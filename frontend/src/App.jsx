@@ -6,12 +6,10 @@ import {
   Sun,
   Moon,
   RefreshCw,
-  PenLine,
   Inbox,
   AlertCircle,
   Star,
   Clock,
-  Send,
   Archive,
   Tag,
   Users,
@@ -30,8 +28,6 @@ import {
   Copy,
   LogOut,
   Columns,
-  Maximize2,
-  Minimize2,
   X,
   Mail,
   MailOpen,
@@ -700,11 +696,6 @@ export default function App() {
   const [copiedId, setCopiedId] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // Compose Dialog State
-  const [composeOpen, setComposeOpen] = useState(false);
-  const [composeMinimized, setComposeMinimized] = useState(false);
-  const [composeData, setComposeData] = useState({ to: '', subject: '', body: '' });
-
   // Cache for full email details (MIME HTML body, complete headers)
   const [emailDetails, setEmailDetails] = useState({});
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -1332,27 +1323,6 @@ export default function App() {
           }`}
         >
           <div className="space-y-3 px-3">
-            {/* Classy Luxury Compose Button */}
-            <div className="pt-0.5">
-              <button
-                onClick={() => {
-                  setComposeOpen(true);
-                  setComposeMinimized(false);
-                }}
-                className={`flex items-center gap-3 py-3 rounded-2xl font-semibold text-sm transition-all shadow-md cursor-pointer border hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${
-                  sidebarOpen ? 'px-5 w-full justify-start' : 'w-10 h-10 justify-center px-0 mx-auto'
-                } ${
-                  dark
-                    ? 'bg-gradient-to-r from-[#2E084D] via-[#4A0E6E] to-[#60148D] hover:from-[#3B0A63] hover:to-[#7419AB] text-[#F8FAFC] border-[#7E22CE]/50 shadow-[0_4px_16px_rgba(126,34,206,0.3)]'
-                    : 'bg-gradient-to-r from-[#581C87] via-[#6B21A8] to-[#7E22CE] hover:from-[#4A0E6E] hover:to-[#6D28D9] text-white border border-[#F59E0B]/40 shadow-[0_4px_16px_rgba(88,28,135,0.22)] hover:shadow-[0_6px_24px_rgba(88,28,135,0.32)]'
-                }`}
-                title="Compose"
-              >
-                <PenLine className="w-4 h-4 shrink-0 text-[#F59E0B] drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
-                {sidebarOpen && <span className="tracking-wide">Compose</span>}
-              </button>
-            </div>
-
             {/* Primary Views */}
             <nav className="space-y-1">
               {[
@@ -2188,132 +2158,6 @@ export default function App() {
           </div>
         </main>
       </div>
-
-
-
-      {/* Floating Compose Dialog */}
-      {composeOpen && (
-        <div
-          className={`fixed bottom-0 right-4 sm:right-12 z-50 rounded-t-2xl shadow-2xl border transition-all duration-200 overflow-hidden flex flex-col ${
-            composeMinimized ? 'w-72 h-11' : 'w-[95vw] sm:w-[540px] h-[480px]'
-          } ${
-            dark ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]' : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#1D0B2B]'
-          }`}
-        >
-          {/* Compose Header */}
-          <div
-            className={`px-4 py-2.5 flex items-center justify-between border-b cursor-pointer select-none ${
-              dark
-                ? 'bg-gradient-to-r from-[#2E084D] via-[#4A0E6E] to-[#60148D] border-[#2D3648] text-[#F8FAFC]'
-                : 'bg-gradient-to-r from-[#4A0E6E] via-[#581C87] to-[#6D28D9] text-white shadow-sm'
-            }`}
-            onClick={() => setComposeMinimized((m) => !m)}
-          >
-            <span className="text-xs font-semibold">New Message</span>
-            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => setComposeMinimized((m) => !m)}
-                className="p-1 rounded hover:bg-white/10 text-white/80 hover:text-white"
-                title={composeMinimized ? 'Expand' : 'Minimize'}
-              >
-                {composeMinimized ? <Maximize2 className="w-3.5 h-3.5" /> : <Minimize2 className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={() => setComposeOpen(false)}
-                className="p-1 rounded hover:bg-white/10 text-white/80 hover:text-white"
-                title="Close"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {!composeMinimized && (
-            <>
-              {/* Recipients Input */}
-              <div className={`flex items-center px-4 py-2 border-b text-xs ${dark ? 'border-[#232B3B]' : 'border-[#E2E8F0]'}`}>
-                <span className="text-[#94A3B8] w-12 shrink-0">To:</span>
-                <input
-                  type="email"
-                  value={composeData.to}
-                  onChange={(e) => setComposeData((prev) => ({ ...prev, to: e.target.value }))}
-                  placeholder="recipient@example.com"
-                  className="w-full bg-transparent outline-none text-xs"
-                />
-              </div>
-
-              {/* Subject Input */}
-              <div className={`flex items-center px-4 py-2 border-b text-xs ${dark ? 'border-[#232B3B]' : 'border-[#E2E8F0]'}`}>
-                <span className="text-[#94A3B8] w-12 shrink-0">Subject:</span>
-                <input
-                  type="text"
-                  value={composeData.subject}
-                  onChange={(e) => setComposeData((prev) => ({ ...prev, subject: e.target.value }))}
-                  placeholder="Subject"
-                  className="w-full bg-transparent outline-none text-xs font-medium"
-                />
-              </div>
-
-              {/* Message Body */}
-              <div className="flex-1 p-4 overflow-y-auto">
-                <textarea
-                  value={composeData.body}
-                  onChange={(e) => setComposeData((prev) => ({ ...prev, body: e.target.value }))}
-                  placeholder="Write your email here..."
-                  className="w-full h-full bg-transparent outline-none text-xs leading-relaxed resize-none"
-                />
-              </div>
-
-              {/* Compose Action Footer */}
-              <div className={`px-4 py-3 border-t flex items-center justify-between ${
-                dark ? 'border-[#232B3B] bg-[#141822]' : 'border-[#E2E8F0] bg-[#F8FAFC]'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      triggerToast('Message sent successfully');
-                      setComposeData({ to: '', subject: '', body: '' });
-                      setComposeOpen(false);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#4A0E6E] via-[#581C87] to-[#6D28D9] hover:from-[#3B0764] hover:to-[#581C87] text-white transition shadow-sm border border-[#F59E0B]/30 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                  >
-                    <span>Send</span>
-                    <Send className="w-3.5 h-3.5 text-[#F59E0B]" />
-                  </button>
-                  <a
-                    href={`https://mail.google.com/mail/u/0/?view=cm&fs=1&to=${encodeURIComponent(composeData.to)}&su=${encodeURIComponent(composeData.subject)}&body=${encodeURIComponent(composeData.body)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded transition ${
-                      dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#64748B] hover:text-[#1D0B2B]'
-                    }`}
-                    title="Open draft directly in Gmail"
-                  >
-                    <ExternalLink className="w-3 h-3 text-[#F59E0B]" />
-                    <span>In Gmail</span>
-                  </a>
-                </div>
-
-                <div className="flex items-center gap-1 text-[#94A3B8]">
-                  <button
-                    onClick={() => {
-                      setComposeData({ to: '', subject: '', body: '' });
-                      setComposeOpen(false);
-                      triggerToast('Draft discarded');
-                    }}
-                    className={`p-1.5 rounded transition cursor-pointer ${
-                      dark ? 'hover:bg-[#202737] hover:text-rose-400' : 'hover:bg-[#EDF2F7] hover:text-rose-600'
-                    }`}
-                    title="Discard draft"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
 
       {/* Floating Undo / Action Toast */}
       {toast && (
