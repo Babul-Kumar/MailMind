@@ -6,14 +6,14 @@
 
 [![Live Frontend](https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://mail-mind-ten-chi.vercel.app)
 [![Live Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://mailmind-api-xzu8.onrender.com)
-[![Pytest Suite](https://img.shields.io/badge/Pytest%20Suite-692%20Passed-success?style=for-the-badge&logo=pytest&logoColor=white)](reports/TEST_RESULTS.md)
-[![Frontend Tests](https://img.shields.io/badge/Node%20Tests-14%20Passed-success?style=for-the-badge&logo=nodedotjs&logoColor=white)](reports/TEST_RESULTS.md)
+[![Pytest Suite](https://img.shields.io/badge/Pytest%20Suite-696%20Passed-success?style=for-the-badge&logo=pytest&logoColor=white)](reports/TEST_RESULTS.md)
+[![Frontend Tests](https://img.shields.io/badge/Node%20Tests-15%20Passed-success?style=for-the-badge&logo=nodedotjs&logoColor=white)](reports/TEST_RESULTS.md)
 [![Production Model](https://img.shields.io/badge/ML%20Model-priority--v5.1-8A2BE2?style=for-the-badge&logo=scikitlearn&logoColor=white)](dataset/models/priority-v5.1-candidate/model.joblib)
 [![OAuth Scope](https://img.shields.io/badge/OAuth%20Scope-gmail.readonly-F4B400?style=for-the-badge&logo=gmail&logoColor=white)](https://developers.google.com/gmail/api/auth/scopes)
 [![Encryption](https://img.shields.io/badge/Session%20Storage-AES--256%20Fernet-blue?style=for-the-badge&logo=lock&logoColor=white)](backend/app/core/session.py)
 
 <p align="center">
-  <b>Enterprise-grade email triage system pairing sub-millisecond frozen NLP classification with deterministic operational guardrails, dynamic 7-day priority aging, deadline extraction, AES-256 encrypted session persistence, and resilient multi-tier SQLite caching.</b>
+  <b>Enterprise-grade email triage system pairing sub-millisecond frozen NLP classification with deterministic operational guardrails, deadline extraction, Smart Action Queue lifecycle management, AES-256 encrypted session persistence, and resilient multi-tier SQLite caching.</b>
 </p>
 
 [Live Application](https://mail-mind-ten-chi.vercel.app) • [Interactive API Docs](https://mailmind-api-xzu8.onrender.com/docs) • [Master Notebook](index.ipynb) • [Architecture Guide](docs/architecture.md) • [Date Analysis Report](docs/date_analysis.md) • [Model Card](docs/model_card.md) • [Bug Ledger](reports/BUG_LEDGER.md) • [Deployment Runbook](docs/deployment.md)
@@ -28,7 +28,7 @@ Modern knowledge workers face chronic notification fatigue. Over 120 emails arri
 
 **MailMind** resolves this crisis through a **Dual-Layer Hybrid Triage Engine**:
 1. **Probabilistic Linear NLP (`priority-v5.1`)**: A frozen, high-dimensional $n$-gram model that delivers sub-millisecond priority inference ($1.35\text{ ms/email}$) with transparent, explainable feature attribution tokens.
-2. **Deterministic Operational Guardrails & Lifecycle Aging**: A rule-based policy engine that guarantees critical infrastructure downtime alerts and authentication codes are never suppressed, while dynamically aging stale tasks past their operational utility.
+2. **Deterministic Operational Guardrails & Action Lifecycle**: A rule-based policy engine that guarantees critical infrastructure downtime alerts and authentication codes are never suppressed, pairing machine learning classification with a Smart Action Queue for managing deliverables, deadlines, and task resolution.
 
 MailMind operates exclusively under Google's read-only OAuth 2.0 permission (`gmail.readonly`), caching mailbox metadata securely in an indexed SQLite WAL store while symmetrically encrypting credentials at rest on disk with AES-256 Fernet.
 
@@ -37,7 +37,7 @@ MailMind operates exclusively under Google's read-only OAuth 2.0 permission (`gm
 ## 2. Key Capabilities & Architectural Pillars
 
 - **Dual-Layer Hybrid Classification**: Combines statistical $n$-gram modeling (66,526 lexical features) with strict domain-specific guardrails. Critical server outage notices (`INFRA_P1_OUTAGE`) and 2FA authentication challenges are deterministically routed to **P1** with actionable flags, eliminating domain-shift false negatives.
-- **7-Day Dynamic Priority Aging**: Time-sensitive emails evolve. Expired OTP codes (10-minute lifetime) and passed deadlines automatically lose urgency, while undated P1 tasks gracefully demote to P2 after 7 days, preventing backlog clutter.
+- **Smart Action Queue & Deadline Extraction**: Decouples operational requirements from statistical priority. Actionable emails are prioritized in a dedicated Action Queue with deadline status detection, allowing items to be tracked as active, snoozed, or resolved without mutating the underlying statistical priority.
 - **Decoupled Actionability Architecture**: Statistical priority (informational importance) is decoupled from operational requirements. An announcement or hall ticket notice categorized as Routine (P3) that contains an explicit deliverable surfaces immediately in the **Smart Action Queue** without corrupting the statistical model.
 - **Multi-Tier Persistence Engine**:
   - **L1 In-Memory Cache**: Bounded LRU pool (capped at 500 items per user) to protect server containers against OOM errors.
@@ -54,42 +54,30 @@ MailMind operates exclusively under Google's read-only OAuth 2.0 permission (`gm
 
 MailMind maps incoming correspondence into four clearly defined operational tiers:
 
-| Tier | Priority Label | Operational Semantics | SLA Target | Lifecycle & Aging Behavior |
+| Tier | Priority Label | Operational Semantics | SLA Target | Operational Handling & Lifecycle |
 |:---:|:---|:---|:---:|:---|
-| **P1** | **Critical / Urgent** | Active outages, infrastructure downtime, security alerts, live OTP codes | $< 1$ Hour | Expired OTPs demote immediately; emails without explicit deadlines demote to P2 after 7 days. |
-| **P2** | **Important / Actionable** | Direct client inquiries, project deadlines, invoice actions, grade submissions | $< 24$ Hours | Remains actionable in the active queue until marked resolved, snoozed, or past deadline. |
+| **P1** | **Critical / Urgent** | Active outages, infrastructure downtime, security alerts, live OTP codes | $< 1$ Hour | High-priority immediate triage; critical alerts and live 2FA/OTPs surface instantly in primary views. |
+| **P2** | **Important / Actionable** | Direct client inquiries, project deadlines, invoice actions, grade submissions | $< 24$ Hours | Prioritized in the Smart Action Queue until marked resolved or snoozed. |
 | **P3** | **Routine / Informational** | Team announcements, course updates, release notes, system digests | As needed | Archived or read at user convenience; actionable announcements surface in the Action Queue. |
 | **P4** | **Low / Promotional** | Marketing newsletters, product discounts, automated spam, promotional noise | None | Automatically filtered out of primary operational views. |
 
-### Lifecycle & Priority-Aging Flow
+### Email Triage & Action Pipeline
 
 ```mermaid
 flowchart TD
     Start["Incoming Email Ingestion"] --> Parse["MIME Normalizer & Header Extraction"]
     Parse --> Model["Frozen priority-v5.1 NLP Model"]
     Model --> Refine["Deterministic Guardrails (Refinement Layer)"]
+    Refine --> Store["Multi-Tier Cache (SQLite WAL + Memory)"]
     
-    Refine --> HasDeadline{"Explicit Deadline Detected?"}
+    Refine --> ActionDetect{"Is Actionable Deliverable?"}
+    ActionDetect -- Yes --> DeadlineCheck{"Explicit Deadline Extracted?"}
+    DeadlineCheck -- Yes --> QueueActive["Route to Smart Action Queue<br/>(Flagged with Deadline Target)"]
+    DeadlineCheck -- No --> QueueNormal["Route to Smart Action Queue<br/>(Standard Operational Action)"]
     
-    HasDeadline -- Yes --> CheckExpired{"Deadline < Current Time?"}
-    CheckExpired -- Yes --> Demote["Demote Priority (P1 → P2 / P3)<br/>Mark Action State as EXPIRED"]
-    CheckExpired -- No --> RetainActive["Retain Priority (P1/P2)<br/>Action State: ACTIVE"]
-    
-    HasDeadline -- No --> CheckOTP{"Is OTP / 2FA Code?"}
-    CheckOTP -- Yes --> CheckOTPExpiry{"Age > 10 Minutes?"}
-    CheckOTPExpiry -- Yes --> DemoteOTP["Demote P1 → P2 / Dismiss Action"]
-    CheckOTPExpiry -- No --> ActiveOTP["Retain P1 (Immediate Action)"]
-    
-    CheckOTP -- No --> CheckAge{"Age > 7 Days?"}
-    CheckAge -- Yes --> Demote7Days["Demote P1 → P2 (Routine Aging)"]
-    CheckAge -- No --> KeepP1["Retain P1 Priority"]
-    
-    RetainActive --> Queue["Persist to Smart Action Queue"]
-    Demote --> Queue
-    ActiveOTP --> Queue
-    DemoteOTP --> Queue
-    Demote7Days --> Queue
-    KeepP1 --> Queue
+    ActionDetect -- No --> InformationalView["Standard Inbox / Priority View"]
+    QueueActive --> ActionLifecycle["Action State Management<br/>(Active / Older / Resolved / Snoozed)"]
+    QueueNormal --> ActionLifecycle
 ```
 
 ---
@@ -119,9 +107,9 @@ flowchart LR
     subgraph Backend ["Application Layer (Render Cloud)"]
         FastAPI["FastAPI REST Application<br/>(backend/app/main.py)"]
         DateEngine["Date Range & Sync Engine<br/>(backend/app/core/date_utils.py)"]
-        AgingEngine["Priority Aging & Policy<br/>(backend/app/core/action_policy.py)"]
+        ActionPolicy["Action Policy Engine<br/>(backend/app/core/action_policy.py)"]
         FastAPI --> DateEngine
-        FastAPI --> AgingEngine
+        FastAPI --> ActionPolicy
     end
 
     subgraph Intelligence ["ML & Refinement Layer"]
@@ -133,7 +121,7 @@ flowchart LR
         MIMEParser --> NLPModel
         NLPModel --> Explainer
         NLPModel --> Guardrails
-        Guardrails --> AgingEngine
+        Guardrails --> ActionPolicy
     end
 
     subgraph Storage ["Multi-Tier Isolated Persistence"]
@@ -141,8 +129,8 @@ flowchart LR
         L2["L2 SQLite Store (WAL)<br/>(user_id, message_id, model_version)"]
         Actions["Action Lifecycle Store<br/>(Resolved / Snoozed / Dismissed)"]
         
-        AgingEngine --> L1
-        AgingEngine --> L2
+        ActionPolicy --> L1
+        ActionPolicy --> L2
         FastAPI --> Actions
     end
 
@@ -194,11 +182,11 @@ MailMind provides an OpenAPI 3.0-compliant REST API. Interactive Swagger documen
 |:---|:---|:---|:---|
 | `GET` | `/api/emails` | `page`, `page_size`, `priority`, `action_required`, `period`, `query`, `sync` | Unified paginated mailbox endpoint with server-side priority and date filtering, search, and incremental background synchronization. |
 | `GET` | `/api/emails/{id}` | `None` | Retrieves complete sanitized MIME message details, HTML content, and headers on demand. |
-| `GET` | `/api/actions/queue` | `limit`, `threshold_days`, `sort_by` | Smart Action Queue returning active tasks with 7-day aging and deadline status. |
+| `GET` | `/api/actions/queue` | `limit`, `threshold_days`, `sort_by` | Smart Action Queue returning prioritized actionable tasks, categorized into active and older items with deadline tracking. |
 | `GET` | `/api/actions/summary` | `threshold_days` | Aggregated action item counts grouped by urgency and deadline status. |
 | `POST` | `/api/actions/resolve` | `{"email_id": "...", "note": "..."}` | Marks an actionable email as resolved with an optional user audit note. |
 | `POST` | `/api/actions/snooze` | `{"email_id": "...", "snooze_until": "ISO-8601"}` | Snoozes an action item until a specified future timestamp. |
-| `POST` | `/api/emails/feedback` | `{"email_id": "...", "corrected_priority": "P1"}` | Ingests user priority corrections for offline model evaluation. |
+| `POST` | `/api/feedback` | `{"email_id": "...", "corrected_priority": "P1"}` | Ingests user priority corrections for offline model evaluation. |
 | `GET` | `/api/health` | `None` | Health probe returning backend status, database connectivity, and active model version. |
 | `GET` | `/api/model-info` | `None` | Returns metadata, SHA-256 hash, and lexical statistics for the active model. |
 | `GET` | `/api/analysis/config` | `None` | Retrieves the active date analysis window (`last_3_months`, `all_time`) and boundary timestamps. |
@@ -250,7 +238,7 @@ pytest tests/ -q
 ......................................................................... [ 84%]
 ......................................................................... [ 94%]
 .........................................                                 [100%]
-692 passed, 2 skipped in 63.24s (0:01:03)
+696 passed, 2 skipped in 61.85s (0:01:02)
 ```
 
 ### Frontend Test Suite (Node.js Test Runner)
@@ -262,7 +250,7 @@ npm test --prefix frontend -- --run
 ✔ formatting.test.js (1.4s)
 ✔ api.test.js (2.1s)
 ✔ useEmails.test.js (2.8s)
-ℹ tests 14 | pass 14 | fail 0 | cancelled 0 | duration_ms ~15.2s
+ℹ tests 15 | pass 15 | fail 0 | cancelled 0 | duration_ms ~15.2s
 ```
 
 ### Production Build Verification (Vite)

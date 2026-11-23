@@ -630,7 +630,8 @@ def auth_status(request: Request):
     }
 
 
-@router.api_route("/dev-login", methods=["GET", "POST"])
+@router.get("/dev-login", operation_id="auth_dev_login_get")
+@router.post("/dev-login", operation_id="auth_dev_login_post")
 def auth_dev_login(request: Request):
     """
     Developer convenience endpoint to connect local developer session in non-production.

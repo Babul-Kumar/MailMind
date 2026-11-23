@@ -6,8 +6,8 @@ from backend.app.ml.registry import model_registry
 router = APIRouter(tags=["Model"])
 
 
-@router.get("/api/model-info")
-@router.get("/api/model/info")
+@router.get("/api/model-info", operation_id="model_information_dash")
+@router.get("/api/model/info", operation_id="model_information_api")
 def model_information():
     """Returns metadata about the active version-controlled ML production model."""
     try:

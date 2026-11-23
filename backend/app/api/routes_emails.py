@@ -1001,7 +1001,12 @@ def get_classified_emails(
     # query_emails already filtered and paginated correctly from the database
     display_list = enriched_display
     if priority and priority.strip().upper() == "NEEDS_ATTENTION":
-        display_list = [e for e in enriched_display if e.get("queue_placement") == "ACTIVE"]
+        display_list = [
+            e for e in enriched_display
+            if not e.get("is_resolved")
+            and not e.get("is_snoozed")
+            and (e.get("queue_placement") in ("ACTIVE", "OLDER") or e.get("action_policy", {}).get("is_actionable"))
+        ]
 
     if action_required is True:
         display_list = [e for e in display_list if e.get("action_required")]

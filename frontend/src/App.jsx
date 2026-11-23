@@ -541,17 +541,19 @@ function formatRealEmail(item, index) {
     daysAgo = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
   }
 
-  // 7-day actionability lifecycle:
-  // - Security alerts and Important emails stay in Needs Attention for days 0-7.
-  // - After 7 days, non-critical items age out from Needs Attention (action_status: 'AGED'), but retain P2 in search & mailbox views.
-  const isAgedOut = item.action_status === 'AGED' || item.action_status === 'EXPIRED' || (daysAgo > 7 && !item.is_critical_incident && !item.deadline_detected && priority === 'P2');
+  // Actionability check:
+  // An email needs attention if it is in the active or older queue, requires action,
+  // has a deadline, or is P1/P2 actionable, provided it is not expired, resolved, or snoozed.
+  const isAgedOut = item.action_status === 'EXPIRED' || item.is_resolved || item.is_snoozed;
   const needsAttention = !isAgedOut && Boolean(
-    item.needs_attention ?? (
-      item.action_required ||
-      item.deadline_detected ||
-      priority === 'P1' ||
-      (priority === 'P2' && item.action_required !== false)
-    )
+    item.queue_placement === 'ACTIVE' ||
+    item.queue_placement === 'OLDER' ||
+    item.needs_attention ||
+    item.action_policy?.is_actionable ||
+    item.action_required ||
+    item.deadline_detected ||
+    priority === 'P1' ||
+    (priority === 'P2' && item.action_required !== false)
   );
 
   return {
@@ -793,11 +795,14 @@ export default function App() {
 
   // Attention Counter (global stats from backend or loaded items fallback)
   const attentionCount = useMemo(() => {
+    if (view === 'attention' && emailsHook.pagination?.total_emails) {
+      return emailsHook.pagination.total_emails;
+    }
     if (emailsHook.stats?.needs_attention_count !== undefined && emailsHook.stats.needs_attention_count !== null) {
       return emailsHook.stats.needs_attention_count;
     }
     return emails.filter((e) => e.needsAttention && !statusMap[e.id]).length;
-  }, [emailsHook.stats, emails, statusMap]);
+  }, [view, emailsHook.pagination?.total_emails, emailsHook.stats, emails, statusMap]);
 
   // Category Counts for Gmail Category Tabs
   const categoryCounts = useMemo(() => {
@@ -825,8 +830,9 @@ export default function App() {
   // Filtered List Items (Meticulous Gmail Tab & Folder Filtering with Timeframe & Strict Time Sorting)
   const visibleEmails = useMemo(() => {
     const filtered = emails.filter((item) => {
-      // 1. Timeframe window filter: strictly enforce "This month" or "Last 3 months"
-      if (!isItemInWindow(item, windowId)) {
+      // 1. Timeframe window filter: strictly enforce "This month" or "Last 3 months" for demo items
+      // For real synchronized emails, backend query already bounds internal_date strictly
+      if (!item.raw && !isItemInWindow(item, windowId)) {
         return false;
       }
 
@@ -837,8 +843,8 @@ export default function App() {
         if (item.daysAgo > 30) return false;
       }
 
-      // 3. Category Tab Filtering
-      if (categoryTab !== 'all') {
+      // 3. Category Tab Filtering (applies only in main mailbox view 'all')
+      if (view === 'all' && categoryTab !== 'all') {
         const cat = getEmailCategory(item);
         if (cat !== categoryTab) {
           // Keep critical P1/P2 items in primary so they are never missed
@@ -1101,17 +1107,20 @@ export default function App() {
     return <AuthCallback />;
   }
 
-  // Calculate Gmail pagination numbers
+  // Calculate Gmail pagination and counts
+  const inboxTotalCount = emailsHook.pagination?.total_emails || emails.length;
   const isPrioritySynced = !priorityFilter || emailsHook.activeFilter === priorityFilter;
-  const isCustomFiltered = Boolean((categoryTab !== 'all') || search.trim());
-  const totalEmails = (isCustomFiltered || !isPrioritySynced)
+  const isCustomFiltered = Boolean((view === 'all' && categoryTab !== 'all') || search.trim());
+  const currentViewTotal = isCustomFiltered
     ? visibleEmails.length
-    : (view === 'attention' ? (attentionCount || visibleEmails.length) : (emailsHook.pagination?.total_emails || visibleEmails.length));
+    : (view === 'attention'
+      ? (emailsHook.pagination?.total_emails || attentionCount || visibleEmails.length)
+      : (emailsHook.pagination?.total_emails || visibleEmails.length));
 
   const currentPage = emailsHook.pagination?.page || 1;
   const pageSize = emailsHook.pagination?.page_size || 50;
   const startNum = visibleEmails.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
-  const endNum = visibleEmails.length === 0 ? 0 : Math.min(startNum + visibleEmails.length - 1, totalEmails);
+  const endNum = visibleEmails.length === 0 ? 0 : Math.min(startNum + visibleEmails.length - 1, currentViewTotal);
   const hasNextPage = (!isCustomFiltered && isPrioritySynced) ? Boolean(emailsHook.pagination?.has_next) : false;
 
   const activeWindowLabel = WINDOWS.find((w) => w.id === windowId)?.label || 'Last 3 months';
@@ -1167,6 +1176,8 @@ export default function App() {
               setReadingEmailId(null);
               setView('all');
               setCategoryTab('all');
+              setPriorityFilter(null);
+              emailsHook.setActiveFilter?.('ALL');
             }}
             className="flex items-center gap-2.5 font-semibold text-lg tracking-tight cursor-pointer"
           >
@@ -1345,7 +1356,7 @@ export default function App() {
             {/* Primary Views */}
             <nav className="space-y-1">
               {[
-                { id: 'all', label: 'Inbox', icon: Inbox, count: totalEmails },
+                { id: 'all', label: 'Inbox', icon: Inbox, count: inboxTotalCount },
                 { id: 'attention', label: 'Needs Attention', icon: AlertCircle, count: attentionCount },
                 { id: 'recent', label: 'Recent Mail', icon: Clock, count: null }
               ].map((nav) => {
@@ -1599,7 +1610,7 @@ export default function App() {
             {/* Right Controls: Pagination 1-50 of 7,044 + Arrow Navigation */}
             <div className="flex items-center gap-3">
               <span className={`tabular-nums ${dark ? 'text-[#94A3B8]' : 'text-[#64748B]'}`}>
-                {startNum}–{endNum} of {totalEmails.toLocaleString()}
+                {startNum}–{endNum} of {currentViewTotal.toLocaleString()}
               </span>
 
               <div className="flex items-center gap-1">
@@ -1645,8 +1656,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* 2. CATEGORY TABS (Primary, Updates, Promotions, Social, All) */}
-          {!readingEmailId && (
+          {/* 2. CATEGORY TABS (Primary, Updates, Promotions, Social, All) - Shown in Main Inbox View */}
+          {!readingEmailId && view === 'all' && (
             <div
               className={`flex items-center border-b shrink-0 px-2 sm:px-4 gap-1 ${
                 dark ? 'bg-[#161B26] border-[#252D3C]' : 'bg-[#FFFFFF] border-[#E2E8F0]'
@@ -1657,7 +1668,7 @@ export default function App() {
                 { id: 'promotions', label: 'Promotions', icon: Tag, count: categoryCounts.promotions },
                 { id: 'social', label: 'Social', icon: Users, count: categoryCounts.social },
                 { id: 'updates', label: 'Updates', icon: Info, count: categoryCounts.updates },
-                { id: 'all', label: 'All', icon: Archive, count: emails.length }
+                { id: 'all', label: 'All', icon: Archive, count: inboxTotalCount }
               ].map((tab) => {
                 const active = categoryTab === tab.id;
                 const IconComponent = tab.icon;
@@ -1695,12 +1706,53 @@ export default function App() {
                             : 'bg-[#F1F5F9] text-[#64748B] border border-[#E2E8F0] group-hover:border-[#CBD5E1]'
                         }`}
                       >
-                        {tab.count}
+                        {tab.count.toLocaleString()}
                       </span>
                     )}
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* NEEDS ATTENTION QUEUE HEADER BANNER */}
+          {!readingEmailId && view === 'attention' && (
+            <div
+              className={`flex items-center justify-between border-b shrink-0 px-4 py-2.5 ${
+                dark ? 'bg-[#1C1327] border-[#2D1B3E]' : 'bg-[#FAF5FF] border-[#E9D5FF]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-[#F59E0B]" />
+                <span className={`text-xs font-bold ${dark ? 'text-[#F8FAFC]' : 'text-[#581C87]'}`}>
+                  Needs Attention Priority Queue
+                </span>
+                <span className="text-[11px] text-[#94A3B8]">
+                  · Operational alerts, tasks requiring action, and upcoming deadlines
+                </span>
+              </div>
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${dark ? 'bg-[#F59E0B]/20 text-[#FBBF24]' : 'bg-[#581C87]/10 text-[#581C87]'}`}>
+                {currentViewTotal.toLocaleString()} items
+              </span>
+            </div>
+          )}
+
+          {/* RECENT MAIL HEADER BANNER */}
+          {!readingEmailId && view === 'recent' && (
+            <div
+              className={`flex items-center justify-between border-b shrink-0 px-4 py-2.5 ${
+                dark ? 'bg-[#181D29] border-[#252D3C]' : 'bg-[#F1F5F9] border-[#CBD5E1]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-[#F59E0B]" />
+                <span className={`text-xs font-bold ${dark ? 'text-[#F8FAFC]' : 'text-[#3B0764]'}`}>
+                  Recent Mail
+                </span>
+                <span className="text-[11px] text-[#94A3B8]">
+                  · Synced messages from the last 30 days
+                </span>
+              </div>
             </div>
           )}
 

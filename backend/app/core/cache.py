@@ -699,6 +699,16 @@ class UserEmailCache:
         if now_ts is None:
             now_ts = datetime.now(timezone.utc).timestamp()
 
+        resolved_ids: Set[str] = set()
+        snoozed_ids: Set[str] = set()
+        if priority and priority.strip().upper() == "NEEDS_ATTENTION":
+            try:
+                from backend.app.core.action_store import user_action_store
+                resolved_ids = user_action_store.get_resolved_message_ids(user_id)
+                snoozed_ids = user_action_store.get_active_snoozed_message_ids(user_id, now_ts=now_ts)
+            except Exception:
+                pass
+
         conn = self._get_connection()
         where_clauses = ["user_id = ?", "is_stale = 0"]
         params: List[Any] = [user_id]
@@ -799,6 +809,8 @@ class UserEmailCache:
 
                 if target_priority:
                     if target_priority == "NEEDS_ATTENTION":
+                        if (resolved_ids and mid in resolved_ids) or (snoozed_ids and mid in snoozed_ids):
+                            continue
                         if aging["is_otp_expired"] or (aging["deadline_status"] == "EXPIRED" and not aging["is_critical_incident"]):
                             continue
                         if aging.get("action_status") == "AGED" and not aging.get("is_critical_incident"):
