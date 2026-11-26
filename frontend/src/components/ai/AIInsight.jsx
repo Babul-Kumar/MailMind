@@ -201,8 +201,13 @@ export function AIInsight({ email }) {
                 <div style={{ fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Top text features:</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                   {email.top_signals.map((sig, idx) => (
-                    <span key={idx} title={`weight: +${sig.weight}`} style={{ padding: '0.12rem 0.45rem', backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.73rem', color: 'var(--text-main)' }}>
+                    <span key={idx} title={`weight: +${sig.weight}${sig.contribution_pct != null ? ` (${sig.contribution_pct}%)` : ''}`} style={{ padding: '0.12rem 0.45rem', backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.73rem', color: 'var(--text-main)' }}>
                       <span style={{ color: 'var(--accent)', fontWeight: 700 }}>+</span> {sig.term}
+                      {sig.contribution_pct != null && (
+                        <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '0.68rem' }}>
+                          {sig.contribution_pct}%
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>

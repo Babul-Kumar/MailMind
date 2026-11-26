@@ -1,5 +1,7 @@
 # Google OAuth credentials, tokens, cache, and scans
+google_auth/credentials.json
 google_auth/credentials*
+google_auth/token.json
 google_auth/token*
 google_auth/sessions/
 google_auth/cache/

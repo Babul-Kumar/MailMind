@@ -450,7 +450,7 @@ export default function App() {
   const [view, setView] = useState('all'); // 'all' | 'attention' | 'recent'
   const [categoryTab, setCategoryTab] = useState('all'); // 'all' | 'primary' | 'promotions' | 'social' | 'updates'
   const [readingEmailId, setReadingEmailId] = useState(null); // when null: table view; when id: open email view
-  const [selectedId, setSelectedId] = useState('e1');
+  const [selectedId, setSelectedId] = useState(null);
   const [priorityFilter, setPriorityFilter] = useState(null); // null | 'P1' | 'P2' | 'P3' | 'P4'
   const [windowId, setWindowId] = useState('last_3_months');
   const [search, setSearch] = useState('');
@@ -543,20 +543,6 @@ export default function App() {
     const timer = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(timer);
   }, [toast]);
-
-  // Close floating menus on Escape
-  useEffect(() => {
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setPriorityMenuOpen(false);
-        setWindowMenuOpen(false);
-        setUserMenuOpen(false);
-        setSelectMenuOpen(false);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
 
   const closeAllMenus = () => {
     setPriorityMenuOpen(false);
@@ -693,9 +679,6 @@ export default function App() {
   useEffect(() => {
     if (!currentEmail?.id) return;
     const emailId = currentEmail.id;
-
-    // Skip mock static emails
-    if (emailId.startsWith('e') && emailId.length <= 3) return;
 
     // If detail is already cached with full HTML or body, skip
     if (emailDetails[emailId]) return;
@@ -878,6 +861,63 @@ export default function App() {
   const currentIdx = visibleEmails.findIndex((e) => e.id === currentEmail?.id);
   const prevEmail = currentIdx > 0 ? visibleEmails[currentIdx - 1] : null;
   const nextEmail = currentIdx >= 0 && currentIdx < visibleEmails.length - 1 ? visibleEmails[currentIdx + 1] : null;
+
+  // Keyboard navigation (Escape, j/k, ArrowDown/Up, Enter, e)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        const anyMenuOpen = priorityMenuOpen || windowMenuOpen || userMenuOpen || selectMenuOpen;
+        setPriorityMenuOpen(false);
+        setWindowMenuOpen(false);
+        setUserMenuOpen(false);
+        setSelectMenuOpen(false);
+        if (!anyMenuOpen && readingEmailId && layoutMode === 'table') {
+          setReadingEmailId(null);
+          setMobileReading(false);
+        }
+        return;
+      }
+
+      if (!auth.isAuthenticated || e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) {
+        return;
+      }
+
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        if (nextEmail) {
+          e.preventDefault();
+          setSelectedId(nextEmail.id);
+          if (readingEmailId) setReadingEmailId(nextEmail.id);
+        }
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        if (prevEmail) {
+          e.preventDefault();
+          setSelectedId(prevEmail.id);
+          if (readingEmailId) setReadingEmailId(prevEmail.id);
+        }
+      } else if (e.key === 'Enter' && !readingEmailId && layoutMode === 'table' && currentEmail) {
+        // Only trigger Enter if focus is not already inside an interactive button/link
+        if (tag !== 'BUTTON' && tag !== 'A' && !e.target?.getAttribute('role')) {
+          e.preventDefault();
+          selectEmail(currentEmail);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    auth.isAuthenticated,
+    priorityMenuOpen,
+    windowMenuOpen,
+    userMenuOpen,
+    selectMenuOpen,
+    readingEmailId,
+    layoutMode,
+    currentEmail,
+    nextEmail,
+    prevEmail,
+  ]);
 
   // Render OAuth callback
   if (currentPath === '/auth/callback') {
@@ -1557,6 +1597,8 @@ export default function App() {
             {/* EMAIL LIST TABLE (Shown when not reading in table mode, or in split mode) */}
             {(!readingEmailId || layoutMode === 'split') && (
               <div
+                role="listbox"
+                aria-label="Email list"
                 className={`flex-1 flex flex-col overflow-y-auto ${
                   layoutMode === 'split' ? 'w-full md:w-[420px] lg:w-[480px] shrink-0 border-r' : 'w-full'
                 } ${dark ? 'border-[#2D153E]' : 'border-[#E2E8F0]'}`}
@@ -1577,8 +1619,17 @@ export default function App() {
                     return (
                       <div
                         key={item.id}
+                        role="option"
+                        aria-selected={isSelected}
+                        tabIndex={0}
                         onClick={() => selectEmail(item)}
-                        className={`group flex items-center h-10 sm:h-11 px-3 sm:px-4 border-b transition-all duration-150 cursor-pointer text-[13px] sm:text-[13.5px] select-none relative ${
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            selectEmail(item);
+                          }
+                        }}
+                        className={`group flex items-center h-10 sm:h-11 px-3 sm:px-4 border-b transition-all duration-150 cursor-pointer text-[13px] sm:text-[13.5px] select-none relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7E22CE] ${
                           isSelected && layoutMode === 'split'
                             ? dark ? 'bg-[#2E1A40] shadow-[inset_3.5px_0_0_0_#F59E0B]' : 'bg-[#FAF5FF] shadow-[inset_3.5px_0_0_0_#581C87] border-[#DDD6FE]'
                             : isChecked
@@ -1590,6 +1641,8 @@ export default function App() {
                       >
                         {/* Checkbox column */}
                         <button
+                          type="button"
+                          aria-label={isChecked ? `Deselect ${item.subject}` : `Select ${item.subject}`}
                           onClick={(e) => toggleCheckEmail(item.id, e)}
                           className="p-1 -ml-1 transition shrink-0 cursor-pointer hover:scale-110 active:scale-95 duration-150"
                           title="Select"
@@ -1603,6 +1656,8 @@ export default function App() {
 
                         {/* Star column */}
                         <button
+                          type="button"
+                          aria-label={isStarred ? `Remove star from ${item.subject}` : `Star ${item.subject}`}
                           onClick={(e) => toggleStarEmail(item.id, e)}
                           className="p-1 transition shrink-0 cursor-pointer hover:scale-125 active:scale-95 duration-150"
                           title={isStarred ? "Starred" : "Not starred"}
@@ -1790,8 +1845,23 @@ export default function App() {
                                   : 'bg-[#FFFFFF] border-[#E2E8F0] text-[#1D0B2B]'
                               }`}
                             >
-                              <div className="text-xs space-y-1">
+                              <div className="text-xs space-y-1.5">
                                 <p>Matched: <span className="text-[#F59E0B] font-medium">{currentEmail.matched}</span></p>
+                                {currentEmail.raw?.top_signals?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 pt-0.5">
+                                    {currentEmail.raw.top_signals.slice(0, 4).map((sig, sIdx) => (
+                                      <span
+                                        key={sIdx}
+                                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                                          dark ? 'bg-[#281438] border-[#3B1E52] text-[#CBD5E1]' : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#475569]'
+                                        }`}
+                                        title={`Weight: +${sig.weight}`}
+                                      >
+                                        +{sig.term}{sig.contribution_pct != null ? ` (${sig.contribution_pct}%)` : ''}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                                 {currentEmail.note && <p className="text-[#94A3B8]">{currentEmail.note}</p>}
                               </div>
                               <div className="pt-2 border-t grid grid-cols-4 gap-1 border-[#361A4B] dark:border-[#361A4B]">

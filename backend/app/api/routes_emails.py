@@ -4,6 +4,7 @@ import json
 import logging
 import hashlib
 import threading
+import anyio
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Query, HTTPException, Request, Response
@@ -196,52 +197,56 @@ async def start_scan(
     mode = "full" if str(mode).strip().lower() == "full" else "incremental"
     query = str(query).strip()[:200] if query and str(query).strip() else None
 
-    session = get_session_from_request(request)
-    if not session:
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required. Please connect your Gmail account."
+    def _prepare_and_start():
+        session = get_session_from_request(request)
+        if not session:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required. Please connect your Gmail account."
+            )
+
+        # Scoping to user analysis preference (default: last_3_months)
+        pref = user_email_cache.get_analysis_preference(session.user_id, session.email)
+        active_period = (period or period_from_body or pref.get("period") or "last_3_months").lower().strip()
+        from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
+        if active_period not in SUPPORTED_PERIODS:
+            active_period = "last_3_months"
+
+        scan_query = query
+        if not scan_query and active_period != "all_time":
+            boundaries = calculate_period_boundaries(
+                period=active_period,
+                tz_name=pref.get("timezone", "UTC"),
+                custom_start_date=pref.get("custom_start_date"),
+                custom_end_date=pref.get("custom_end_date")
+            )
+            scan_query = boundaries.get("gmail_query") or None
+
+        # If scan is already running for user, return active scan status immediately
+        if scan_manager.is_scanning(session.user_id):
+            return scan_manager.get_status(session.user_id)
+
+        try:
+            service = get_user_gmail_service(session=session)
+        except PermissionError:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required. Please connect your Gmail account."
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
+
+        return scan_manager.start_scan(
+            user_id=session.user_id,
+            service=service,
+            scope=scope,
+            mode=mode,
+            query=scan_query,
+            force_rescan=force_rescan,
+            period=active_period
         )
 
-    # Scoping to user analysis preference (default: last_3_months)
-    pref = user_email_cache.get_analysis_preference(session.user_id, session.email)
-    active_period = (period or period_from_body or pref.get("period") or "last_3_months").lower().strip()
-    from backend.app.core.date_utils import SUPPORTED_PERIODS, calculate_period_boundaries
-    if active_period not in SUPPORTED_PERIODS:
-        active_period = "last_3_months"
-
-    if not query and active_period != "all_time":
-        boundaries = calculate_period_boundaries(
-            period=active_period,
-            tz_name=pref.get("timezone", "UTC"),
-            custom_start_date=pref.get("custom_start_date"),
-            custom_end_date=pref.get("custom_end_date")
-        )
-        query = boundaries.get("gmail_query") or None
-
-    # If scan is already running for user, return active scan status immediately
-    if scan_manager.is_scanning(session.user_id):
-        return scan_manager.get_status(session.user_id)
-
-    try:
-        service = get_user_gmail_service(session=session)
-    except PermissionError:
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required. Please connect your Gmail account."
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Gmail API connection error: {str(e)}")
-
-    return scan_manager.start_scan(
-        user_id=session.user_id,
-        service=service,
-        scope=scope,
-        mode=mode,
-        query=query,
-        force_rescan=force_rescan,
-        period=active_period
-    )
+    return await anyio.to_thread.run_sync(_prepare_and_start)
 
 
 @router.post("/api/scan/cancel")

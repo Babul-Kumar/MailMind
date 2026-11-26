@@ -23,7 +23,7 @@ import uuid
 import logging
 import threading
 
-_feedback_lock = threading.Lock()
+_feedback_lock = threading.RLock()
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from backend.app.core.config import BASE_DIR, DATA_DIR
@@ -207,6 +207,7 @@ class FeedbackManager:
         with _feedback_lock:
             with open(FEEDBACK_FILE, "a", encoding="utf-8") as f:
                 f.write(json.dumps(record) + "\n")
+                f.flush()
         return record
 
     def list_feedback(
@@ -218,29 +219,30 @@ class FeedbackManager:
         """
         Returns recent feedback records, optionally filtered by user_id and model_version.
         """
-        if not os.path.exists(FEEDBACK_FILE):
-            return []
-        records: List[Dict[str, Any]] = []
-        try:
-            with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        rec = json.loads(line)
-                        if user_id is not None and rec.get("user_id") != user_id:
+        with _feedback_lock:
+            if not os.path.exists(FEEDBACK_FILE):
+                return []
+            records: List[Dict[str, Any]] = []
+            try:
+                with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
                             continue
-                        if model_version is not None:
-                            rec_m = rec.get("model_version") or ""
-                            if rec_m != model_version:
+                        try:
+                            rec = json.loads(line)
+                            if user_id is not None and rec.get("user_id") != user_id:
                                 continue
-                        records.append(rec)
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-        return records[-limit:]
+                            if model_version is not None:
+                                rec_m = rec.get("model_version") or ""
+                                if rec_m != model_version:
+                                    continue
+                            records.append(rec)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            return records[-limit:]
 
     def get_unique_cases(
         self,
@@ -484,23 +486,24 @@ class FeedbackManager:
 
     def get_by_feedback_id(self, feedback_id: str) -> Optional[Dict[str, Any]]:
         """Looks up a specific feedback record by feedback_id."""
-        if not os.path.exists(FEEDBACK_FILE):
+        with _feedback_lock:
+            if not os.path.exists(FEEDBACK_FILE):
+                return None
+            try:
+                with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            rec = json.loads(line)
+                            if rec.get("feedback_id") == feedback_id:
+                                return rec
+                        except Exception:
+                            pass
+            except Exception:
+                pass
             return None
-        try:
-            with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        rec = json.loads(line)
-                        if rec.get("feedback_id") == feedback_id:
-                            return rec
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-        return None
 
 
 feedback_manager = FeedbackManager()

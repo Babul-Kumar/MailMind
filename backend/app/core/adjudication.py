@@ -29,6 +29,7 @@ import json
 import time
 import uuid
 import logging
+import threading
 from typing import Dict, Any, List, Optional
 from collections import Counter
 from dataclasses import dataclass, field, asdict
@@ -39,6 +40,7 @@ from backend.app.core.feedback import (
 )
 
 logger = logging.getLogger("mailmind.adjudication")
+_adjudication_lock = threading.RLock()
 
 ADJUDICATION_FILE = os.path.join(FEEDBACK_DIR, "adjudication.jsonl")
 
@@ -198,8 +200,10 @@ class AdjudicationManager:
         )
 
         record_dict = rec.to_dict()
-        with open(ADJUDICATION_FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(record_dict) + "\n")
+        with _adjudication_lock:
+            with open(ADJUDICATION_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record_dict) + "\n")
+                f.flush()
 
         logger.info(
             "adjudication: %s → %s (feedback_id=%s, adjudicator=%s)",
@@ -545,22 +549,23 @@ class AdjudicationManager:
 
     def _load_all(self) -> List[Dict[str, Any]]:
         """Loads all adjudication records."""
-        if not os.path.exists(ADJUDICATION_FILE):
-            return []
-        records: List[Dict[str, Any]] = []
-        try:
-            with open(ADJUDICATION_FILE, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        records.append(json.loads(line))
-                    except Exception:
-                        pass
-        except Exception as exc:
-            logger.warning("adjudication: failed to load: %s", exc)
-        return records
+        with _adjudication_lock:
+            if not os.path.exists(ADJUDICATION_FILE):
+                return []
+            records: List[Dict[str, Any]] = []
+            try:
+                with open(ADJUDICATION_FILE, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            records.append(json.loads(line))
+                        except Exception:
+                            pass
+            except Exception as exc:
+                logger.warning("adjudication: failed to load: %s", exc)
+            return records
 
 
 # Global singleton

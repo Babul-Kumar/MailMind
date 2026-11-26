@@ -33,16 +33,20 @@ from typing import Dict, Any, List, Optional, Set, Tuple
 import joblib
 import numpy as np
 
-from backend.app.core.config import BASE_DIR
+from backend.app.core.config import BASE_DIR, DATA_DIR
 from backend.app.ml.registry import model_registry
 from backend.app.ml.predictor import load_model, predict_email, predict_batch
 
 logger = logging.getLogger("mailmind.shadow_engine")
 
-# Storage locations
-SHADOW_DB_DIR = os.path.join(BASE_DIR, "google_auth", "cache")
+# Storage locations (anchored to DATA_DIR for persistent cloud disk compatibility)
+SHADOW_DB_DIR = os.path.join(DATA_DIR, "cache")
 SHADOW_DB_PATH = os.path.join(SHADOW_DB_DIR, "mailmind_shadow.db")
-SHADOW_LOGS_DIR = os.path.join(BASE_DIR, "dataset", "monitoring", "shadow_logs")
+SHADOW_LOGS_DIR = (
+    os.path.join(DATA_DIR, "monitoring", "shadow_logs")
+    if os.getenv("DATA_DIR")
+    else os.path.join(BASE_DIR, "dataset", "monitoring", "shadow_logs")
+)
 
 _shadow_lock = threading.RLock()
 _shadow_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="mailmind-shadow")

@@ -54,8 +54,14 @@ def extract_feature_signals(
                 contributions.append((feature_names[idx], float(contrib)))
 
         contributions.sort(key=lambda x: x[1], reverse=True)
+        total_pos = sum(w for _, w in contributions)
         for term, weight in contributions[:max_terms]:
-            signals.append({'term': term, 'weight': round(weight, 4)})
+            pct = round((weight / total_pos) * 100.0, 1) if total_pos > 0 else 0.0
+            signals.append({
+                'term': term,
+                'weight': round(weight, 4),
+                'contribution_pct': pct,
+            })
     except Exception:
         pass
 

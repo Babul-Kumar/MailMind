@@ -8,14 +8,14 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Set, Tuple, Union
 from googleapiclient.errors import HttpError
 
-from backend.app.core.config import BASE_DIR
+from backend.app.core.config import DATA_DIR
 from backend.app.core.cache import user_email_cache, compute_content_hash
 from backend.app.gmail.parser import parse_message
 from backend.app.ml.predictor import load_model, predict_batch
 from backend.app.ml.registry import model_registry
 
 logger = logging.getLogger("mailmind.scan_engine")
-SCANS_DIR = os.path.join(BASE_DIR, "google_auth", "scans")
+SCANS_DIR = os.path.join(DATA_DIR, "scans")
 
 
 class ScanJobState:

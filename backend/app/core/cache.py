@@ -616,6 +616,117 @@ class UserEmailCache:
             )
         return {r["message_id"] for r in cur.fetchall()}
 
+    def consolidate_legacy_user_data(self, canonical_user_id: str, email_address: str) -> int:
+        """
+        Merges any orphaned SQLite cache/preferences partitions keyed by legacy Gmail
+        historyIds into the immutable canonical_user_id for the same gmail_account_id.
+        Non-destructive: preserves newer entries via INSERT OR IGNORE.
+        """
+        if not canonical_user_id or not email_address:
+            return 0
+        norm_email = email_address.strip().lower()
+
+        def _do_consolidate() -> int:
+            conn = self._get_connection()
+            cur = conn.execute(
+                """
+                SELECT DISTINCT user_id, selected_period, custom_start_date, custom_end_date, timezone, updated_at
+                FROM analysis_preferences
+                WHERE LOWER(gmail_account_id) = ? AND user_id != ?
+                ORDER BY updated_at DESC
+                """,
+                (norm_email, canonical_user_id),
+            )
+            legacy_rows = cur.fetchall()
+            if not legacy_rows:
+                return 0
+
+            migrated_total = 0
+            has_action_table = bool(
+                conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='user_action_states'"
+                ).fetchone()
+            )
+
+            for pref_row in legacy_rows:
+                old_uid = pref_row["user_id"]
+                if not old_uid or old_uid == canonical_user_id:
+                    continue
+
+                cur_ins = conn.execute(
+                    """
+                    INSERT OR IGNORE INTO user_email_cache (
+                        user_id, message_id, thread_id, internal_date, date_str,
+                        sender, recipients, subject, snippet, body, content_hash,
+                        model_version, predicted_priority, action_required,
+                        deadline_detected, deadline_display, needs_attention,
+                        refinement_applied, confidence, topic, data_json, analyzed_at,
+                        is_stale, deadline_status, action_evidence, is_analyzed, model_artifact_hash
+                    )
+                    SELECT
+                        ?, message_id, thread_id, internal_date, date_str,
+                        sender, recipients, subject, snippet, body, content_hash,
+                        model_version, predicted_priority, action_required,
+                        deadline_detected, deadline_display, needs_attention,
+                        refinement_applied, confidence, topic, data_json, analyzed_at,
+                        is_stale, deadline_status, action_evidence, is_analyzed, model_artifact_hash
+                    FROM user_email_cache
+                    WHERE user_id = ?
+                    """,
+                    (canonical_user_id, old_uid),
+                )
+                migrated_total += cur_ins.rowcount or 0
+
+                if has_action_table:
+                    conn.execute(
+                        """
+                        INSERT OR IGNORE INTO user_action_states (
+                            user_id, message_id, thread_id, is_resolved, resolved_at,
+                            resolution_note, is_snoozed, snoozed_until, snooze_reason,
+                            created_at, updated_at
+                        )
+                        SELECT
+                            ?, message_id, thread_id, is_resolved, resolved_at,
+                            resolution_note, is_snoozed, snoozed_until, snooze_reason,
+                            created_at, updated_at
+                        FROM user_action_states
+                        WHERE user_id = ?
+                        """,
+                        (canonical_user_id, old_uid),
+                    )
+
+                conn.execute(
+                    "UPDATE analysis_jobs SET user_id = ? WHERE user_id = ?",
+                    (canonical_user_id, old_uid),
+                )
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO analysis_preferences (
+                        user_id, gmail_account_id, selected_period, custom_start_date,
+                        custom_end_date, timezone, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        canonical_user_id,
+                        norm_email,
+                        pref_row["selected_period"],
+                        pref_row["custom_start_date"],
+                        pref_row["custom_end_date"],
+                        pref_row["timezone"],
+                        pref_row["updated_at"],
+                    ),
+                )
+                conn.execute(
+                    "DELETE FROM analysis_preferences WHERE user_id = ? AND LOWER(gmail_account_id) = ?",
+                    (old_uid, norm_email),
+                )
+
+            conn.commit()
+            self._mem_cache.pop(canonical_user_id, None)
+            return migrated_total
+
+        return self._execute_write(_do_consolidate)
+
     def clear_user(self, user_id: str):
         """Clears all cached emails, preferences, and jobs for a specific user."""
         if not user_id:

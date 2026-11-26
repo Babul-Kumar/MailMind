@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 class TopSignal(BaseModel):
     term: str
     weight: float
+    contribution_pct: Optional[float] = None
 
 
 class ClassifiedEmail(BaseModel):

@@ -234,6 +234,15 @@ class SessionManager:
         # Check existing active sessions for dev user
         for s in list(self._sessions.values()):
             if s.email and "babulkumar" in s.email:
+                canonical_uid = s.email.strip().lower()
+                if s.user_id != canonical_uid:
+                    s.user_id = canonical_uid
+                    self._persist_session(s)
+                try:
+                    from backend.app.core.cache import user_email_cache
+                    user_email_cache.consolidate_legacy_user_data(s.user_id, s.email)
+                except Exception:
+                    pass
                 if not s.credentials:
                     return s
                 creds = self.get_credentials(s)
@@ -284,9 +293,15 @@ class SessionManager:
 
                 with open(TOKEN_FILE, "r", encoding="utf-8") as f:
                     creds_dict = json.load(f)
+                dev_email = "babulkumar0220@gmail.com"
+                try:
+                    from backend.app.core.cache import user_email_cache
+                    user_email_cache.consolidate_legacy_user_data(dev_email, dev_email)
+                except Exception:
+                    pass
                 return self.create_session(
-                    user_id="1795488",
-                    email="babulkumar0220@gmail.com",
+                    user_id=dev_email,
+                    email=dev_email,
                     credentials=creds_dict
                 )
             except Exception as e:

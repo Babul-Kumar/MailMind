@@ -3,6 +3,7 @@ import json
 import secrets
 import time
 import urllib.parse
+import anyio
 from typing import Optional
 from fastapi import APIRouter, Request, Response, HTTPException, Query
 from fastapi.responses import RedirectResponse, JSONResponse
@@ -470,8 +471,15 @@ def auth_callback(
         # Verify credentials by fetching user profile from Gmail API
         service = build("gmail", "v1", credentials=credentials, cache_discovery=False)
         profile = service.users().getProfile(userId="me").execute()
-        email_address = profile.get("emailAddress", "unknown@gmail.com")
-        user_id = profile.get("historyId", email_address)
+        email_address = profile.get("emailAddress", "unknown@gmail.com").strip()
+        # Always use canonical immutable lowercase email as user_id (never volatile historyId)
+        user_id = email_address.lower()
+
+        try:
+            from backend.app.core.cache import user_email_cache
+            user_email_cache.consolidate_legacy_user_data(user_id, email_address)
+        except Exception:
+            pass
 
         # Invalidate previous session if any was attached
         old_session = get_session_from_request(request)
@@ -554,16 +562,20 @@ async def auth_exchange(
     if not handoff_token:
         raise HTTPException(status_code=400, detail="Missing required handoff code.")
 
-    session_id = session_manager.consume_handoff(handoff_token)
-    if not session_id:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid, expired, or already-consumed handoff code. Please sign in again."
-        )
+    def _consume_and_resolve():
+        sid = session_manager.consume_handoff(handoff_token)
+        if not sid:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid, expired, or already-consumed handoff code. Please sign in again."
+            )
 
-    session = session_manager.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=401, detail="Session expired or invalid.")
+        sess = session_manager.get_session(sid)
+        if not sess:
+            raise HTTPException(status_code=401, detail="Session expired or invalid.")
+        return sess
+
+    session = await anyio.to_thread.run_sync(_consume_and_resolve)
 
     cookie_samesite, cookie_secure = get_cookie_security_flags(request)
 

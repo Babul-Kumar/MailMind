@@ -29,8 +29,10 @@ TOKEN_FILE = (
     else os.path.join(BASE_DIR, "google_auth", "token.json")
 )
 
-# Machine Learning Artifacts (FROZEN)
-MODEL_PATH = os.path.join(BASE_DIR, "dataset", "models", "tfidf_logistic_baseline.joblib")
+# Machine Learning Artifacts (FROZEN Production priority-v5.1)
+_v51_model_path = os.path.join(BASE_DIR, "dataset", "models", "priority-v5.1-candidate", "model.joblib")
+_baseline_model_path = os.path.join(BASE_DIR, "dataset", "models", "tfidf_logistic_baseline.joblib")
+MODEL_PATH = _v51_model_path if os.path.exists(_v51_model_path) else _baseline_model_path
 TEST_CSV_PATH = os.path.join(BASE_DIR, "dataset", "processed", "test.csv")
 
 # React frontend URL & allowed origins
