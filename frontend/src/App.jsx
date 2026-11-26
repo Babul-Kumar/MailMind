@@ -1367,7 +1367,7 @@ export default function App() {
       {/* TOP BAR: RESPONSIVE HEADER WITH SEARCH, LOGO, CONTROLS, USER AVATAR  */}
       {/* ==================================================================== */}
       <header
-        className={`h-14 sm:h-16 px-3 sm:px-6 flex items-center justify-between gap-2 border-b shrink-0 z-20 backdrop-blur-md transition-colors duration-200 ${
+        className={`relative z-40 h-14 sm:h-16 px-3 sm:px-6 flex items-center justify-between gap-2 border-b shrink-0 backdrop-blur-md transition-colors duration-200 ${
           dark
             ? 'bg-[#181D29]/95 border-[#2D3648] text-[#F8FAFC]'
             : 'bg-[#F5F8FC]/95 border-[#CBD5E1] text-[#1E1231] shadow-[0_1px_3px_rgba(88,28,135,0.03)]'
@@ -1624,14 +1624,14 @@ export default function App() {
 
             {shortcutsOpen && (
               <div
-                className={`absolute right-0 top-11 w-64 rounded-2xl p-3.5 shadow-xl border z-50 animate-slide-down ${
+                className={`absolute right-0 top-12 w-72 rounded-2xl p-4 shadow-2xl border z-50 animate-slide-down ${
                   dark ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]' : 'bg-white border-[#CBD5E1] text-[#1E1231]'
                 }`}
               >
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-3">
                   Keyboard Shortcuts
                 </div>
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2.5 text-xs">
                   {[
                     { key: 'j / k', label: 'Next / Previous email' },
                     { key: '/ or ⌘K', label: 'Search emails' },
@@ -1639,7 +1639,7 @@ export default function App() {
                     { key: 's', label: 'Toggle star' },
                     { key: 'Esc', label: 'Back / Close menu' },
                   ].map((item) => (
-                    <div key={item.key} className="flex items-center justify-between gap-2">
+                    <div key={item.key} className="flex items-center justify-between gap-3">
                       <span className={dark ? 'text-[#CBD5E1]' : 'text-[#4D3A5B]'}>{item.label}</span>
                       <kbd
                         className={`kbd-pill border ${
@@ -1672,7 +1672,7 @@ export default function App() {
           </button>
 
           {/* User Profile Avatar Dropdown */}
-          <div className="relative ml-1" onClick={(e) => e.stopPropagation()}>
+          <div className="relative ml-2" onClick={(e) => e.stopPropagation()}>
             {auth.isAuthenticated ? (
               <button
                 type="button"
@@ -1704,17 +1704,36 @@ export default function App() {
 
             {userMenuOpen && auth.isAuthenticated && (
               <div
-                className={`absolute right-0 top-11 w-60 rounded-2xl p-2 shadow-xl border z-50 animate-slide-down ${
+                className={`absolute right-0 top-12 w-72 rounded-2xl p-3 shadow-2xl border z-50 animate-slide-down ${
                   dark
                     ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]'
                     : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#1D0B2B]'
                 }`}
               >
-                <div className={`px-3 py-2.5 border-b mb-1 ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
-                  <p className="text-xs font-semibold truncate">{userName}</p>
-                  <p className="text-[11px] text-[#94A3B8] truncate">{auth.user?.email || 'Connected'}</p>
-                  <div className="flex items-center gap-1.5 mt-1.5 text-[10.5px] font-medium text-emerald-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <div className={`px-2 py-2 pb-3 border-b mb-2 ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ring-1 ${
+                        dark
+                          ? 'bg-[#2E1A40] text-[#F8FAFC] ring-[#F59E0B]/50'
+                          : 'bg-[#2E084D] text-white ring-[#F59E0B]/60'
+                      }`}
+                    >
+                      {userInitials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate">{userName}</p>
+                      <p className="text-xs text-[#94A3B8] truncate">{auth.user?.email || 'Connected'}</p>
+                    </div>
+                  </div>
+                  <div
+                    className={`mt-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-lg text-[11px] font-medium ${
+                      dark
+                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                     <span>Gmail synced · {inboxTotalCount.toLocaleString()} indexed</span>
                   </div>
                 </div>
@@ -1724,7 +1743,7 @@ export default function App() {
                     setUserMenuOpen(false);
                     auth.logout();
                   }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
                     dark
                       ? 'hover:bg-[#202737] text-rose-400'
                       : 'hover:bg-rose-50 text-rose-600'
@@ -1767,7 +1786,7 @@ export default function App() {
         <aside
           className={`${
             sidebarOpen ? 'w-60' : 'w-16'
-          } hidden md:flex flex-col justify-between shrink-0 border-r py-3 transition-all duration-200 ${
+          } relative z-30 hidden md:flex flex-col justify-between shrink-0 border-r py-3 transition-all duration-200 ${
             dark
               ? 'bg-[#141822] border-[#252D3C]'
               : 'bg-[#F5F8FC]/80 backdrop-blur-md border-[#CBD5E1]'
@@ -1777,17 +1796,17 @@ export default function App() {
         </aside>
 
         {/* ================================================================== */}
-        {/* MAIN MAILBOX WORKSPACE: TOOLBAR + TABS + TABLE ROWS OR READING PANE */}
+        {/* MAIN MAILBOX WORKSPACE: TOOLBAR + TABLE ROWS OR READING PANE       */}
         {/* ================================================================== */}
         <main
-          className={`flex-1 flex flex-col overflow-hidden m-2 sm:m-3 rounded-2xl border shadow-sm transition-colors ${
+          className={`relative z-10 flex-1 flex flex-col overflow-hidden m-2 sm:m-3 rounded-2xl border shadow-sm transition-colors ${
             dark ? 'bg-[#181D29] border-[#2C3547]' : 'bg-[#FFFFFF] border-[#CBD5E1]/90 shadow-[0_2px_14px_rgba(88,28,135,0.04),0_1px_3px_rgba(0,0,0,0.03)]'
           }`}
         >
           {/* 1. ACTION TOOLBAR */}
           <div
-            className={`min-h-[48px] px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 border-b shrink-0 text-xs backdrop-blur-sm ${
-              dark ? 'bg-[#161B26]/90 border-[#252D3C]' : 'bg-[#FFFFFF]/95 border-[#E2E8F0]'
+            className={`relative z-10 min-h-[48px] px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 border-b shrink-0 text-xs ${
+              dark ? 'bg-[#161B26] border-[#252D3C]' : 'bg-[#FFFFFF] border-[#E2E8F0]'
             }`}
           >
             {/* Left Controls: Back / Select All, Refresh, Batch Actions */}
@@ -2446,8 +2465,8 @@ export default function App() {
                   <>
                     {/* Sticky Action Header Strip for Email */}
                     <div
-                      className={`sticky top-0 z-20 min-h-[48px] px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 border-b shrink-0 backdrop-blur-md ${
-                        dark ? 'bg-[#161B26]/95 border-[#252D3C]' : 'bg-[#F8FAFC]/95 border-[#E2E8F0]'
+                      className={`sticky top-0 z-10 min-h-[48px] px-4 sm:px-8 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b shrink-0 backdrop-blur-md ${
+                        dark ? 'bg-[#131722]/95 border-[#252D3C]' : 'bg-[#FFFFFF]/95 border-[#E2E8F0]'
                       }`}
                     >
                       {/* Left: Priority Badge Popover + View Toggle */}
