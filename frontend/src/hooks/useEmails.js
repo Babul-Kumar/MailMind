@@ -751,8 +751,22 @@ export function useEmails(isAuthenticated = false, user = null) {
       };
     });
 
+    setEmails((prev) =>
+      prev.map((e) => ((e.email_id || e.id || e.message_id) === messageId ? { ...e, is_snoozed: true } : e))
+    );
+
+    setStats((prev) =>
+      prev
+        ? {
+            ...prev,
+            needs_attention_count: Math.max(0, (prev.needs_attention_count || 0) - 1),
+          }
+        : prev
+    );
+
     try {
       await snoozeAction(messageId, snoozeUntil, threadId, reason);
+      loadDataRef.current();
     } catch (err) {
       console.error('Failed to snooze action:', err);
       setError('Could not snooze item on server.');

@@ -546,6 +546,7 @@ export default function App() {
   const [aiSignalsExpanded, setAiSignalsExpanded] = useState(false);
 
   const listScrollRef = useRef(null);
+  const readerScrollRef = useRef(null);
   const searchInputRef = useRef(null);
 
   // Synchronize windowId with emailsHook.analysisPeriod when restored
@@ -894,6 +895,19 @@ export default function App() {
     closeAllMenus();
   };
 
+  // Keep reading pane at top and keyboard-selected row visible in list
+  useEffect(() => {
+    readerScrollRef.current?.scrollTo({ top: 0 });
+    if (!currentEmail?.id || !listScrollRef.current) return;
+    const rows = listScrollRef.current.querySelectorAll('[data-email-id]');
+    for (const el of rows) {
+      if (el.getAttribute('data-email-id') === String(currentEmail.id)) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        break;
+      }
+    }
+  }, [currentEmail?.id]);
+
   const setLayoutModeAndPersist = (nextMode) => {
     setLayoutMode(nextMode);
     if (nextMode === 'split') {
@@ -924,12 +938,13 @@ export default function App() {
     if (e) e.stopPropagation();
     if (!item) return;
     const prev = statusMap[item.id];
+    const targetId = item.raw?.email_id || item.raw?.id;
     advanceSelection(item.id);
     setStatusMap((map) => ({ ...map, [item.id]: { state: 'done' } }));
     closeAllMenus();
 
-    if (item.raw?.email_id || item.raw?.id) {
-      emailsHook.resolveEmail?.(item.raw.email_id || item.raw.id);
+    if (targetId) {
+      emailsHook.resolveEmail?.(targetId);
     }
 
     triggerToast('Marked done', () => {
@@ -939,19 +954,55 @@ export default function App() {
         else delete next[item.id];
         return next;
       });
+      if (targetId) {
+        emailsHook.unresolveEmail?.(targetId);
+      }
+    });
+  };
+
+  const snoozeItem = (item, hours = 3, e = null) => {
+    if (e) e.stopPropagation();
+    if (!item) return;
+    const prev = statusMap[item.id];
+    const targetId = item.raw?.email_id || item.raw?.id;
+    const untilIso = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    advanceSelection(item.id);
+    setStatusMap((map) => ({ ...map, [item.id]: { state: 'snoozed', until: untilIso } }));
+    closeAllMenus();
+
+    if (targetId) {
+      emailsHook.snoozeEmail?.(targetId, untilIso, item.thread_id || null, 'Snoozed from MailMind inbox');
+    }
+
+    triggerToast(`Snoozed for ${hours} hours`, () => {
+      setStatusMap((map) => {
+        const next = { ...map };
+        if (prev) next[item.id] = prev;
+        else delete next[item.id];
+        return next;
+      });
+      if (targetId) {
+        emailsHook.unsnoozeEmail?.(targetId);
+      }
     });
   };
 
   const restoreItem = (item, e = null) => {
     if (e) e.stopPropagation();
     if (!item) return;
+    const prevState = statusMap[item.id]?.state;
+    const targetId = item.raw?.email_id || item.raw?.id;
     setStatusMap((map) => {
       const next = { ...map };
       delete next[item.id];
       return next;
     });
-    if (item.raw?.email_id || item.raw?.id) {
-      emailsHook.unresolveEmail?.(item.raw.email_id || item.raw.id);
+    if (targetId) {
+      if (prevState === 'snoozed' || item.raw?.is_snoozed) {
+        emailsHook.unsnoozeEmail?.(targetId);
+      } else {
+        emailsHook.unresolveEmail?.(targetId);
+      }
     }
     triggerToast('Restored to inbox');
   };
@@ -1116,6 +1167,9 @@ export default function App() {
         } else {
           markDone(currentEmail);
         }
+      } else if (e.key === 'h' && currentEmail) {
+        e.preventDefault();
+        snoozeItem(currentEmail, 3);
       } else if (e.key === 's' && currentEmail) {
         e.preventDefault();
         toggleStarEmail(currentEmail.id);
@@ -1240,7 +1294,7 @@ export default function App() {
     <>
       <div className="space-y-3 px-3">
         {isDrawer && (
-          <div className="flex items-center justify-between pb-2 mb-1 border-b border-[#CBD5E1] dark:border-[#252D3C]">
+          <div className={`flex items-center justify-between pb-2 mb-1 border-b ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
             <div className="flex items-center gap-2.5">
               <BrandMark />
               <span className={`font-bold tracking-tight text-base ${dark ? 'text-[#F8FAFC]' : 'text-[#2E084D]'}`}>
@@ -1388,9 +1442,39 @@ export default function App() {
         </div>
       </div>
 
-      {/* Footer of Sidebar: Timeframe Selector */}
+      {/* Footer of Sidebar: Live Background Scan Progress + Timeframe Selector */}
       {expanded && (
-        <div className={`px-3 pt-3 border-t ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
+        <div className={`px-3 pt-3 space-y-2.5 border-t ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
+          {emailsHook.isScanning && emailsHook.scanStatus && (
+            <div
+              className={`rounded-xl p-2.5 border text-[11px] animate-fade-in ${
+                dark
+                  ? 'bg-[#181D29] border-[#2D3648] text-[#CBD5E1]'
+                  : 'bg-white/90 border-[#E2E8F0] text-[#4D3A5B] shadow-sm'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="flex items-center gap-1.5 font-semibold truncate">
+                  <RefreshCw className="w-3 h-3 animate-spin text-[#F59E0B] shrink-0" />
+                  <span className="truncate">Indexing mailbox</span>
+                </span>
+                <span className="tabular-nums font-bold text-[#F59E0B] shrink-0">
+                  {Math.round(emailsHook.scanStatus.progress_percent || 0)}%
+                </span>
+              </div>
+              <div className={`w-full h-1.5 rounded-full overflow-hidden ${dark ? 'bg-[#10141D]' : 'bg-[#EEF2F7]'}`}>
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#581C87] to-[#F59E0B] transition-all duration-300"
+                  style={{ width: `${Math.min(100, Math.max(6, Math.round(emailsHook.scanStatus.progress_percent || 0)))}%` }}
+                />
+              </div>
+              {emailsHook.scanStatus.total > 0 && (
+                <div className="mt-1 text-[10px] text-[#94A3B8] tabular-nums">
+                  {(emailsHook.scanStatus.analyzed || 0).toLocaleString()} of {emailsHook.scanStatus.total.toLocaleString()} emails
+                </div>
+              )}
+            </div>
+          )}
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
@@ -1740,6 +1824,7 @@ export default function App() {
                     { key: 'j / k', label: 'Next / Previous email' },
                     { key: '/ or ⌘K', label: 'Search emails' },
                     { key: 'e', label: 'Mark done / Restore' },
+                    { key: 'h', label: 'Snooze 3 hours' },
                     { key: 's', label: 'Toggle star' },
                     { key: 'Esc', label: 'Back / Close menu' },
                   ].map((item) => (
@@ -2295,6 +2380,7 @@ export default function App() {
                   const isChecked = checkedIds.has(item.id);
                   const isStarred = starredIds.has(item.id);
                   const isDone = statusMap[item.id]?.state === 'done';
+                  const isSnoozed = statusMap[item.id]?.state === 'snoozed' || Boolean(item.raw?.is_snoozed);
                   const tier = PRIORITIES[item.priority] || PRIORITIES.P3;
                   const avatarTone = getAvatarToneClass(item.email || item.sender, item.priority, dark);
                   const isCompactSplit = layoutMode === 'split';
@@ -2302,6 +2388,7 @@ export default function App() {
                   return (
                     <div
                       key={item.id}
+                      data-email-id={item.id}
                       role="option"
                       aria-selected={isSelected}
                       tabIndex={0}
@@ -2313,7 +2400,7 @@ export default function App() {
                         }
                       }}
                       className={`group flex items-start gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b transition-all duration-150 cursor-pointer select-none relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7E22CE] ${
-                        isDone ? 'opacity-55' : ''
+                        isDone || isSnoozed ? 'opacity-60' : ''
                       } ${
                         isSelected && isCompactSplit
                           ? dark
@@ -2415,6 +2502,14 @@ export default function App() {
                                 Done
                               </span>
                             )}
+
+                            {isSnoozed && !isDone && (
+                              <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
+                                dark ? 'bg-amber-500/15 text-amber-300' : 'bg-amber-50 text-amber-800'
+                              }`}>
+                                Snoozed
+                              </span>
+                            )}
                           </div>
 
                           {/* Timestamp & Smooth Zero-Jitter Quick Actions */}
@@ -2447,11 +2542,8 @@ export default function App() {
                               </button>
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  triggerToast('Snoozed for 3 hours');
-                                }}
-                                title="Snooze"
+                                onClick={(e) => snoozeItem(item, 3, e)}
+                                title="Snooze 3 hours"
                                 className={`p-1 rounded-md transition cursor-pointer hover:scale-110 active:scale-95 ${
                                   dark ? 'text-[#94A3B8] hover:text-[#F59E0B] hover:bg-[#2D3648]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#581C87]/10'
                                 }`}
@@ -2557,6 +2649,7 @@ export default function App() {
             {/* OPEN EMAIL READING CANVAS */}
             {(readingEmailId || layoutMode === 'split') && (
               <div
+                ref={readerScrollRef}
                 className={`${
                   readingEmailId || mobileReading ? 'flex' : 'hidden lg:flex'
                 } flex-1 flex-col overflow-y-auto smooth-scroll transition-colors ${
@@ -2701,7 +2794,7 @@ export default function App() {
 
                       {/* Right: Triage Actions (Done/Restore, Snooze, Open in Gmail, Prev/Next) */}
                       <div className="flex items-center gap-1 sm:gap-1.5">
-                        {currentTriage?.state === 'done' ? (
+                        {currentTriage?.state === 'done' || currentTriage?.state === 'snoozed' ? (
                           <button
                             type="button"
                             onClick={() => restoreItem(currentEmail)}
@@ -2716,34 +2809,36 @@ export default function App() {
                             <span className="hidden sm:inline">Restore</span>
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => markDone(currentEmail)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                              dark
-                                ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/25'
-                                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                            }`}
-                            title="Mark as done"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Done</span>
-                          </button>
-                        )}
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => markDone(currentEmail)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                                dark
+                                  ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/25'
+                                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                              }`}
+                              title="Mark as done (e)"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Done</span>
+                            </button>
 
-                        <button
-                          type="button"
-                          onClick={() => triggerToast('Snoozed for 3 hours')}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                            dark
-                              ? 'hover:bg-[#202737] text-[#CBD5E1] hover:text-[#F59E0B]'
-                              : 'hover:bg-[#EDF2F7] text-[#4D3A5B] hover:text-[#7E22CE]'
-                          }`}
-                          title="Snooze for 3 hours"
-                        >
-                          <Clock className="w-3.5 h-3.5" />
-                          <span className="hidden md:inline">Snooze</span>
-                        </button>
+                            <button
+                              type="button"
+                              onClick={() => snoozeItem(currentEmail, 3)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                                dark
+                                  ? 'hover:bg-[#202737] text-[#CBD5E1] hover:text-[#F59E0B]'
+                                  : 'hover:bg-[#EDF2F7] text-[#4D3A5B] hover:text-[#7E22CE]'
+                              }`}
+                              title="Snooze 3 hours (h)"
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                              <span className="hidden md:inline">Snooze</span>
+                            </button>
+                          </>
+                        )}
 
                         {currentEmail.id && (
                           <a
