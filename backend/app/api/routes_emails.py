@@ -594,6 +594,8 @@ def get_classified_emails(
     query: Optional[str] = Query(default=None, max_length=200, description="Optional search filter query"),
     scan_scope: str = Query(default="mailbox", description="Scan scope: 'mailbox' or 'label'"),
     period: Optional[str] = Query(default=None, description="Optional analysis period filter"),
+    recent_days: Optional[int] = Query(default=None, ge=1, le=3650, description="Optional trailing-days filter for query rows"),
+    unread_only: Optional[bool] = Query(default=None, description="Optional unread-only filter"),
     sync: bool = Query(default=False, description="Force incremental sync check with Gmail")
 ):
     """
@@ -758,8 +760,23 @@ def get_classified_emails(
     has_explicit_priority = "priority" in request.query_params and priority != "ALL"
     has_explicit_action = "action_required" in request.query_params
     has_explicit_query = bool(query and query.strip())
+    has_explicit_recent = recent_days is not None
+    has_explicit_unread = unread_only is not None
 
-    use_display_pagination = (not has_explicit_max and total_cached > 0) or has_explicit_page or has_explicit_priority or has_explicit_action or has_explicit_query
+    query_start_ts_sec = start_ts_sec
+    if recent_days is not None:
+        recent_cutoff_sec = time.time() - (recent_days * 86400)
+        query_start_ts_sec = max(start_ts_sec, recent_cutoff_sec) if start_ts_sec is not None else recent_cutoff_sec
+
+    use_display_pagination = (
+        (not has_explicit_max and total_cached > 0)
+        or has_explicit_page
+        or has_explicit_priority
+        or has_explicit_action
+        or has_explicit_query
+        or has_explicit_recent
+        or has_explicit_unread
+    )
 
     # Incremental incoming check: If user already has cached emails and service is available, check Gmail for new arrivals
     if service and not has_explicit_max and total_cached > 0 and (page == 1 or sync) and not has_explicit_query:
@@ -796,8 +813,9 @@ def get_classified_emails(
             page_size=page_size,
             action_required=action_required,
             model_version=user_model_version,
-            start_ts=start_ts_sec,
-            end_ts=end_ts_sec
+            start_ts=query_start_ts_sec,
+            end_ts=end_ts_sec,
+            unread_only=unread_only
         )
         t_cache_ms = (time.perf_counter() - t_cache_start) * 1000
         total_analyzed = total_matching
@@ -917,8 +935,9 @@ def get_classified_emails(
                 page_size=page_size,
                 action_required=action_required,
                 model_version=user_model_version,
-                start_ts=start_ts_sec,
-                end_ts=end_ts_sec
+                start_ts=query_start_ts_sec,
+                end_ts=end_ts_sec,
+                unread_only=unread_only
             )
             total_analyzed = total_matching
             stats = stats_db
@@ -928,6 +947,10 @@ def get_classified_emails(
             counts = {"P1": 0, "P2": 0, "P3": 0, "P4": 0}
             total_conf = 0.0
             refined_count = 0
+            recent_cutoff_ms = int((time.time() - (30 * 86400)) * 1000)
+            recent_count = 0
+            unread_count = 0
+            needs_attention_count = 0
 
             for p in all_emails:
                 cls = p.get("predicted_priority", "P4")
@@ -935,6 +958,13 @@ def get_classified_emails(
                 total_conf += p.get("confidence", 0.0)
                 if p.get("refinement_applied"):
                     refined_count += 1
+                p_ts = p.get("internal_date") or 0
+                if p_ts >= recent_cutoff_ms:
+                    recent_count += 1
+                if p.get("is_unread") or ("UNREAD" in (p.get("labels") or [])):
+                    unread_count += 1
+                if p.get("needs_attention") or cls == "P1":
+                    needs_attention_count += 1
 
             total_analyzed = len(all_emails)
             avg_confidence = round((total_conf / total_analyzed), 4) if total_analyzed > 0 else 0.0
@@ -954,14 +984,23 @@ def get_classified_emails(
                 "percentages": percentages,
                 "average_confidence": avg_confidence,
                 "highest_priority_count": counts.get("P1", 0),
+                "needs_attention_count": needs_attention_count,
+                "recent_count": recent_count,
+                "unread_count": unread_count,
                 "last_synced": datetime.now(timezone.utc).isoformat(),
                 "query_applied": query or "None (Recent Inbox)",
                 "cache_hit_count": len(cached_map),
                 "cache_miss_count": len(missing_ids),
                 "fetch_latency_ms": round(t_total_ms, 1),
             }
-            display_list = all_emails
-            total_matching = len(all_emails)
+            filtered_fallback = list(all_emails)
+            if recent_days is not None:
+                cutoff_ms = int((time.time() - (recent_days * 86400)) * 1000)
+                filtered_fallback = [e for e in filtered_fallback if (e.get("internal_date") or 0) >= cutoff_ms]
+            if unread_only:
+                filtered_fallback = [e for e in filtered_fallback if e.get("is_unread") or ("UNREAD" in (e.get("labels") or []))]
+            display_list = filtered_fallback
+            total_matching = len(filtered_fallback)
 
     # Enrich display list with user action states (resolve, snooze) and action policy
     from backend.app.core.action_store import user_action_store

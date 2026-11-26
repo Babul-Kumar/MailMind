@@ -149,13 +149,19 @@ export async function fetchModelInfo() {
   return res.json();
 }
 
-export async function fetchEmails({ page = 1, pageSize = 50, priority = '', query = '', actionRequired = null, maxEmails, period = '', sync = false } = {}) {
+export async function fetchEmails({ page = 1, pageSize = 50, priority = '', query = '', actionRequired = null, recentDays = null, unreadOnly = null, maxEmails, period = '', sync = false } = {}) {
   const params = new URLSearchParams();
   if (page) params.append('page', String(page));
   if (pageSize) params.append('page_size', String(pageSize));
   if (priority) params.append('priority', priority);
   if (query) params.append('query', query);
   if (period) params.append('period', period);
+  if (recentDays !== null && recentDays !== undefined) {
+    params.append('recent_days', String(recentDays));
+  }
+  if (unreadOnly !== null && unreadOnly !== undefined) {
+    params.append('unread_only', String(Boolean(unreadOnly)));
+  }
   if (sync) params.append('sync', 'true');
   if (actionRequired !== null && actionRequired !== undefined) {
     params.append('action_required', String(actionRequired));

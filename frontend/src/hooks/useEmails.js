@@ -40,7 +40,8 @@ function sanitizeEmailForCache(email) {
     deadline_display: email.deadline_display,
     deadline_status: email.deadline_status,
     needs_attention: email.needs_attention,
-    is_unread: email.is_unread,
+    is_unread: Boolean(email.is_unread || email.unread || (Array.isArray(email.labels) && email.labels.includes('UNREAD'))),
+    labels: Array.isArray(email.labels) ? email.labels.slice(0, 10) : undefined,
   };
 }
 
@@ -126,16 +127,10 @@ export function useEmails(isAuthenticated = false, user = null) {
     analyzedOnly: false,
   });
 
-  // Default to ALL for clear priority-based triage
-  const [activeFilter, setActiveFilterState] = useState(() => {
-    try {
-      const stored = localStorage.getItem('mailmind_preferred_view');
-      return stored && stored !== 'NEEDS_ATTENTION' ? stored : 'ALL';
-    } catch {
-      return 'ALL';
-    }
-  });
+  // Default to ALL so initial state matches Inbox view consistently
+  const [activeFilter, setActiveFilterState] = useState('ALL');
   const [actionFilter, setActionFilterState] = useState('ALL');
+  const [unreadOnlyFilter, setUnreadOnlyFilterState] = useState(false);
   const [searchQuery, setSearchQueryState] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
@@ -166,6 +161,11 @@ export function useEmails(isAuthenticated = false, user = null) {
 
   const setActionFilter = useCallback((newAction) => {
     setActionFilterState(newAction);
+    setPage(1);
+  }, []);
+
+  const setUnreadOnlyFilter = useCallback((nextVal) => {
+    setUnreadOnlyFilterState(Boolean(nextVal));
     setPage(1);
   }, []);
 
@@ -286,8 +286,10 @@ export function useEmails(isAuthenticated = false, user = null) {
     const searchToUse = customQuery !== undefined ? customQuery : debouncedSearchQuery;
     const periodToUse = customPeriod !== undefined ? customPeriod : analysisPeriod;
 
-    const priorityParam = filterToUse !== 'ALL' ? filterToUse : '';
+    const priorityParam = (filterToUse !== 'ALL' && filterToUse !== 'RECENT') ? filterToUse : '';
+    const recentDaysParam = filterToUse === 'RECENT' ? 30 : null;
     const actionParam = actionToUse === 'ACTION_REQUIRED' ? true : actionToUse === 'NO_ACTION' ? false : null;
+    const unreadParam = unreadOnlyFilter ? true : null;
     const queryParam = searchToUse.trim() || gmailQuery;
 
     setIsLoading(true);
@@ -301,6 +303,8 @@ export function useEmails(isAuthenticated = false, user = null) {
         priority: priorityParam,
         query: queryParam,
         actionRequired: actionParam,
+        recentDays: recentDaysParam,
+        unreadOnly: unreadParam,
         period: periodToUse,
         sync: forceSync || (pageToUse === 1 && !searchToUse.trim()),
       });
@@ -385,7 +389,7 @@ export function useEmails(isAuthenticated = false, user = null) {
         setInitialFetchComplete(true);
       }
     }
-  }, [isAuthenticated, user, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod, saveAccountCache]);
+  }, [isAuthenticated, user, page, pageSize, activeFilter, actionFilter, unreadOnlyFilter, debouncedSearchQuery, gmailQuery, analysisPeriod, saveAccountCache]);
 
   // Check and update scan status
   const checkScanStatus = useCallback(async () => {
@@ -438,8 +442,8 @@ export function useEmails(isAuthenticated = false, user = null) {
             pollTimerRef.current = null;
             loadDataRef.current();
           } else if (latest.status === 'ANALYZING' && latest.analyzed) {
-            // As batches complete and are committed to cache, refresh list periodically if not loading and error-free
-            if (latest.analyzed - lastRefreshedCount.current >= 50 && !isLoading && consecutiveErrorsRef.current < 3) {
+            // As batches complete and are committed to cache, refresh counts/list progressively
+            if (((latest.analyzed > 0 && lastRefreshedCount.current === 0) || (latest.analyzed - lastRefreshedCount.current >= 25)) && !isLoading && consecutiveErrorsRef.current < 3) {
               lastRefreshedCount.current = latest.analyzed;
               loadDataRef.current();
             }
@@ -599,7 +603,7 @@ export function useEmails(isAuthenticated = false, user = null) {
       }
       loadDataRef.current();
     }
-  }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
+  }, [isAuthenticated, page, pageSize, activeFilter, actionFilter, unreadOnlyFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
 
   // Smart Action Queue State
   const [actionQueue, setActionQueue] = useState({
@@ -681,11 +685,21 @@ export function useEmails(isAuthenticated = false, user = null) {
       prev.map((e) => ((e.email_id || e.id || e.message_id) === messageId ? { ...e, is_resolved: true } : e))
     );
 
+    setStats((prev) =>
+      prev
+        ? {
+            ...prev,
+            needs_attention_count: Math.max(0, (prev.needs_attention_count || 0) - 1),
+          }
+        : prev
+    );
+
     // Provide undo toast
     setRecentlyResolved({ messageId, timestamp: Date.now() });
 
     try {
       await resolveAction(messageId, threadId, note);
+      loadDataRef.current();
     } catch (err) {
       console.error('Failed to resolve action:', err);
       setError('Could not save resolution on server. Please try again.');
@@ -906,8 +920,10 @@ export function useEmails(isAuthenticated = false, user = null) {
     setIsLoadingMore(true);
     try {
       const nextPage = (pagination?.page || page || 1) + 1;
-      const priorityParam = activeFilter !== 'ALL' ? activeFilter : '';
+      const priorityParam = (activeFilter !== 'ALL' && activeFilter !== 'RECENT') ? activeFilter : '';
+      const recentDaysParam = activeFilter === 'RECENT' ? 30 : null;
       const actionParam = actionFilter === 'ACTION_REQUIRED' ? true : actionFilter === 'NO_ACTION' ? false : null;
+      const unreadParam = unreadOnlyFilter ? true : null;
       const queryParam = debouncedSearchQuery.trim() || gmailQuery;
 
       const data = await fetchEmails({
@@ -916,6 +932,8 @@ export function useEmails(isAuthenticated = false, user = null) {
         priority: priorityParam,
         query: queryParam,
         actionRequired: actionParam,
+        recentDays: recentDaysParam,
+        unreadOnly: unreadParam,
         period: analysisPeriod,
         sync: false,
       });
@@ -945,7 +963,7 @@ export function useEmails(isAuthenticated = false, user = null) {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoading, isLoadingMore, pagination, page, pageSize, activeFilter, actionFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
+  }, [isLoading, isLoadingMore, pagination, page, pageSize, activeFilter, actionFilter, unreadOnlyFilter, debouncedSearchQuery, gmailQuery, analysisPeriod]);
 
   const isInitialLoading = isLoading && emails.length === 0;
   const isRefreshing = isLoading && emails.length > 0;
@@ -980,6 +998,8 @@ export function useEmails(isAuthenticated = false, user = null) {
     setActiveFilter,
     actionFilter,
     setActionFilter,
+    unreadOnlyFilter,
+    setUnreadOnlyFilter,
     searchQuery,
     setSearchQuery,
     scanStatus,

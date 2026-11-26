@@ -1,7 +1,9 @@
 import os
 import sys
 import tempfile
+import time
 import unittest
+from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,7 +15,7 @@ from backend.app.core.config import MODEL_PATH, DATA_DIR
 from backend.app.core.cache import UserEmailCache
 from backend.app.gmail.scan_engine import SCANS_DIR
 from backend.app.ml.shadow_engine import SHADOW_DB_DIR
-from backend.app.ml.predictor import load_model
+from backend.app.ml.predictor import load_model, predict_batch
 from backend.app.ml.explanations import extract_feature_signals
 
 
@@ -109,6 +111,104 @@ class TestEngineeringAuditFixes(unittest.TestCase):
 
                 # Idempotent second run
                 self.assertEqual(cache.consolidate_legacy_user_data(user_email, user_email), 0)
+            finally:
+                cache.close()
+
+    def test_07_mailbox_stats_and_unread_recent_parity(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_file = os.path.join(tmpdir, "test_stats_parity.db")
+            cache = UserEmailCache(db_path=db_file)
+            try:
+                uid = f"stats_user_{int(time.time() * 1000)}"
+                now = time.time()
+                items = [
+                    {
+                        "id": "s1",
+                        "email_id": "s1",
+                        "subject": "URGENT server cluster outage",
+                        "body": "Immediate failover required.",
+                        "sender": "alerts@ops.io",
+                        "predicted_priority": "P1",
+                        "final_priority": "P1",
+                        "action_required": True,
+                        "needs_attention": True,
+                        "is_unread": True,
+                        "labels": ["INBOX", "UNREAD"],
+                        "internal_date": int((now - 2 * 86400) * 1000),
+                        "date": datetime.fromtimestamp(now - 2 * 86400, timezone.utc).isoformat(),
+                    },
+                    {
+                        "id": "s2",
+                        "email_id": "s2",
+                        "subject": "Quarterly security review",
+                        "body": "Please sign off on access audit.",
+                        "sender": "sec@ops.io",
+                        "predicted_priority": "P2",
+                        "final_priority": "P2",
+                        "action_required": True,
+                        "needs_attention": True,
+                        "is_unread": False,
+                        "labels": ["INBOX"],
+                        "internal_date": int((now - 10 * 86400) * 1000),
+                        "date": datetime.fromtimestamp(now - 10 * 86400, timezone.utc).isoformat(),
+                    },
+                    {
+                        "id": "s3",
+                        "email_id": "s3",
+                        "subject": "Sprint update & notes",
+                        "body": "Action needed: confirm sprint backlog.",
+                        "sender": "pm@ops.io",
+                        "predicted_priority": "P3",
+                        "final_priority": "P3",
+                        "action_required": True,
+                        "needs_attention": True,
+                        "is_unread": True,
+                        "labels": ["INBOX", "UNREAD"],
+                        "internal_date": int((now - 45 * 86400) * 1000),
+                        "date": datetime.fromtimestamp(now - 45 * 86400, timezone.utc).isoformat(),
+                    },
+                    {
+                        "id": "s4",
+                        "email_id": "s4",
+                        "subject": "Newsletter promo offer",
+                        "body": "Save 20% today only.",
+                        "sender": "promo@shop.io",
+                        "predicted_priority": "P4",
+                        "final_priority": "P4",
+                        "action_required": False,
+                        "needs_attention": False,
+                        "is_unread": False,
+                        "labels": ["INBOX"],
+                        "internal_date": int((now - 60 * 86400) * 1000),
+                        "date": datetime.fromtimestamp(now - 60 * 86400, timezone.utc).isoformat(),
+                    },
+                ]
+                cache.store_batch(uid, items, model_version="priority-v5.1")
+
+                stats = cache.get_mailbox_stats(uid, model_version="priority-v5.1")
+                self.assertEqual(stats["total_analyzed"], 4)
+                self.assertEqual(stats["counts"], {"P1": 1, "P2": 1, "P3": 1, "P4": 1})
+                self.assertEqual(stats["recent_count"], 2)
+                self.assertEqual(stats["unread_count"], 2)
+
+                _, na_total = cache.query_emails(uid, priority="NEEDS_ATTENTION", model_version="priority-v5.1")
+                self.assertEqual(stats["needs_attention_count"], na_total)
+                self.assertEqual(stats["needs_attention_count"], 3)
+
+                unread_rows, unread_total = cache.query_emails(uid, unread_only=True, model_version="priority-v5.1")
+                self.assertEqual(unread_total, 2)
+                self.assertEqual({r["email_id"] for r in unread_rows}, {"s1", "s3"})
+
+                # Predictor preserves UNREAD label metadata during classification
+                preds = predict_batch([{
+                    "id": "pred_unread",
+                    "subject": "Verification needed",
+                    "body": "Confirm account access.",
+                    "sender": "sec@example.com",
+                    "labels": ["INBOX", "UNREAD"],
+                }])
+                self.assertTrue(preds[0]["is_unread"])
+                self.assertIn("UNREAD", preds[0]["labels"])
             finally:
                 cache.close()
 

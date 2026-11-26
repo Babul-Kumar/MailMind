@@ -456,7 +456,7 @@ function formatRealEmail(item, index) {
     date: item.date,
     timestamp,
     daysAgo,
-    unread: Boolean(item.is_unread || item.unread),
+    unread: Boolean(item.is_unread || item.unread || (Array.isArray(item.labels) && item.labels.includes('UNREAD'))),
     analyzed: Boolean(item.predicted_priority || item.final_priority),
     priority,
     needsAttention,
@@ -562,9 +562,9 @@ export default function App() {
   const [starredIds, setStarredIds] = useState(() => {
     try {
       const stored = localStorage.getItem('mailmind_starred_ids');
-      return stored ? new Set(JSON.parse(stored)) : new Set(['e1', 'e3']);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
     } catch {
-      return new Set(['e1', 'e3']);
+      return new Set();
     }
   });
 
@@ -647,34 +647,128 @@ export default function App() {
     setShortcutsOpen(false);
   };
 
-  // Live priority & unread breakdown counts
-  const { unreadCount, priorityCounts } = useMemo(() => {
-    const pCounts = { P1: 0, P2: 0, P3: 0, P4: 0 };
-    let unread = 0;
+  const applyUnreadOnly = useCallback((nextVal) => {
+    const resolved = typeof nextVal === 'function' ? nextVal(unreadOnly) : Boolean(nextVal);
+    setUnreadOnly(resolved);
+    emailsHook.setUnreadOnlyFilter?.(resolved);
+  }, [unreadOnly, emailsHook.setUnreadOnlyFilter]);
+
+  // Live full-mailbox breakdown counts from backend aggregate stats (with local unsaved override deltas)
+  const { unreadCount, priorityCounts, recentCount } = useMemo(() => {
+    const fallbackPriority = { P1: 0, P2: 0, P3: 0, P4: 0 };
+    let fallbackUnread = 0;
+    let fallbackRecent = 0;
+
     emails.forEach((em) => {
-      if (em.unread && !statusMap[em.id]) unread++;
-      if (pCounts[em.priority] !== undefined) {
-        pCounts[em.priority]++;
+      if (em.unread && !statusMap[em.id]) fallbackUnread++;
+      if (em.daysAgo <= 30) fallbackRecent++;
+      if (fallbackPriority[em.priority] !== undefined) {
+        fallbackPriority[em.priority]++;
       }
     });
-    return { unreadCount: unread, priorityCounts: pCounts };
-  }, [emails, statusMap]);
+
+    const serverCounts = emailsHook.stats?.counts;
+    let resolvedPriority;
+    if (serverCounts) {
+      resolvedPriority = {
+        P1: Number(serverCounts.P1 ?? 0),
+        P2: Number(serverCounts.P2 ?? 0),
+        P3: Number(serverCounts.P3 ?? 0),
+        P4: Number(serverCounts.P4 ?? 0),
+      };
+      // Apply only local session overrides that have not yet re-aggregated on server
+      Object.entries(overridesMap).forEach(([id, nextPriority]) => {
+        const match = emails.find((m) => m.id === id);
+        const serverOrig = match?.raw?.final_priority || match?.raw?.predicted_priority || match?.raw?.original_priority;
+        if (serverOrig && nextPriority && serverOrig !== nextPriority) {
+          if (resolvedPriority[serverOrig] !== undefined) {
+            resolvedPriority[serverOrig] = Math.max(0, resolvedPriority[serverOrig] - 1);
+          }
+          if (resolvedPriority[nextPriority] !== undefined) {
+            resolvedPriority[nextPriority] += 1;
+          }
+        }
+      });
+    } else {
+      resolvedPriority = fallbackPriority;
+    }
+
+    if (
+      view === 'all' &&
+      priorityFilter &&
+      !unreadOnly &&
+      !search.trim() &&
+      emailsHook.activeFilter === priorityFilter &&
+      emailsHook.pagination?.total_emails !== undefined &&
+      emailsHook.pagination?.total_emails !== null
+    ) {
+      resolvedPriority[priorityFilter] = Number(emailsHook.pagination.total_emails);
+    }
+
+    const resolvedUnread =
+      unreadOnly &&
+      view === 'all' &&
+      !priorityFilter &&
+      !search.trim() &&
+      emailsHook.unreadOnlyFilter &&
+      emailsHook.pagination?.total_emails !== undefined &&
+      emailsHook.pagination?.total_emails !== null
+        ? Number(emailsHook.pagination.total_emails)
+        : (emailsHook.stats?.unread_count ?? fallbackUnread);
+
+    const resolvedRecent =
+      view === 'recent' &&
+      !priorityFilter &&
+      !unreadOnly &&
+      !search.trim() &&
+      emailsHook.activeFilter === 'RECENT' &&
+      emailsHook.pagination?.total_emails !== undefined &&
+      emailsHook.pagination?.total_emails !== null
+        ? Number(emailsHook.pagination.total_emails)
+        : (emailsHook.stats?.recent_count ?? fallbackRecent);
+
+    return {
+      unreadCount: Number(resolvedUnread) || 0,
+      priorityCounts: resolvedPriority,
+      recentCount: Number(resolvedRecent) || 0,
+    };
+  }, [
+    emails,
+    statusMap,
+    overridesMap,
+    emailsHook.stats,
+    emailsHook.activeFilter,
+    emailsHook.unreadOnlyFilter,
+    emailsHook.pagination?.total_emails,
+    view,
+    priorityFilter,
+    unreadOnly,
+    search,
+  ]);
 
   // Active Window Cutoff
   const cutoffDays = useMemo(() => {
     return WINDOWS.find((w) => w.id === windowId)?.days ?? 90;
   }, [windowId]);
 
-  // Attention Counter (global stats from backend or loaded items fallback)
+  // Attention Counter (synced with backend active queue count)
   const attentionCount = useMemo(() => {
-    if (view === 'attention' && emailsHook.pagination?.total_emails) {
-      return emailsHook.pagination.total_emails;
+    if (
+      view === 'attention' &&
+      !priorityFilter &&
+      !unreadOnly &&
+      !search.trim() &&
+      emailsHook.activeFilter === 'NEEDS_ATTENTION' &&
+      emailsHook.pagination?.total_emails !== undefined &&
+      emailsHook.pagination?.total_emails !== null
+    ) {
+      return Number(emailsHook.pagination.total_emails);
     }
     if (emailsHook.stats?.needs_attention_count !== undefined && emailsHook.stats.needs_attention_count !== null) {
-      return emailsHook.stats.needs_attention_count;
+      return Number(emailsHook.stats.needs_attention_count);
     }
     return emails.filter((e) => e.needsAttention && !statusMap[e.id]).length;
-  }, [view, emailsHook.pagination?.total_emails, emailsHook.stats, emails, statusMap]);
+  }, [view, priorityFilter, unreadOnly, search, emailsHook.activeFilter, emailsHook.pagination?.total_emails, emailsHook.stats, emails, statusMap]);
 
   // Filtered List Items (Folder Filtering with Timeframe & Strict Time Sorting)
   const visibleEmails = useMemo(() => {
@@ -688,7 +782,7 @@ export default function App() {
       // 2. View filtering
       if (view === 'attention') {
         if (!item.needsAttention) return false;
-      } else if (view === 'recent') {
+      } else if (view === 'recent' && emailsHook.activeFilter !== 'RECENT') {
         if (item.daysAgo > 30) return false;
       }
 
@@ -1095,21 +1189,28 @@ export default function App() {
     );
   }
 
-  // Calculate Gmail pagination and counts
-  const inboxTotalCount = emailsHook.pagination?.total_emails || emails.length;
-  const isPrioritySynced = !priorityFilter || emailsHook.activeFilter === priorityFilter;
-  const isCustomFiltered = Boolean(unreadOnly || search.trim());
+  // Calculate authoritative full-mailbox & view pagination counts
+  const isUnfilteredInbox = view === 'all' && !priorityFilter && !unreadOnly && !search.trim();
+  const inboxTotalCount =
+    emailsHook.stats?.total_analyzed ??
+    (isUnfilteredInbox ? emailsHook.pagination?.total_emails : null) ??
+    emails.length;
+  const expectedServerFilter =
+    priorityFilter ||
+    (view === 'attention' ? 'NEEDS_ATTENTION' : view === 'recent' ? 'RECENT' : 'ALL');
+  const isServerSynced =
+    emailsHook.activeFilter === expectedServerFilter &&
+    Boolean(unreadOnly) === Boolean(emailsHook.unreadOnlyFilter);
+  const isCustomFiltered = Boolean(search.trim()) || !isServerSynced;
   const currentViewTotal = isCustomFiltered
     ? visibleEmails.length
-    : (view === 'attention'
-      ? (emailsHook.pagination?.total_emails || attentionCount || visibleEmails.length)
-      : (emailsHook.pagination?.total_emails || visibleEmails.length));
+    : (emailsHook.pagination?.total_emails ?? visibleEmails.length);
 
   const currentPage = emailsHook.pagination?.page || 1;
   const pageSize = emailsHook.pagination?.page_size || 50;
   const startNum = visibleEmails.length === 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
   const endNum = visibleEmails.length === 0 ? 0 : Math.min(startNum + visibleEmails.length - 1, currentViewTotal);
-  const hasNextPage = (!isCustomFiltered && isPrioritySynced) ? Boolean(emailsHook.pagination?.has_next) : false;
+  const hasNextPage = !isCustomFiltered ? Boolean(emailsHook.pagination?.has_next) : false;
 
   const activeWindowLabel = WINDOWS.find((w) => w.id === windowId)?.label || 'Last 3 months';
   const currentPriority = currentEmail ? (PRIORITIES[currentEmail.priority] || PRIORITIES.P3) : null;
@@ -1124,9 +1225,11 @@ export default function App() {
     setMobileReading(false);
     setMobileNavOpen(false);
     setPriorityFilter(null);
-    setUnreadOnly(false);
+    applyUnreadOnly(false);
     if (navId === 'attention') {
       emailsHook.setActiveFilter?.('NEEDS_ATTENTION');
+    } else if (navId === 'recent') {
+      emailsHook.setActiveFilter?.('RECENT');
     } else {
       emailsHook.setActiveFilter?.('ALL');
     }
@@ -1160,7 +1263,7 @@ export default function App() {
           {[
             { id: 'all', label: 'Inbox', icon: Inbox, count: inboxTotalCount },
             { id: 'attention', label: 'Needs Attention', icon: AlertCircle, count: attentionCount },
-            { id: 'recent', label: 'Recent Mail', icon: Clock, count: null }
+            { id: 'recent', label: 'Recent Mail', icon: Clock, count: recentCount }
           ].map((nav) => {
             const active = view === nav.id && !priorityFilter;
             const IconComponent = nav.icon;
@@ -1196,7 +1299,7 @@ export default function App() {
                   {expanded && <span className="truncate">{nav.label}</span>}
                 </div>
 
-                {expanded && nav.count > 0 && (
+                {expanded && nav.count !== null && nav.count !== undefined && (
                   <span
                     className={`text-[11px] tabular-nums font-bold px-2 py-0.5 rounded-full transition-colors ${
                       active
@@ -1226,12 +1329,12 @@ export default function App() {
           <div className={expanded ? 'space-y-0.5' : 'space-y-1.5 flex flex-col items-center'}>
             {Object.values(PRIORITIES).map((tier) => {
               const active = priorityFilter === tier.id;
-              const tierCount = priorityCounts[tier.id] || 0;
+              const tierCount = priorityCounts[tier.id] ?? 0;
               return (
                 <button
                   key={tier.id}
                   type="button"
-                  title={`${tier.name}${tierCount ? ` (${tierCount})` : ''}`}
+                  title={`${tier.name} (${tierCount.toLocaleString()})`}
                   onClick={() => {
                     const nextPriority = priorityFilter === tier.id ? null : tier.id;
                     setView('all');
@@ -1268,15 +1371,15 @@ export default function App() {
                   {expanded && (
                     active ? (
                       <span className="text-[11px] text-[#F59E0B] hover:text-[#D97706] font-bold">Clear</span>
-                    ) : tierCount > 0 ? (
+                    ) : (
                       <span
                         className={`text-[11px] tabular-nums font-semibold px-1.5 py-0.5 rounded-md ${
                           dark ? 'text-[#94A3B8] bg-[#202737]' : 'text-[#64748B] bg-[#EEF2F7]'
                         }`}
                       >
-                        {tierCount}
+                        {tierCount.toLocaleString()}
                       </span>
-                    ) : null
+                    )
                   )}
                 </button>
               );
@@ -1401,6 +1504,7 @@ export default function App() {
               setMobileReading(false);
               setView('all');
               setPriorityFilter(null);
+              applyUnreadOnly(false);
               emailsHook.setActiveFilter?.('ALL');
             }}
             className="flex items-center gap-2 font-semibold text-lg tracking-tight cursor-pointer"
@@ -1513,7 +1617,7 @@ export default function App() {
                     type="button"
                     onClick={() => {
                       setPriorityFilter(null);
-                      setUnreadOnly(false);
+                      applyUnreadOnly(false);
                       setView('all');
                       setSearch('');
                       emailsHook.setSearchQuery?.('');
@@ -1551,7 +1655,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setUnreadOnly((u) => !u);
+                    applyUnreadOnly((u) => !u);
                     setSearchPopoverOpen(false);
                   }}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
@@ -1561,7 +1665,7 @@ export default function App() {
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5 text-[#F59E0B]" />
-                  <span>Unread only{unreadCount > 0 ? ` (${unreadCount})` : ''}</span>
+                  <span>Unread only ({unreadCount.toLocaleString()})</span>
                 </button>
                 <button
                   type="button"
@@ -1868,7 +1972,7 @@ export default function App() {
                   <button
                     type="button"
                     aria-pressed={unreadOnly}
-                    onClick={() => setUnreadOnly((u) => !u)}
+                    onClick={() => applyUnreadOnly((u) => !u)}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold transition cursor-pointer border ${
                       unreadOnly
                         ? dark
@@ -1882,19 +1986,17 @@ export default function App() {
                   >
                     <Filter className="w-3 h-3" />
                     <span>Unread</span>
-                    {unreadCount > 0 && (
-                      <span
-                        className={`tabular-nums px-1.5 py-0 rounded-full text-[10px] font-bold ${
-                          unreadOnly
-                            ? 'bg-white/20 text-white'
-                            : dark
-                            ? 'bg-[#202737] text-[#FBBF24]'
-                            : 'bg-[#E2E8F0] text-[#3B0764]'
-                        }`}
-                      >
-                        {unreadCount}
-                      </span>
-                    )}
+                    <span
+                      className={`tabular-nums px-1.5 py-0 rounded-full text-[10px] font-bold ${
+                        unreadOnly
+                          ? 'bg-white/20 text-white'
+                          : dark
+                          ? 'bg-[#202737] text-[#FBBF24]'
+                          : 'bg-[#E2E8F0] text-[#3B0764]'
+                      }`}
+                    >
+                      {unreadCount.toLocaleString()}
+                    </span>
                   </button>
 
                   {/* Batch actions when checkboxes selected */}
@@ -2067,7 +2169,7 @@ export default function App() {
               {unreadOnly && (
                 <button
                   type="button"
-                  onClick={() => setUnreadOnly(false)}
+                  onClick={() => applyUnreadOnly(false)}
                   className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium border cursor-pointer transition ${
                     dark ? 'bg-[#202737] border-[#2D3648] text-[#FBBF24]' : 'bg-white border-[#CBD5E1] text-[#581C87]'
                   }`}
@@ -2095,7 +2197,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setPriorityFilter(null);
-                  setUnreadOnly(false);
+                  applyUnreadOnly(false);
                   setSearch('');
                   emailsHook.setSearchQuery?.('');
                   emailsHook.setActiveFilter?.('ALL');
@@ -2176,7 +2278,7 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         setPriorityFilter(null);
-                        setUnreadOnly(false);
+                        applyUnreadOnly(false);
                         setSearch('');
                         emailsHook.setSearchQuery?.('');
                         emailsHook.setActiveFilter?.('ALL');

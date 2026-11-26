@@ -26,6 +26,36 @@ def compute_content_hash(subject: Optional[str], snippet: Optional[str], body: O
     return hashlib.sha256(content.encode("utf-8", errors="replace")).hexdigest()[:32]
 
 
+def _matches_needs_attention(
+    em: Dict[str, Any],
+    aging: Dict[str, Any],
+    mid: str,
+    resolved_ids: Set[str],
+    snoozed_ids: Set[str],
+) -> bool:
+    """Single source of truth for Needs Attention membership across stats and pagination queries."""
+    if (resolved_ids and mid in resolved_ids) or (snoozed_ids and mid in snoozed_ids):
+        return False
+    if aging.get("is_otp_expired") or (
+        aging.get("deadline_status") == "EXPIRED" and not aging.get("is_critical_incident")
+    ):
+        return False
+    if aging.get("action_status") == "AGED" and not aging.get("is_critical_incident"):
+        return False
+    effective_p = aging.get("effective_priority")
+    return bool(
+        em.get("action_required")
+        or aging.get("deadline_status") in ("UPCOMING", "OVERDUE")
+        or aging.get("is_critical_incident")
+        or effective_p == "P1"
+        or (effective_p == "P2" and em.get("action_required"))
+    )
+
+
+def _unread_sql_clause() -> str:
+    return "(data_json LIKE '%\"is_unread\": true%' OR data_json LIKE '%\"is_unread\":true%' OR data_json LIKE '%\"UNREAD\"%')"
+
+
 class UserEmailCache:
     """
     Thread-safe, user-isolated persistent email cache.
@@ -799,7 +829,8 @@ class UserEmailCache:
         start_ts: Optional[float] = None,
         end_ts: Optional[float] = None,
         is_analyzed: Optional[bool] = None,
-        use_effective_priority: bool = False
+        use_effective_priority: bool = False,
+        unread_only: Optional[bool] = None
     ) -> Tuple[List[Dict[str, Any]], int]:
         """Queries cached emails with streaming pagination, date-range bounding, and dynamic priority aging."""
         if not user_id:
@@ -867,6 +898,9 @@ class UserEmailCache:
         elif action_required is False:
             where_clauses.append("action_required = 0")
 
+        if unread_only is True:
+            where_clauses.append(_unread_sql_clause())
+
         if search and search.strip():
             term = f"%{search.strip()}%"
             where_clauses.append("(subject LIKE ? OR sender LIKE ? OR snippet LIKE ? OR body LIKE ?)")
@@ -920,13 +954,7 @@ class UserEmailCache:
 
                 if target_priority:
                     if target_priority == "NEEDS_ATTENTION":
-                        if (resolved_ids and mid in resolved_ids) or (snoozed_ids and mid in snoozed_ids):
-                            continue
-                        if aging["is_otp_expired"] or (aging["deadline_status"] == "EXPIRED" and not aging["is_critical_incident"]):
-                            continue
-                        if aging.get("action_status") == "AGED" and not aging.get("is_critical_incident"):
-                            continue
-                        if not (em.get("action_required") or aging["deadline_status"] in ("UPCOMING", "OVERDUE") or aging["is_critical_incident"] or effective_p == "P1" or (effective_p == "P2" and em.get("action_required"))):
+                        if not _matches_needs_attention(em, aging, mid, resolved_ids, snoozed_ids):
                             continue
                     elif target_priority in ("P1", "P2", "P3", "P4"):
                         check_p = effective_p if use_effective_priority else orig_p
@@ -1012,20 +1040,26 @@ class UserEmailCache:
             where_sql += " AND internal_date <= ?"
             params.append(e_ms)
 
+        recent_cutoff_ms = int((datetime.now(timezone.utc).timestamp() - (30 * 86400)) * 1000)
+        analyzed_clause = "(is_analyzed = 1 OR (is_analyzed IS NULL AND predicted_priority IS NOT NULL))"
+        unread_clause = _unread_sql_clause()
+
         cur = conn.execute(f"""
             SELECT
                 COUNT(*) as total,
-                SUM(CASE WHEN predicted_priority = 'P1' THEN 1 ELSE 0 END) as p1_count,
-                SUM(CASE WHEN predicted_priority = 'P2' THEN 1 ELSE 0 END) as p2_count,
-                SUM(CASE WHEN predicted_priority = 'P3' THEN 1 ELSE 0 END) as p3_count,
-                SUM(CASE WHEN predicted_priority = 'P4' THEN 1 ELSE 0 END) as p4_count,
+                SUM(CASE WHEN {analyzed_clause} AND predicted_priority = 'P1' THEN 1 ELSE 0 END) as p1_count,
+                SUM(CASE WHEN {analyzed_clause} AND predicted_priority = 'P2' THEN 1 ELSE 0 END) as p2_count,
+                SUM(CASE WHEN {analyzed_clause} AND predicted_priority = 'P3' THEN 1 ELSE 0 END) as p3_count,
+                SUM(CASE WHEN {analyzed_clause} AND predicted_priority = 'P4' THEN 1 ELSE 0 END) as p4_count,
+                SUM(CASE WHEN internal_date >= ? THEN 1 ELSE 0 END) as recent_count,
+                SUM(CASE WHEN {unread_clause} THEN 1 ELSE 0 END) as unread_count,
                 SUM(CASE WHEN needs_attention = 1 THEN 1 ELSE 0 END) as needs_attention_count,
                 SUM(CASE WHEN refinement_applied = 1 THEN 1 ELSE 0 END) as refined_count,
                 AVG(confidence) as avg_conf,
                 MAX(analyzed_at) as last_analyzed
             FROM user_email_cache
             WHERE {where_sql}
-        """, params)
+        """, [recent_cutoff_ms] + params)
         row = cur.fetchone()
 
         total = row["total"] or 0
@@ -1036,29 +1070,50 @@ class UserEmailCache:
         p2_cnt = row["p2_count"] or 0
         p3_cnt = row["p3_count"] or 0
         p4_cnt = row["p4_count"] or 0
+        recent_cnt = row["recent_count"] or 0
+        unread_cnt = row["unread_count"] or 0
         refined = row["refined_count"] or 0
         avg_conf = round(row["avg_conf"] or 0.0, 4)
 
         from backend.app.core.action_policy import evaluate_priority_aging
-        p1_p2_cur = conn.execute(
-            f"SELECT data_json, predicted_priority FROM user_email_cache WHERE {where_sql} AND predicted_priority IN ('P1', 'P2')",
+        resolved_ids: Set[str] = set()
+        snoozed_ids: Set[str] = set()
+        now_ts = datetime.now(timezone.utc).timestamp()
+        try:
+            from backend.app.core.action_store import user_action_store
+            resolved_ids = user_action_store.get_resolved_message_ids(user_id)
+            snoozed_ids = user_action_store.get_active_snoozed_message_ids(user_id, now_ts=now_ts)
+        except Exception:
+            pass
+
+        cand_cur = conn.execute(
+            f"""
+            SELECT message_id, data_json, predicted_priority, is_analyzed
+            FROM user_email_cache
+            WHERE {where_sql} AND (needs_attention = 1 OR predicted_priority IN ('P1', 'P2') OR action_required = 1)
+            """,
             params
         )
-        now_ts = datetime.now(timezone.utc).timestamp()
         dynamic_counts = {"P1": 0, "P2": 0, "P3": p3_cnt, "P4": p4_cnt}
         dynamic_needs_attention = 0
 
-        for r in p1_p2_cur:
+        for r in cand_cur:
+            row_p = r["predicted_priority"]
             try:
                 em = json.loads(r["data_json"])
+                raw_is_analyzed = r["is_analyzed"] if "is_analyzed" in r.keys() else 1
+                if raw_is_analyzed == 0 or (not em.get("predicted_priority") and not row_p):
+                    continue
+                mid = em.get("id") or em.get("email_id") or em.get("message_id") or r["message_id"]
                 aging = evaluate_priority_aging(em, now_ts=now_ts)
-                ep = aging.get("effective_priority") or "P2"
-                dynamic_counts[ep] = dynamic_counts.get(ep, 0) + 1
-                if aging.get("queue_placement") == "ACTIVE" or (aging.get("action_status") == "ACTIVE" and aging.get("is_actionable")):
+                if row_p in ("P1", "P2"):
+                    ep = aging.get("effective_priority") or row_p
+                    dynamic_counts[ep] = dynamic_counts.get(ep, 0) + 1
+                if _matches_needs_attention(em, aging, mid, resolved_ids, snoozed_ids):
                     dynamic_needs_attention += 1
             except Exception:
-                p_fb = r["predicted_priority"] or "P2"
-                dynamic_counts[p_fb] = dynamic_counts.get(p_fb, 0) + 1
+                if row_p in ("P1", "P2"):
+                    dynamic_counts[row_p] = dynamic_counts.get(row_p, 0) + 1
 
         tier_counts = dynamic_counts if use_effective_priority else {"P1": p1_cnt, "P2": p2_cnt, "P3": p3_cnt, "P4": p4_cnt}
         highest_count = dynamic_counts.get("P1", 0) if use_effective_priority else p1_cnt
@@ -1083,7 +1138,9 @@ class UserEmailCache:
             "percentages": percentages,
             "average_confidence": avg_conf,
             "highest_priority_count": highest_count,
-            "needs_attention_count": dynamic_needs_attention or (row["needs_attention_count"] or 0),
+            "needs_attention_count": dynamic_needs_attention,
+            "recent_count": recent_cnt,
+            "unread_count": unread_cnt,
             "last_synced": last_synced_str,
         }
 
@@ -1288,6 +1345,8 @@ class UserEmailCache:
             "average_confidence": 0.0,
             "highest_priority_count": 0,
             "needs_attention_count": 0,
+            "recent_count": 0,
+            "unread_count": 0,
             "last_synced": datetime.now(timezone.utc).isoformat(),
         }
 

@@ -112,6 +112,16 @@ def format_email_text(subject: Optional[str], body: Optional[str]) -> str:
     return subj_str or body_str or ""
 
 
+def _extract_unread_metadata(email_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Preserves Gmail read/unread label state across classification outputs."""
+    labels = list(email_data.get("labels") or [])
+    is_unread = bool(email_data.get("is_unread") or email_data.get("unread")) or ("UNREAD" in labels)
+    return {
+        "labels": labels,
+        "is_unread": is_unread,
+    }
+
+
 def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
     """
     Performs priority inference on a single structured email dictionary using the
@@ -172,7 +182,8 @@ def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
             "probabilities": {"P1": 0.05, "P2": 0.15, "P3": 0.30, "P4": 0.50},
             "explanation": explanation,
             "top_signals": [],
-            "model_version": model_version
+            "model_version": model_version,
+            **_extract_unread_metadata(email_data),
         }
 
     classes = list(pipeline.classes_)
@@ -257,7 +268,8 @@ def predict_email(email_data: Dict[str, Any], pipeline=None) -> Dict[str, Any]:
         "probabilities": prob_dict,
         "explanation": explanation,
         "top_signals": signals,
-        "model_version": model_version
+        "model_version": model_version,
+        **_extract_unread_metadata(email_data),
     }
 
 
@@ -342,7 +354,8 @@ def predict_batch(emails: List[Dict[str, Any]], pipeline=None) -> List[Dict[str,
                 "probabilities": {"P1": 0.05, "P2": 0.15, "P3": 0.30, "P4": 0.50},
                 "explanation": explanation,
                 "top_signals": [],
-                "model_version": model_version
+                "model_version": model_version,
+                **_extract_unread_metadata(email_data),
             })
             continue
 
@@ -421,7 +434,8 @@ def predict_batch(emails: List[Dict[str, Any]], pipeline=None) -> List[Dict[str,
             "probabilities": prob_dict,
             "explanation": explanation,
             "top_signals": signals,
-            "model_version": model_version
+            "model_version": model_version,
+            **_extract_unread_metadata(email_data),
         })
 
     return results
