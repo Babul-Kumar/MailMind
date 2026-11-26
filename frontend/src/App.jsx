@@ -28,10 +28,13 @@ import {
   Copy,
   LogOut,
   Columns,
+  LayoutList,
   X,
   Mail,
   MailOpen,
-  Trash2
+  Trash2,
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useEmails } from './hooks/useEmails';
@@ -98,6 +101,64 @@ function getSenderInitials(name) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
   return clean.slice(0, 2).toUpperCase() || 'M';
+}
+
+function formatSenderTitle(senderDisplay, senderEmail) {
+  if (!senderDisplay) return 'Unknown Sender';
+  if (!senderDisplay.includes('@')) return senderDisplay;
+  const email = senderEmail || senderDisplay;
+  const [localPart = '', domainPart = ''] = email.split('@');
+  const hostTokens = domainPart.split('.').filter(Boolean);
+  const brandRaw = hostTokens.length >= 2 ? hostTokens[0] : hostTokens[0] || '';
+  const genericSubs = new Set(['mail', 'email', 'mg', 'notify', 'noreply', 'no-reply', 'news', 'updates']);
+  const primaryBrand = genericSubs.has(brandRaw.toLowerCase()) && hostTokens.length >= 3
+    ? hostTokens[1]
+    : brandRaw;
+  const brand = primaryBrand
+    ? primaryBrand.charAt(0).toUpperCase() + primaryBrand.slice(1)
+    : '';
+  const cleanLocal = localPart
+    .replace(/^(no-?reply|noreply|donotreply|support|notifications?|updates?|alerts?|info)$/i, '')
+    .replace(/[._-]+/g, ' ')
+    .trim();
+  if (brand && cleanLocal) {
+    const capLocal = cleanLocal.replace(/\b\w/g, (c) => c.toUpperCase());
+    return `${brand} · ${capLocal}`;
+  }
+  return brand || senderDisplay;
+}
+
+const AVATAR_TONES_LIGHT = [
+  'bg-violet-100 text-violet-700 ring-violet-200/70',
+  'bg-sky-100 text-sky-700 ring-sky-200/70',
+  'bg-emerald-100 text-emerald-700 ring-emerald-200/70',
+  'bg-amber-100 text-amber-800 ring-amber-200/70',
+  'bg-indigo-100 text-indigo-700 ring-indigo-200/70',
+  'bg-teal-100 text-teal-700 ring-teal-200/70',
+];
+
+const AVATAR_TONES_DARK = [
+  'bg-violet-500/20 text-violet-300 ring-violet-500/30',
+  'bg-sky-500/20 text-sky-300 ring-sky-500/30',
+  'bg-emerald-500/20 text-emerald-300 ring-emerald-500/30',
+  'bg-amber-500/20 text-amber-300 ring-amber-500/30',
+  'bg-indigo-500/20 text-indigo-300 ring-indigo-500/30',
+  'bg-teal-500/20 text-teal-300 ring-teal-500/30',
+];
+
+function getAvatarToneClass(seed, priority, dark) {
+  if (priority === 'P1') {
+    return dark
+      ? 'bg-rose-500/20 text-rose-300 ring-rose-500/40'
+      : 'bg-rose-100 text-rose-700 ring-rose-200';
+  }
+  let hash = 0;
+  const s = String(seed || 'M');
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash * 31 + s.charCodeAt(i)) | 0;
+  }
+  const idx = Math.abs(hash) % AVATAR_TONES_LIGHT.length;
+  return dark ? AVATAR_TONES_DARK[idx] : AVATAR_TONES_LIGHT[idx];
 }
 
 // ============================================================================
@@ -264,8 +325,9 @@ function FormattedTextEmail({ text, dark }) {
 }
 
 function formatRealEmail(item, index) {
-  const senderDisplay = cleanSenderName(item.sender);
+  const rawDisplay = cleanSenderName(item.sender);
   const senderEmail = (item.sender?.match(/<([^>]+)>/)?.[1]) || (item.sender?.includes('@') ? item.sender : '');
+  const senderDisplay = formatSenderTitle(rawDisplay, senderEmail);
   const initials = getSenderInitials(senderDisplay);
   const priority = item.original_priority || item.predicted_priority || item.final_priority || item.effective_priority || 'P3';
   const time = formatEmailDate(item.date);
@@ -446,7 +508,14 @@ export default function App() {
 
   // Visual Layout & Navigation State
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [layoutMode, setLayoutMode] = useState('table'); // 'table' | 'split'
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [layoutMode, setLayoutMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mailmind_layout_mode');
+      if (saved === 'table' || saved === 'split') return saved;
+    } catch {}
+    return typeof window !== 'undefined' && window.innerWidth >= 1100 ? 'split' : 'table';
+  }); // 'table' | 'split'
   const [view, setView] = useState('all'); // 'all' | 'attention' | 'recent'
   const [categoryTab, setCategoryTab] = useState('all'); // 'all' | 'primary' | 'promotions' | 'social' | 'updates'
   const [readingEmailId, setReadingEmailId] = useState(null); // when null: table view; when id: open email view
@@ -455,6 +524,9 @@ export default function App() {
   const [windowId, setWindowId] = useState('last_3_months');
   const [search, setSearch] = useState('');
   const [mobileReading, setMobileReading] = useState(false);
+  const [aiSignalsExpanded, setAiSignalsExpanded] = useState(false);
+
+  const listScrollRef = useRef(null);
 
   // Synchronize windowId with emailsHook.analysisPeriod when restored
   useEffect(() => {
@@ -544,11 +616,14 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  const [searchPopoverOpen, setSearchPopoverOpen] = useState(false);
+
   const closeAllMenus = () => {
     setPriorityMenuOpen(false);
     setWindowMenuOpen(false);
     setUserMenuOpen(false);
     setSelectMenuOpen(false);
+    setSearchPopoverOpen(false);
   };
 
   // Active Window Cutoff
@@ -719,7 +794,24 @@ export default function App() {
       setReadingEmailId(item.id);
     }
     setMobileReading(true);
+    setAiSignalsExpanded(false);
     closeAllMenus();
+  };
+
+  const setLayoutModeAndPersist = (nextMode) => {
+    setLayoutMode(nextMode);
+    if (nextMode === 'split') {
+      setReadingEmailId(null);
+      setMobileReading(false);
+    }
+    try {
+      localStorage.setItem('mailmind_layout_mode', nextMode);
+    } catch {}
+  };
+
+  const handlePageNav = (delta) => {
+    emailsHook.setPage?.((p) => Math.max(1, p + delta));
+    listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const advanceSelection = (actingId) => {
@@ -866,12 +958,14 @@ export default function App() {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
-        const anyMenuOpen = priorityMenuOpen || windowMenuOpen || userMenuOpen || selectMenuOpen;
+        const anyMenuOpen = priorityMenuOpen || windowMenuOpen || userMenuOpen || selectMenuOpen || searchPopoverOpen || mobileNavOpen;
         setPriorityMenuOpen(false);
         setWindowMenuOpen(false);
         setUserMenuOpen(false);
         setSelectMenuOpen(false);
-        if (!anyMenuOpen && readingEmailId && layoutMode === 'table') {
+        setSearchPopoverOpen(false);
+        setMobileNavOpen(false);
+        if (!anyMenuOpen && (readingEmailId || mobileReading)) {
           setReadingEmailId(null);
           setMobileReading(false);
         }
@@ -912,7 +1006,10 @@ export default function App() {
     windowMenuOpen,
     userMenuOpen,
     selectMenuOpen,
+    searchPopoverOpen,
+    mobileNavOpen,
     readingEmailId,
+    mobileReading,
     layoutMode,
     currentEmail,
     nextEmail,
@@ -984,15 +1081,230 @@ export default function App() {
   const userName = auth.user?.name || auth.user?.email?.split('@')[0] || 'User';
   const userInitials = auth.user?.name ? getSenderInitials(auth.user.name) : 'BK';
 
+  const handleNavSelect = (navId) => {
+    setView(navId);
+    setReadingEmailId(null);
+    setMobileReading(false);
+    setMobileNavOpen(false);
+    setPriorityFilter(null);
+    if (navId === 'all') {
+      setCategoryTab('all');
+      emailsHook.setActiveFilter?.('ALL');
+    } else if (navId === 'attention') {
+      setCategoryTab('all');
+      emailsHook.setActiveFilter?.('NEEDS_ATTENTION');
+    } else if (navId === 'recent') {
+      setCategoryTab('all');
+      emailsHook.setActiveFilter?.('ALL');
+    }
+    listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const renderSidebarBody = (expanded, isDrawer = false) => (
+    <>
+      <div className="space-y-3 px-3">
+        {isDrawer && (
+          <div className="flex items-center justify-between pb-2 mb-1 border-b border-[#CBD5E1] dark:border-[#252D3C]">
+            <div className="flex items-center gap-2.5">
+              <BrandMark />
+              <span className={`font-bold tracking-tight text-base ${dark ? 'text-[#F8FAFC]' : 'text-[#2E084D]'}`}>
+                MailMind<span className="text-[#F59E0B] ml-0.5">•</span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Close navigation menu"
+              className={`p-1.5 rounded-lg transition ${dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#64748B] hover:bg-[#EDF2F7]'}`}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Primary Views */}
+        <nav className="space-y-1" aria-label="Mailbox folders">
+          {[
+            { id: 'all', label: 'Inbox', icon: Inbox, count: inboxTotalCount },
+            { id: 'attention', label: 'Needs Attention', icon: AlertCircle, count: attentionCount },
+            { id: 'recent', label: 'Recent Mail', icon: Clock, count: null }
+          ].map((nav) => {
+            const active = view === nav.id && !priorityFilter;
+            const IconComponent = nav.icon;
+            return (
+              <button
+                key={nav.id}
+                type="button"
+                onClick={() => handleNavSelect(nav.id)}
+                className={`w-full flex items-center justify-between py-2.5 rounded-xl text-[13.5px] transition-all duration-150 cursor-pointer ${
+                  expanded ? 'pl-3.5 pr-3' : 'px-2 justify-center'
+                } ${
+                  active
+                    ? dark
+                      ? 'bg-[#2E1A40] text-[#F8FAFC] font-semibold border-l-4 border-[#F59E0B] shadow-sm'
+                      : 'bg-white text-[#3B0764] font-bold shadow-sm border border-[#E2E8F0] ring-1 ring-[#581C87]/10'
+                    : dark
+                    ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                    : 'text-[#524365] hover:text-[#2E084D] hover:bg-white/80 hover:shadow-sm'
+                }`}
+                title={nav.label}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {active && !dark && (
+                    <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-[#F59E0B] to-[#D97706] shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0" />
+                  )}
+                  <IconComponent
+                    className={`w-4 h-4 shrink-0 transition-colors ${
+                      active
+                        ? dark ? 'text-[#F59E0B]' : 'text-[#581C87]'
+                        : dark ? 'text-[#94A3B8]' : 'text-[#716080]'
+                    }`}
+                  />
+                  {expanded && <span className="truncate">{nav.label}</span>}
+                </div>
+
+                {expanded && nav.count > 0 && (
+                  <span
+                    className={`text-[11px] tabular-nums font-bold px-2 py-0.5 rounded-full transition-colors ${
+                      active
+                        ? dark
+                          ? 'bg-[#F59E0B] text-[#1E082B] shadow-sm'
+                          : 'bg-[#F59E0B]/20 text-[#B45309] border border-[#F59E0B]/35'
+                        : dark
+                        ? 'text-[#94A3B8] bg-[#22293A]'
+                        : 'text-[#64748B] bg-[#E2E8F0]/80'
+                    }`}
+                  >
+                    {nav.count.toLocaleString()}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Priority Section */}
+        {expanded && (
+          <div className="pt-3 border-t border-[#CBD5E1] dark:border-[#252D3C]">
+            <div className="px-3 pb-1.5 text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
+              Priority
+            </div>
+            <div className="space-y-0.5">
+              {Object.values(PRIORITIES).map((tier) => {
+                const active = priorityFilter === tier.id;
+                return (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    onClick={() => {
+                      const nextPriority = priorityFilter === tier.id ? null : tier.id;
+                      setView('all');
+                      setPriorityFilter(nextPriority);
+                      setCategoryTab('all');
+                      setReadingEmailId(null);
+                      setMobileReading(false);
+                      setMobileNavOpen(false);
+                      emailsHook.setActiveFilter?.(nextPriority || 'ALL');
+                      listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] transition-all duration-150 cursor-pointer ${
+                      active
+                        ? dark
+                          ? 'bg-[#2E1A40] text-[#F8FAFC] font-semibold ring-1 ring-[#F59E0B]/40'
+                          : 'bg-white text-[#3B0764] font-semibold shadow-sm border border-[#E2E8F0]'
+                        : dark
+                        ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                        : 'text-[#524365] hover:text-[#2E084D] hover:bg-white/70'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                        style={{ backgroundColor: tier.color }}
+                      />
+                      <span>{tier.name}</span>
+                    </span>
+                    {active && (
+                      <span className="text-[11px] text-[#F59E0B] hover:text-[#D97706] font-bold">Clear</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer of Sidebar: Timeframe Selector */}
+      {expanded && (
+        <div className="px-3 pt-3 border-t border-[#CBD5E1] dark:border-[#252D3C]">
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => {
+                setWindowMenuOpen((o) => !o);
+                setUserMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all cursor-pointer border ${
+                dark
+                  ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737] border-[#2D3648]'
+                  : 'bg-white/80 hover:bg-white text-[#4D3A5B] hover:text-[#2E084D] hover:border-[#94A3B8] border-[#CBD5E1] shadow-sm hover:shadow-sm'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#F59E0B]' : 'text-[#F59E0B]'}`} />
+                <span className="font-medium">{activeWindowLabel}</span>
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+            </button>
+
+            {windowMenuOpen && (
+              <div
+                className={`absolute bottom-12 left-0 w-48 rounded-2xl p-1.5 shadow-xl border z-50 animate-slide-down ${
+                  dark
+                    ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]'
+                    : 'bg-white/95 backdrop-blur-md border-[#CBD5E1] shadow-xl text-[#1E1231]'
+                }`}
+              >
+                {WINDOWS.map((w) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    onClick={() => {
+                      selectWindow(w.id);
+                      if (isDrawer) setMobileNavOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
+                      windowId === w.id
+                        ? dark
+                          ? 'bg-[#2E1A40] font-semibold text-[#F8FAFC]'
+                          : 'bg-[#581C87]/10 font-bold text-[#3B0764] border border-[#581C87]/15'
+                        : dark
+                        ? 'hover:bg-[#202737] text-[#CBD5E1]'
+                        : 'hover:bg-[#F1F5F9] text-[#4D3A5B] hover:text-[#1E1231]'
+                    }`}
+                  >
+                    <span>{w.label}</span>
+                    {windowId === w.id && <Check className="w-3 h-3 text-[#F59E0B]" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div
       ref={rootRef}
       onClick={closeAllMenus}
-      className={`h-screen w-full overflow-hidden flex flex-col relative select-none transition-colors duration-200 ${
+      className={`h-[100dvh] w-full overflow-hidden flex flex-col relative select-none transition-colors duration-200 safe-top-pad safe-bottom-pad ${
         dark ? 'bg-[#10141D] text-[#F8FAFC]' : 'bg-[#EEF2F7] text-[#1E1231]'
       }`}
     >
-      {/* Sleek 2.5px Top Sync Progress Line - Deep Aubergine to Radiant Marigold to Ice Silver */}
+      {/* Sleek 2.5px Top Sync Progress Line */}
       <div className="fixed top-0 left-0 right-0 h-[2.5px] z-50 pointer-events-none overflow-hidden">
         <div
           className={`h-full bg-gradient-to-r from-[#581C87] via-[#F59E0B] to-[#CBD5E1] transition-all duration-500 ease-out ${
@@ -1002,23 +1314,31 @@ export default function App() {
       </div>
 
       {/* ==================================================================== */}
-      {/* TOP BAR: CLASSY HEADER WITH EXPANSIVE PILL SEARCH, LOGO, USER AVATAR */}
+      {/* TOP BAR: RESPONSIVE HEADER WITH SEARCH, LOGO, CONTROLS, USER AVATAR  */}
       {/* ==================================================================== */}
       <header
-        className={`h-16 px-4 sm:px-6 flex items-center justify-between border-b shrink-0 z-20 backdrop-blur-md transition-colors duration-200 ${
+        className={`h-14 sm:h-16 px-3 sm:px-6 flex items-center justify-between gap-2 border-b shrink-0 z-20 backdrop-blur-md transition-colors duration-200 ${
           dark
             ? 'bg-[#181D29]/95 border-[#2D3648] text-[#F8FAFC]'
-            : 'bg-[#F5F8FC]/90 border-[#CBD5E1] text-[#1E1231] shadow-[0_1px_3px_rgba(88,28,135,0.03)]'
+            : 'bg-[#F5F8FC]/95 border-[#CBD5E1] text-[#1E1231] shadow-[0_1px_3px_rgba(88,28,135,0.03)]'
         }`}
       >
         {/* Left: Hamburger + Logo */}
-        <div className="flex items-center gap-3 w-56 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 w-auto md:w-56 shrink-0">
           <button
-            onClick={() => setSidebarOpen((o) => !o)}
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                setMobileNavOpen((o) => !o);
+              } else {
+                setSidebarOpen((o) => !o);
+              }
+            }}
+            aria-label="Toggle navigation menu"
             className={`p-2 rounded-full transition cursor-pointer hover:scale-105 active:scale-95 ${
               dark
                 ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
-                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-xs'
+                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-sm'
             }`}
             title="Main menu"
           >
@@ -1028,38 +1348,40 @@ export default function App() {
           <div
             onClick={() => {
               setReadingEmailId(null);
+              setMobileReading(false);
               setView('all');
               setCategoryTab('all');
               setPriorityFilter(null);
               emailsHook.setActiveFilter?.('ALL');
             }}
-            className="flex items-center gap-2.5 font-semibold text-lg tracking-tight cursor-pointer"
+            className="flex items-center gap-2 font-semibold text-lg tracking-tight cursor-pointer"
           >
             <BrandMark />
-            <span className={`font-bold tracking-tight text-lg ${dark ? 'text-[#F8FAFC]' : 'text-[#2E084D]'}`}>
+            <span className={`hidden sm:inline font-bold tracking-tight text-lg ${dark ? 'text-[#F8FAFC]' : 'text-[#2E084D]'}`}>
               MailMind<span className="text-[#F59E0B] ml-0.5">•</span>
             </span>
           </div>
         </div>
 
         {/* Center: Expansive Rounded Pill Search Bar */}
-        <div className="flex-1 max-w-2xl px-2 sm:px-6">
+        <div className="flex-1 max-w-2xl px-1 sm:px-6 relative" onClick={(e) => e.stopPropagation()}>
           <div
-            className={`flex items-center h-11 px-4 rounded-full transition-all border ${
+            className={`flex items-center h-10 sm:h-11 px-3 sm:px-4 rounded-full transition-all border ${
               dark
                 ? 'bg-[#141822] border-[#2D3648] focus-within:bg-[#181D29] focus-within:border-[#F59E0B] focus-within:ring-2 focus-within:ring-[#F59E0B]/25 focus-within:shadow-md'
                 : 'bg-white border-[#CBD5E1] hover:border-[#94A3B8] focus-within:bg-white focus-within:border-[#581C87] focus-within:ring-2 focus-within:ring-[#581C87]/15 focus-within:shadow-[0_2px_12px_rgba(88,28,135,0.08)]'
             }`}
           >
-            <Search className={`w-4 h-4 shrink-0 mr-3 ${dark ? 'text-[#94A3B8]' : 'text-[#581C87]'}`} />
+            <Search className={`w-4 h-4 shrink-0 mr-2 sm:mr-3 ${dark ? 'text-[#94A3B8]' : 'text-[#581C87]'}`} />
             <input
               type="text"
+              aria-label="Search in emails"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 emailsHook.setSearchQuery?.(e.target.value);
               }}
-              placeholder="Search in emails..."
+              placeholder="Search emails, senders, topics..."
               className={`w-full bg-transparent text-[13.5px] focus:outline-none ${
                 dark
                   ? 'text-[#F8FAFC] placeholder-[#94A3B8]'
@@ -1068,30 +1390,110 @@ export default function App() {
             />
             {search ? (
               <button
-                onClick={() => setSearch('')}
-                className={`p-1 transition ${dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#786B84] hover:text-[#1E1231]'}`}
+                type="button"
+                aria-label="Clear search"
+                onClick={() => {
+                  setSearch('');
+                  emailsHook.setSearchQuery?.('');
+                }}
+                className={`p-1 rounded-full transition cursor-pointer ${dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#786B84] hover:text-[#1E1231] hover:bg-[#F1F5F9]'}`}
               >
                 <X className="w-4 h-4" />
               </button>
             ) : (
               <button
-                title="Search options"
-                className={`p-1 transition ${dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#786B84] hover:text-[#1E1231]'}`}
+                type="button"
+                aria-label="Quick filters"
+                onClick={() => setSearchPopoverOpen((o) => !o)}
+                title="Quick triage filters"
+                className={`p-1 rounded-full transition cursor-pointer ${
+                  searchPopoverOpen
+                    ? 'text-[#F59E0B]'
+                    : dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#786B84] hover:text-[#1E1231]'
+                }`}
               >
                 <SlidersHorizontal className="w-4 h-4" />
               </button>
             )}
           </div>
+
+          {searchPopoverOpen && (
+            <div
+              className={`absolute left-1 sm:left-6 right-1 sm:right-6 top-12 rounded-2xl p-3 shadow-xl border z-50 animate-slide-down ${
+                dark ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]' : 'bg-white border-[#CBD5E1] text-[#1E1231]'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">Quick Filters</span>
+                {(priorityFilter || view !== 'all' || search) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPriorityFilter(null);
+                      setView('all');
+                      setCategoryTab('all');
+                      setSearch('');
+                      emailsHook.setSearchQuery?.('');
+                      emailsHook.setActiveFilter?.('ALL');
+                      setSearchPopoverOpen(false);
+                    }}
+                    className="text-[11px] font-semibold text-[#F59E0B] hover:underline cursor-pointer"
+                  >
+                    Reset all
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.values(PRIORITIES).map((tier) => (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    onClick={() => {
+                      setView('all');
+                      setPriorityFilter(tier.id);
+                      emailsHook.setActiveFilter?.(tier.id);
+                      setSearchPopoverOpen(false);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
+                      priorityFilter === tier.id
+                        ? dark ? 'bg-[#2E1A40] border-[#F59E0B] text-white' : 'bg-[#FAF5FF] border-[#581C87] text-[#3B0764]'
+                        : dark ? 'bg-[#141822] border-[#252D3C] hover:bg-[#202737]' : 'bg-[#F8FAFC] border-[#E2E8F0] hover:bg-[#EEF2F7]'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tier.color }} />
+                    <span>{tier.name}</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleNavSelect('attention');
+                    setSearchPopoverOpen(false);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
+                    view === 'attention'
+                      ? dark ? 'bg-[#2E1A40] border-[#F59E0B] text-white' : 'bg-[#FAF5FF] border-[#581C87] text-[#3B0764]'
+                      : dark ? 'bg-[#141822] border-[#252D3C] hover:bg-[#202737]' : 'bg-[#F8FAFC] border-[#E2E8F0] hover:bg-[#EEF2F7]'
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5 text-[#F59E0B]" />
+                  <span>Needs Attention</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Quick Controls + User Profile */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
+            type="button"
+            aria-label="Sync mailbox"
             onClick={() => emailsHook.refresh?.(windowId)}
             className={`p-2 rounded-full transition cursor-pointer hover:scale-105 active:scale-95 ${
               dark
                 ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
-                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-xs'
+                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-sm'
             }`}
             title="Sync mailbox"
           >
@@ -1099,11 +1501,13 @@ export default function App() {
           </button>
 
           <button
+            type="button"
+            aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
             onClick={() => setDark((d) => !d)}
             className={`p-2 rounded-full transition cursor-pointer hover:scale-105 active:scale-95 ${
               dark
                 ? 'text-[#CBD5E1] hover:text-[#F59E0B] hover:bg-[#202737]'
-                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-xs'
+                : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-sm'
             }`}
             title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
@@ -1111,9 +1515,11 @@ export default function App() {
           </button>
 
           {/* User Profile Avatar Dropdown */}
-          <div className="relative ml-2" onClick={(e) => e.stopPropagation()}>
+          <div className="relative ml-1 sm:ml-2" onClick={(e) => e.stopPropagation()}>
             {auth.isAuthenticated ? (
               <button
+                type="button"
+                aria-label="Account menu"
                 onClick={() => {
                   setUserMenuOpen((o) => !o);
                   setWindowMenuOpen(false);
@@ -1129,6 +1535,7 @@ export default function App() {
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => auth.devLogin ? auth.devLogin() : auth.login()}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-[#2E084D] to-[#581C87] hover:from-[#3B0A63] hover:to-[#6B21A8] text-white shadow-sm border border-[#7E22CE]/40 transition cursor-pointer"
                 title="Connect your Gmail account"
@@ -1139,7 +1546,7 @@ export default function App() {
 
             {userMenuOpen && auth.isAuthenticated && (
               <div
-                className={`absolute right-0 top-11 w-56 rounded-2xl p-2 shadow-xl border z-50 ${
+                className={`absolute right-0 top-11 w-56 rounded-2xl p-2 shadow-xl border z-50 animate-slide-down ${
                   dark
                     ? 'bg-[#1E0F2B] border-[#361A4B] text-[#F8FAFC]'
                     : 'bg-[#FFFFFF] border-[#E2E8F0] text-[#1D0B2B]'
@@ -1147,9 +1554,10 @@ export default function App() {
               >
                 <div className="px-3 py-2 border-b border-[#361A4B]/40 dark:border-[#361A4B] mb-1">
                   <p className="text-xs font-semibold truncate">{userName}</p>
-                  <p className="text-[11px] text-[#94A3B8] dark:text-[#94A3B8] truncate">{auth.user?.email || 'Connected'}</p>
+                  <p className="text-[11px] text-[#94A3B8] truncate">{auth.user?.email || 'Connected'}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setUserMenuOpen(false);
                     auth.logout();
@@ -1169,12 +1577,30 @@ export default function App() {
         </div>
       </header>
 
+      {/* Mobile Slide-Over Navigation Drawer */}
+      {mobileNavOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            onClick={() => setMobileNavOpen(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-[2px] animate-backdrop-in"
+          />
+          <aside
+            onClick={(e) => e.stopPropagation()}
+            className={`relative z-10 w-72 max-w-[85vw] h-full flex flex-col justify-between py-4 shadow-2xl border-r animate-slide-in-left safe-bottom-pad ${
+              dark ? 'bg-[#141822] border-[#252D3C]' : 'bg-[#F5F8FC] border-[#CBD5E1]'
+            }`}
+          >
+            {renderSidebarBody(true, true)}
+          </aside>
+        </div>
+      )}
+
       {/* ==================================================================== */}
       {/* MAIN CONTAINER: SIDEBAR + CONTENT AREA                                */}
       {/* ==================================================================== */}
       <div className="flex-1 flex overflow-hidden">
         {/* ================================================================== */}
-        {/* LEFT SIDEBAR (GMAIL STYLE RAIL & LABELS)                           */}
+        {/* LEFT SIDEBAR (DESKTOP COLLAPSIBLE RAIL)                            */}
         {/* ================================================================== */}
         <aside
           className={`${
@@ -1185,180 +1611,7 @@ export default function App() {
               : 'bg-[#F5F8FC]/80 backdrop-blur-md border-[#CBD5E1]'
           }`}
         >
-          <div className="space-y-3 px-3">
-            {/* Primary Views */}
-            <nav className="space-y-1">
-              {[
-                { id: 'all', label: 'Inbox', icon: Inbox, count: inboxTotalCount },
-                { id: 'attention', label: 'Needs Attention', icon: AlertCircle, count: attentionCount },
-                { id: 'recent', label: 'Recent Mail', icon: Clock, count: null }
-              ].map((nav) => {
-                const active = view === nav.id;
-                const IconComponent = nav.icon;
-                return (
-                  <button
-                    key={nav.id}
-                    onClick={() => {
-                      setView(nav.id);
-                      setReadingEmailId(null);
-                      setMobileReading(false);
-                      setPriorityFilter(null);
-                      if (nav.id === 'all') {
-                        setCategoryTab('all');
-                        emailsHook.setActiveFilter?.('ALL');
-                      } else if (nav.id === 'attention') {
-                        setCategoryTab('all');
-                        emailsHook.setActiveFilter?.('NEEDS_ATTENTION');
-                      } else if (nav.id === 'recent') {
-                        setCategoryTab('all');
-                        emailsHook.setActiveFilter?.('ALL');
-                      }
-                    }}
-                    className={`w-full flex items-center justify-between py-2 rounded-xl text-[13.5px] transition cursor-pointer ${
-                      sidebarOpen ? 'pl-3.5 pr-3' : 'px-2 justify-center'
-                    } ${
-                      active
-                        ? dark
-                          ? 'bg-[#2E1A40] text-[#F8FAFC] font-semibold border-l-4 border-[#F59E0B] shadow-sm'
-                          : 'bg-white text-[#3B0764] font-bold shadow-sm border border-[#E2E8F0] shadow-[0_2px_8px_rgba(88,28,135,0.06)] ring-1 ring-[#581C87]/10'
-                        : dark
-                        ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
-                        : 'text-[#524365] hover:text-[#2E084D] hover:bg-white/70 hover:shadow-xs'
-                    }`}
-                    title={nav.label}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {active && !dark && (
-                        <span className="w-1.5 h-4.5 rounded-full bg-gradient-to-b from-[#F59E0B] to-[#D97706] shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0" />
-                      )}
-                      <IconComponent
-                        className={`w-4 h-4 shrink-0 transition-colors ${
-                          active
-                            ? dark ? 'text-[#F59E0B]' : 'text-[#581C87]'
-                            : dark ? 'text-[#94A3B8]' : 'text-[#716080]'
-                        }`}
-                      />
-                      {sidebarOpen && <span className="truncate">{nav.label}</span>}
-                    </div>
-
-                    {sidebarOpen && nav.count > 0 && (
-                      <span
-                        className={`text-xs tabular-nums font-bold px-2 py-0.5 rounded-full transition-colors ${
-                          active
-                            ? dark
-                              ? 'bg-[#F59E0B] text-[#1E082B] shadow-sm'
-                              : 'bg-[#F59E0B]/20 text-[#B45309] border border-[#F59E0B]/35 shadow-xs'
-                            : dark
-                            ? 'text-[#94A3B8] bg-[#22293A]'
-                            : 'text-[#64748B] bg-[#E2E8F0]/80'
-                        }`}
-                      >
-                        {nav.count.toLocaleString()}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-
-            {/* Priority Section */}
-            {sidebarOpen && (
-              <div className="pt-3 border-t border-[#CBD5E1] dark:border-[#361A4B]">
-                <div className="px-3 pb-1.5 text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
-                  Priority
-                </div>
-                {Object.values(PRIORITIES).map((tier) => {
-                  const active = priorityFilter === tier.id;
-                  return (
-                    <button
-                      key={tier.id}
-                      onClick={() => {
-                        const nextPriority = priorityFilter === tier.id ? null : tier.id;
-                        setPriorityFilter(nextPriority);
-                        setCategoryTab('all');
-                        setReadingEmailId(null);
-                        emailsHook.setActiveFilter?.(nextPriority || 'ALL');
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition cursor-pointer ${
-                        active
-                          ? dark
-                            ? 'bg-[#2E1A40] text-[#F8FAFC] font-semibold'
-                            : 'bg-white text-[#3B0764] font-semibold shadow-xs border border-[#E2E8F0]'
-                          : dark
-                          ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
-                          : 'text-[#524365] hover:text-[#2E084D] hover:bg-white/60'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0 shadow-sm"
-                          style={{ backgroundColor: tier.color }}
-                        />
-                        <span>{tier.name}</span>
-                      </span>
-                      {active && (
-                        <span className="text-[11px] text-[#F59E0B] hover:text-[#D97706] font-bold">Clear</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Footer of Sidebar: Timeframe Selector */}
-          {sidebarOpen && (
-            <div className="px-3 pt-3 border-t border-[#CBD5E1] dark:border-[#252D3C]">
-              <div className="relative" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => {
-                    setWindowMenuOpen((o) => !o);
-                    setUserMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer border ${
-                    dark
-                      ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737] border-[#2D3648]'
-                      : 'bg-white/70 hover:bg-white text-[#4D3A5B] hover:text-[#2E084D] hover:border-[#94A3B8] border-[#CBD5E1] shadow-xs hover:shadow-sm'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#F59E0B]' : 'text-[#F59E0B]'}`} />
-                    <span className="font-medium">{activeWindowLabel}</span>
-                  </span>
-                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-                </button>
-
-                {windowMenuOpen && (
-                  <div
-                    className={`absolute bottom-11 left-0 w-48 rounded-2xl p-1.5 shadow-xl border z-50 ${
-                      dark
-                        ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]'
-                        : 'bg-white/95 backdrop-blur-md border-[#CBD5E1] shadow-xl text-[#1E1231]'
-                    }`}
-                  >
-                    {WINDOWS.map((w) => (
-                      <button
-                        key={w.id}
-                        onClick={() => selectWindow(w.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
-                          windowId === w.id
-                            ? dark
-                              ? 'bg-[#2E1A40] font-semibold text-[#F8FAFC]'
-                              : 'bg-[#581C87]/10 font-bold text-[#3B0764] border border-[#581C87]/15'
-                            : dark
-                            ? 'hover:bg-[#202737] text-[#CBD5E1]'
-                            : 'hover:bg-[#F1F5F9] text-[#4D3A5B] hover:text-[#1E1231]'
-                        }`}
-                      >
-                        <span>{w.label}</span>
-                        {windowId === w.id && <Check className="w-3 h-3 text-[#F59E0B]" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {renderSidebarBody(sidebarOpen, false)}
         </aside>
 
         {/* ================================================================== */}
@@ -1371,29 +1624,38 @@ export default function App() {
         >
           {/* 1. ACTION TOOLBAR */}
           <div
-            className={`h-12 px-4 flex items-center justify-between border-b shrink-0 text-xs backdrop-blur-sm ${
+            className={`min-h-[48px] px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 border-b shrink-0 text-xs backdrop-blur-sm ${
               dark ? 'bg-[#161B26]/90 border-[#252D3C]' : 'bg-[#FFFFFF]/95 border-[#E2E8F0]'
             }`}
           >
-            {/* Left Controls: Checkbox Dropdown, Refresh, Batch Actions */}
-            <div className="flex items-center gap-2">
-              {readingEmailId ? (
-                /* When in thread view: Back to inbox button */
+            {/* Left Controls: Back / Select All, Refresh, Batch Actions */}
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              {(readingEmailId || (mobileReading && layoutMode === 'split')) && (
                 <button
-                  onClick={() => setReadingEmailId(null)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer ${
+                  type="button"
+                  onClick={() => {
+                    setReadingEmailId(null);
+                    setMobileReading(false);
+                  }}
+                  className={`${
+                    readingEmailId ? 'flex' : 'flex lg:hidden'
+                  } items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
                     dark
                       ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
                       : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-[#F1F5F9]'
                   }`}
                 >
                   <ArrowLeft className="w-4 h-4 text-[#F59E0B]" />
-                  <span>Back to all mail</span>
+                  <span>Back to {view === 'attention' ? 'attention queue' : 'inbox'}</span>
                 </button>
-              ) : (
-                <>
+              )}
+
+              {!readingEmailId && (
+                <div className={`${mobileReading && layoutMode === 'split' ? 'hidden lg:flex' : 'flex'} items-center gap-1.5 sm:gap-2 min-w-0`}>
                   {/* Select All Checkbox */}
                   <button
+                    type="button"
+                    aria-label="Select all visible emails"
                     onClick={toggleSelectAll}
                     className={`p-1.5 rounded-md transition cursor-pointer hover:scale-105 active:scale-95 ${
                       dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#F1F5F9]'
@@ -1410,6 +1672,8 @@ export default function App() {
                   </button>
 
                   <button
+                    type="button"
+                    aria-label="Refresh list"
                     onClick={() => emailsHook.refresh?.(windowId)}
                     className={`p-1.5 rounded-md transition cursor-pointer hover:scale-105 active:scale-95 ${
                       dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#F1F5F9]'
@@ -1421,14 +1685,26 @@ export default function App() {
 
                   {/* Batch actions when checkboxes selected */}
                   {checkedIds.size > 0 && (
-                    <div className="flex items-center gap-2 ml-2 pl-3 border-l border-[#CBD5E1] dark:border-[#2D3648]">
-                      <span className="font-semibold text-xs text-[#F59E0B]">
+                    <div className="flex items-center gap-1.5 ml-1 pl-2.5 border-l border-[#CBD5E1] dark:border-[#2D3648] animate-fade-in">
+                      <span className="font-semibold text-xs text-[#F59E0B] tabular-nums">
                         {checkedIds.size} selected
                       </span>
-
                       <button
+                        type="button"
+                        onClick={handleBatchDone}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                          dark
+                            ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30'
+                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                        }`}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Mark Done</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setCheckedIds(new Set())}
-                        className={`px-2 py-1 rounded-md text-xs font-medium transition ${
+                        className={`px-2 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
                           dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#64748B] hover:text-[#3B0764] hover:bg-[#F1F5F9]'
                         }`}
                       >
@@ -1436,21 +1712,23 @@ export default function App() {
                       </button>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
 
-            {/* Right Controls: Pagination 1-50 of 7,044 + Arrow Navigation */}
-            <div className="flex items-center gap-3">
-              <span className={`tabular-nums ${dark ? 'text-[#94A3B8]' : 'text-[#64748B]'}`}>
+            {/* Right Controls: Pagination + Clear Segmented Layout Toggle */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <span className={`tabular-nums text-[11.5px] sm:text-xs font-medium ${dark ? 'text-[#94A3B8]' : 'text-[#64748B]'}`}>
                 {startNum}–{endNum} of {currentViewTotal.toLocaleString()}
               </span>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <button
+                  type="button"
+                  aria-label="Previous page"
                   disabled={currentPage <= 1 || !!readingEmailId}
-                  onClick={() => emailsHook.setPage?.((p) => Math.max(1, p - 1))}
-                  className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 ${
+                  onClick={() => handlePageNav(-1)}
+                  className={`p-1.5 rounded-lg transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 ${
                     dark ? 'hover:bg-[#202737] text-[#CBD5E1]' : 'hover:bg-[#F1F5F9] text-[#4D3A5B]'
                   }`}
                   title="Newer"
@@ -1458,9 +1736,11 @@ export default function App() {
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
+                  type="button"
+                  aria-label="Next page"
                   disabled={!hasNextPage || !!readingEmailId}
-                  onClick={() => emailsHook.setPage?.((p) => p + 1)}
-                  className={`p-1.5 rounded-md transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 ${
+                  onClick={() => handlePageNav(1)}
+                  className={`p-1.5 rounded-lg transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 ${
                     dark ? 'hover:bg-[#202737] text-[#CBD5E1]' : 'hover:bg-[#F1F5F9] text-[#4D3A5B]'
                   }`}
                   title="Older"
@@ -1469,30 +1749,48 @@ export default function App() {
                 </button>
               </div>
 
-              {/* View Layout Toggle (Table vs Split View) */}
-              <button
-                onClick={() => {
-                  setLayoutMode((m) => (m === 'table' ? 'split' : 'table'));
-                  if (layoutMode === 'split') setReadingEmailId(null);
-                }}
-                className={`p-1.5 rounded-md transition cursor-pointer hover:scale-105 active:scale-95 ${
-                  layoutMode === 'split'
-                    ? 'bg-[#F59E0B]/15 text-[#92400E] border border-[#F59E0B]/30 font-semibold'
-                    : dark
-                    ? 'text-[#94A3B8] hover:bg-[#202737] hover:text-white'
-                    : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#3B0764]'
+              {/* Desktop Segmented Layout Toggle (List vs Split View) */}
+              <div
+                className={`hidden lg:inline-flex items-center p-0.5 rounded-lg border ${
+                  dark ? 'bg-[#121620] border-[#252D3C]' : 'bg-[#F1F5F9] border-[#CBD5E1]/70'
                 }`}
-                title={layoutMode === 'split' ? 'Switch to Full Table View' : 'Switch to Split Reading View'}
+                role="group"
+                aria-label="Reading layout"
               >
-                <Columns className="w-4 h-4" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setLayoutModeAndPersist('table')}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                    layoutMode === 'table'
+                      ? dark ? 'bg-[#283144] text-white shadow-sm' : 'bg-white text-[#3B0764] shadow-sm'
+                      : dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#64748B] hover:text-[#1E1231]'
+                  }`}
+                  title="Full width list"
+                >
+                  <LayoutList className="w-3.5 h-3.5" />
+                  <span>List</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLayoutModeAndPersist('split')}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer ${
+                    layoutMode === 'split'
+                      ? dark ? 'bg-[#283144] text-[#FBBF24] shadow-sm' : 'bg-white text-[#3B0764] shadow-sm'
+                      : dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#64748B] hover:text-[#1E1231]'
+                  }`}
+                  title="Side-by-side split reading pane"
+                >
+                  <Columns className="w-3.5 h-3.5" />
+                  <span>Split</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* 2. CATEGORY TABS (Primary, Updates, Promotions, Social, All) - Shown in Main Inbox View */}
+          {/* 2. CATEGORY TABS (Primary, Promotions, Social, Updates, All) */}
           {!readingEmailId && view === 'all' && (
             <div
-              className={`flex items-center border-b shrink-0 px-2 sm:px-4 gap-1 ${
+              className={`${mobileReading && layoutMode === 'split' ? 'hidden lg:flex' : 'flex'} items-center overflow-x-auto no-scrollbar border-b shrink-0 px-2 sm:px-4 gap-1 ${
                 dark ? 'bg-[#161B26] border-[#252D3C]' : 'bg-[#FFFFFF] border-[#E2E8F0]'
               }`}
             >
@@ -1508,8 +1806,9 @@ export default function App() {
                 return (
                   <button
                     key={tab.id}
+                    type="button"
                     onClick={() => setCategoryTab(tab.id)}
-                    className={`group flex items-center gap-2 px-3 sm:px-5 py-2.5 text-[13.5px] font-medium transition cursor-pointer border-b-2 -mb-[1px] rounded-t-xl ${
+                    className={`group shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2.5 text-[13px] font-medium transition cursor-pointer border-b-2 -mb-[1px] rounded-t-xl ${
                       active
                         ? dark
                           ? 'border-[#F59E0B] text-[#FBBF24] font-bold bg-[#F59E0B]/5'
@@ -1529,11 +1828,11 @@ export default function App() {
                     <span>{tab.label}</span>
                     {tab.count > 0 && (
                       <span
-                        className={`text-xs tabular-nums px-2 py-0.5 rounded-full font-bold transition-all ${
+                        className={`text-[11px] tabular-nums px-2 py-0.5 rounded-full font-bold transition-all ${
                           active
                             ? dark
                               ? 'bg-[#F59E0B] text-[#1E082B] shadow-sm'
-                              : 'bg-[#581C87] text-white shadow-xs'
+                              : 'bg-[#581C87] text-white shadow-sm'
                             : dark
                             ? 'bg-[#252D3C] text-[#94A3B8]'
                             : 'bg-[#F1F5F9] text-[#64748B] border border-[#E2E8F0] group-hover:border-[#CBD5E1]'
@@ -1551,20 +1850,20 @@ export default function App() {
           {/* NEEDS ATTENTION QUEUE HEADER BANNER */}
           {!readingEmailId && view === 'attention' && (
             <div
-              className={`flex items-center justify-between border-b shrink-0 px-4 py-2.5 ${
+              className={`${mobileReading && layoutMode === 'split' ? 'hidden lg:flex' : 'flex'} items-center justify-between border-b shrink-0 px-4 py-2.5 ${
                 dark ? 'bg-[#1C1327] border-[#2D1B3E]' : 'bg-[#FAF5FF] border-[#E9D5FF]'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <AlertCircle className="w-4 h-4 text-[#F59E0B]" />
-                <span className={`text-xs font-bold ${dark ? 'text-[#F8FAFC]' : 'text-[#581C87]'}`}>
-                  Needs Attention Priority Queue
+              <div className="flex items-center gap-2.5 min-w-0">
+                <AlertCircle className="w-4 h-4 text-[#F59E0B] shrink-0" />
+                <span className={`text-xs font-bold shrink-0 ${dark ? 'text-[#F8FAFC]' : 'text-[#581C87]'}`}>
+                  Needs Attention Queue
                 </span>
-                <span className="text-[11px] text-[#94A3B8]">
+                <span className="hidden sm:inline text-[11px] text-[#94A3B8] truncate">
                   · Operational alerts, tasks requiring action, and upcoming deadlines
                 </span>
               </div>
-              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${dark ? 'bg-[#F59E0B]/20 text-[#FBBF24]' : 'bg-[#581C87]/10 text-[#581C87]'}`}>
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full shrink-0 ${dark ? 'bg-[#F59E0B]/20 text-[#FBBF24]' : 'bg-[#581C87]/10 text-[#581C87]'}`}>
                 {currentViewTotal.toLocaleString()} items
               </span>
             </div>
@@ -1573,7 +1872,7 @@ export default function App() {
           {/* RECENT MAIL HEADER BANNER */}
           {!readingEmailId && view === 'recent' && (
             <div
-              className={`flex items-center justify-between border-b shrink-0 px-4 py-2.5 ${
+              className={`${mobileReading && layoutMode === 'split' ? 'hidden lg:flex' : 'flex'} items-center justify-between border-b shrink-0 px-4 py-2.5 ${
                 dark ? 'bg-[#181D29] border-[#252D3C]' : 'bg-[#F1F5F9] border-[#CBD5E1]'
               }`}
             >
@@ -1582,10 +1881,75 @@ export default function App() {
                 <span className={`text-xs font-bold ${dark ? 'text-[#F8FAFC]' : 'text-[#3B0764]'}`}>
                   Recent Mail
                 </span>
-                <span className="text-[11px] text-[#94A3B8]">
+                <span className="hidden sm:inline text-[11px] text-[#94A3B8]">
                   · Synced messages from the last 30 days
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Active Filter Chips Strip */}
+          {(priorityFilter || search.trim() || (view === 'all' && categoryTab !== 'all')) && !readingEmailId && (
+            <div className={`${mobileReading && layoutMode === 'split' ? 'hidden lg:flex' : 'flex'} px-3 sm:px-4 py-2 border-b items-center flex-wrap gap-1.5 text-xs ${
+              dark ? 'bg-[#141822]/80 border-[#252D3C]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
+            }`}>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mr-1">Active:</span>
+              {priorityFilter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPriorityFilter(null);
+                    emailsHook.setActiveFilter?.('ALL');
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-medium border cursor-pointer transition ${
+                    dark ? 'bg-[#2E1A40] border-[#7E22CE]/50 text-[#F8FAFC] hover:bg-[#3B2152]' : 'bg-white border-[#CBD5E1] text-[#3B0764] hover:bg-[#F1F5F9]'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PRIORITIES[priorityFilter]?.color }} />
+                  <span>Priority: {PRIORITIES[priorityFilter]?.name}</span>
+                  <X className="w-3 h-3 opacity-70" />
+                </button>
+              )}
+              {view === 'all' && categoryTab !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => setCategoryTab('all')}
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium border cursor-pointer transition capitalize ${
+                    dark ? 'bg-[#202737] border-[#2D3648] text-[#CBD5E1]' : 'bg-white border-[#CBD5E1] text-[#4D3A5B]'
+                  }`}
+                >
+                  <span>Tab: {categoryTab}</span>
+                  <X className="w-3 h-3 opacity-70" />
+                </button>
+              )}
+              {search.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    emailsHook.setSearchQuery?.('');
+                  }}
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium border cursor-pointer transition ${
+                    dark ? 'bg-[#202737] border-[#2D3648] text-[#CBD5E1]' : 'bg-white border-[#CBD5E1] text-[#4D3A5B]'
+                  }`}
+                >
+                  <span>Search: &ldquo;{search.trim()}&rdquo;</span>
+                  <X className="w-3 h-3 opacity-70" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setPriorityFilter(null);
+                  setCategoryTab('all');
+                  setSearch('');
+                  emailsHook.setSearchQuery?.('');
+                  emailsHook.setActiveFilter?.('ALL');
+                }}
+                className="ml-auto text-[11px] font-semibold text-[#F59E0B] hover:underline cursor-pointer"
+              >
+                Reset all
+              </button>
             </div>
           )}
 
@@ -1596,9 +1960,10 @@ export default function App() {
             }`}>
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
-                <span>Backend server unreachable at http://127.0.0.1:8000. Displaying cached local emails.</span>
+                <span>Backend server unreachable. Displaying cached local emails.</span>
               </div>
               <button
+                type="button"
                 onClick={() => emailsHook.refresh?.()}
                 className="underline hover:opacity-80 font-medium cursor-pointer"
               >
@@ -1607,240 +1972,360 @@ export default function App() {
             </div>
           )}
 
-          {/* 3. MAIL CONTENT: TABLE VIEW vs FULL THREAD VIEW vs SPLIT VIEW */}
+          {/* 3. MAIL CONTENT: LIST VIEW vs SPLIT VIEW vs FULL READER */}
           <div className="flex-1 flex overflow-hidden">
-            {/* EMAIL LIST TABLE (Shown when not reading in table mode, or in split mode) */}
-            {(!readingEmailId || layoutMode === 'split') && (
-              <div
-                role="listbox"
-                aria-label="Email list"
-                className={`flex-1 flex flex-col overflow-y-auto ${
-                  layoutMode === 'split' ? 'w-full md:w-[420px] lg:w-[480px] shrink-0 border-r' : 'w-full'
-                } ${dark ? 'border-[#2D153E]' : 'border-[#E2E8F0]'}`}
-              >
-                {visibleEmails.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-[#94A3B8]">
-                    <Inbox className="w-12 h-12 stroke-[1.2] mb-3 opacity-40 text-[#7E22CE]" />
-                    <p className="text-sm font-semibold text-[#CBD5E1] dark:text-[#CBD5E1]">All caught up</p>
-                    <p className="text-xs text-[#94A3B8] mt-1">No messages match the active view or filter</p>
+            {/* EMAIL LIST COLUMN */}
+            <div
+              ref={listScrollRef}
+              role="listbox"
+              aria-label="Email list"
+              className={`${
+                readingEmailId && layoutMode !== 'split'
+                  ? 'hidden'
+                  : (mobileReading || readingEmailId) && layoutMode === 'split'
+                  ? 'hidden lg:flex'
+                  : 'flex'
+              } flex-col overflow-y-auto smooth-scroll transition-opacity duration-200 ${
+                emailsHook.isRefreshing ? 'opacity-80' : 'opacity-100'
+              } ${
+                layoutMode === 'split' ? 'w-full lg:w-[410px] xl:w-[460px] shrink-0 lg:border-r' : 'w-full'
+              } ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}
+            >
+              {emailsHook.isLoading && visibleEmails.length === 0 ? (
+                <div className="divide-y divide-[#EBF0F5] dark:divide-[#22293A]">
+                  {Array.from({ length: 8 }).map((_, skIdx) => (
+                    <div key={skIdx} className="px-4 py-3.5 flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full animate-shimmer shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="h-3.5 w-36 rounded-md animate-shimmer" />
+                          <div className="h-3 w-12 rounded-md animate-shimmer" />
+                        </div>
+                        <div className="h-3.5 w-3/4 rounded-md animate-shimmer" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : visibleEmails.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-12 text-center text-[#94A3B8] animate-fade-in">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
+                    dark ? 'bg-[#202737] text-[#F59E0B]' : 'bg-[#FAF5FF] text-[#7E22CE]'
+                  }`}>
+                    <Inbox className="w-7 h-7 stroke-[1.5]" />
                   </div>
-                ) : (
-                  visibleEmails.map((item) => {
-                    const isSelected = (readingEmailId || selectedId) === item.id;
-                    const isChecked = checkedIds.has(item.id);
-                    const isStarred = starredIds.has(item.id);
-                    const tier = PRIORITIES[item.priority] || PRIORITIES.P3;
+                  <p className={`text-sm font-semibold ${dark ? 'text-[#F8FAFC]' : 'text-[#1E1231]'}`}>All caught up</p>
+                  <p className="text-xs text-[#94A3B8] mt-1 max-w-xs">
+                    No messages match your active filters or date range.
+                  </p>
+                  {(priorityFilter || search.trim() || categoryTab !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPriorityFilter(null);
+                        setCategoryTab('all');
+                        setSearch('');
+                        emailsHook.setSearchQuery?.('');
+                        emailsHook.setActiveFilter?.('ALL');
+                      }}
+                      className="mt-4 px-4 py-1.5 rounded-xl text-xs font-semibold bg-[#581C87] text-white hover:bg-[#6B21A8] transition cursor-pointer"
+                    >
+                      Clear active filters
+                    </button>
+                  )}
+                </div>
+              ) : (
+                visibleEmails.map((item) => {
+                  const isSelected = (readingEmailId || selectedId) === item.id;
+                  const isChecked = checkedIds.has(item.id);
+                  const isStarred = starredIds.has(item.id);
+                  const isDone = statusMap[item.id]?.state === 'done';
+                  const tier = PRIORITIES[item.priority] || PRIORITIES.P3;
+                  const avatarTone = getAvatarToneClass(item.email || item.sender, item.priority, dark);
+                  const isCompactSplit = layoutMode === 'split';
 
-                    return (
-                      <div
-                        key={item.id}
-                        role="option"
-                        aria-selected={isSelected}
-                        tabIndex={0}
-                        onClick={() => selectEmail(item)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            selectEmail(item);
-                          }
-                        }}
-                        className={`group flex items-center h-10 sm:h-11 px-3 sm:px-4 border-b transition-all duration-150 cursor-pointer text-[13px] sm:text-[13.5px] select-none relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7E22CE] ${
-                          isSelected && layoutMode === 'split'
-                            ? dark ? 'bg-[#2E1A40] shadow-[inset_3.5px_0_0_0_#F59E0B]' : 'bg-[#FAF5FF] shadow-[inset_3.5px_0_0_0_#581C87] border-[#DDD6FE]'
-                            : isChecked
-                            ? dark ? 'bg-[#242B3D]' : 'bg-[#F5F3FF] border-[#DDD6FE]'
-                            : item.unread
-                            ? dark ? 'bg-[#181D29] hover:bg-[#202737]' : 'bg-[#FFFFFF] hover:bg-[#F3F7FC] hover:shadow-[0_2px_8px_rgba(88,28,135,0.05)] hover:z-10'
-                            : dark ? 'bg-[#141822] hover:bg-[#1C2230]' : 'bg-[#FAFCFE] hover:bg-[#F3F7FC] hover:shadow-[0_2px_8px_rgba(88,28,135,0.05)] hover:z-10'
-                        } ${dark ? 'border-[#22293A]' : 'border-[#EBF0F5]'}`}
-                      >
-                        {/* Checkbox column */}
+                  return (
+                    <div
+                      key={item.id}
+                      role="option"
+                      aria-selected={isSelected}
+                      tabIndex={0}
+                      onClick={() => selectEmail(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          selectEmail(item);
+                        }
+                      }}
+                      className={`group flex items-start gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b transition-all duration-150 cursor-pointer select-none relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7E22CE] ${
+                        isDone ? 'opacity-55' : ''
+                      } ${
+                        isSelected && isCompactSplit
+                          ? dark
+                            ? 'bg-[#2E1A40]/90 shadow-[inset_3.5px_0_0_0_#F59E0B]'
+                            : 'bg-[#FAF5FF] shadow-[inset_3.5px_0_0_0_#581C87] border-[#DDD6FE]'
+                          : isChecked
+                          ? dark ? 'bg-[#242B3D]' : 'bg-[#F5F3FF] border-[#DDD6FE]'
+                          : item.priority === 'P1' && item.unread
+                          ? dark
+                            ? 'bg-rose-500/[0.04] hover:bg-[#202737] shadow-[inset_2.5px_0_0_0_#E11D48]'
+                            : 'bg-rose-50/40 hover:bg-[#F3F7FC] shadow-[inset_2.5px_0_0_0_#E11D48]'
+                          : item.unread
+                          ? dark ? 'bg-[#181D29] hover:bg-[#202737]' : 'bg-[#FFFFFF] hover:bg-[#F3F7FC]'
+                          : dark ? 'bg-[#141822]/90 hover:bg-[#1C2230]' : 'bg-[#FAFCFE] hover:bg-[#F3F7FC]'
+                      } ${dark ? 'border-[#22293A]' : 'border-[#EBF0F5]'}`}
+                    >
+                      {/* Left Controls: Checkbox + Star + Circular Avatar */}
+                      <div className="flex items-center gap-1 pt-0.5 shrink-0">
                         <button
                           type="button"
                           aria-label={isChecked ? `Deselect ${item.subject}` : `Select ${item.subject}`}
                           onClick={(e) => toggleCheckEmail(item.id, e)}
-                          className="p-1 -ml-1 transition shrink-0 cursor-pointer hover:scale-110 active:scale-95 duration-150"
+                          className="p-1 -ml-1 transition shrink-0 cursor-pointer hover:scale-110 active:scale-95"
                           title="Select"
                         >
                           {isChecked ? (
-                            <CheckSquare className="w-4 h-4 text-[#F59E0B] drop-shadow-[0_0_4px_rgba(245,158,11,0.35)]" />
+                            <CheckSquare className="w-4 h-4 text-[#F59E0B]" />
                           ) : (
                             <Square className={`w-4 h-4 transition-colors ${dark ? 'text-[#64748B] hover:text-[#CBD5E1]' : 'text-[#94A3B8] hover:text-[#581C87]'}`} />
                           )}
                         </button>
 
-                        {/* Star column */}
                         <button
                           type="button"
                           aria-label={isStarred ? `Remove star from ${item.subject}` : `Star ${item.subject}`}
                           onClick={(e) => toggleStarEmail(item.id, e)}
-                          className="p-1 transition shrink-0 cursor-pointer hover:scale-125 active:scale-95 duration-150"
+                          className="p-1 transition shrink-0 cursor-pointer hover:scale-110 active:scale-95"
                           title={isStarred ? "Starred" : "Not starred"}
                         >
-                          <Star className={`w-4 h-4 transition ${isStarred ? "fill-[#F59E0B] text-[#F59E0B] drop-shadow-[0_0_6px_rgba(245,158,11,0.55)]" : dark ? "text-[#64748B] hover:text-[#F59E0B]" : "text-[#CBD5E1] hover:text-[#F59E0B]"}`} />
+                          <Star className={`w-4 h-4 transition ${isStarred ? "fill-[#F59E0B] text-[#F59E0B]" : dark ? "text-[#64748B] hover:text-[#F59E0B]" : "text-[#CBD5E1] hover:text-[#F59E0B]"}`} />
                         </button>
 
-                        {/* Priority indicator dot */}
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0 ml-1 mr-3 shadow-xs group-hover:scale-125 transition-transform duration-150"
-                          style={{ backgroundColor: tier.color }}
-                          title={`${tier.id} · ${tier.name}`}
-                        />
-
-                        {/* Sender Column */}
                         <div
-                          className={`${
-                            layoutMode === 'split' ? 'w-28 sm:w-36' : 'w-36 sm:w-48 lg:w-56'
-                          } shrink-0 truncate pr-2 sm:pr-3 transition-colors ${
-                            item.unread
-                              ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
-                              : dark ? 'font-normal text-[#CBD5E1]' : 'font-medium text-[#4D3A5B]'
-                          }`}
+                          className={`hidden sm:flex w-8 h-8 rounded-full text-[11px] font-bold items-center justify-center shrink-0 ring-1 ml-0.5 ${avatarTone}`}
+                          aria-hidden="true"
                         >
-                          {item.sender}
+                          {item.initials}
+                        </div>
+                      </div>
+
+                      {/* Main 2-Line Adaptive Card Content */}
+                      <div className="flex-1 min-w-0">
+                        {/* Row 1: Sender + Priority/Deadline Chips + Timestamp/Hover Actions */}
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {item.unread && (
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: tier.color }}
+                                title={`${tier.id} · ${tier.name}`}
+                              />
+                            )}
+                            <span
+                              className={`truncate text-[13.5px] ${
+                                item.unread
+                                  ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
+                                  : dark ? 'font-medium text-[#CBD5E1]' : 'font-semibold text-[#334155]'
+                              }`}
+                              title={item.email}
+                            >
+                              {item.sender}
+                            </span>
+
+                            {(item.priority === 'P1' || item.priority === 'P2') && (
+                              <span
+                                className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold tracking-tight ${
+                                  item.priority === 'P1'
+                                    ? dark ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    : dark ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                                }`}
+                              >
+                                {tier.name}
+                              </span>
+                            )}
+
+                            {item.raw?.deadline_display && (
+                              <span className={`hidden sm:inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
+                                dark ? 'bg-[#281438] text-[#FBBF24] border border-[#3B1E52]' : 'bg-[#FAF5FF] text-[#6B21A8] border border-[#E9D5FF]'
+                              }`}>
+                                <Calendar className="w-2.5 h-2.5" />
+                                <span className="truncate max-w-[100px]">{item.raw.deadline_display}</span>
+                              </span>
+                            )}
+
+                            {isDone && (
+                              <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
+                                dark ? 'bg-emerald-500/15 text-emerald-300' : 'bg-emerald-50 text-emerald-700'
+                              }`}>
+                                Done
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Timestamp & Quick Actions */}
+                          <div className="relative shrink-0 flex items-center justify-end">
+                            <span
+                              className={`text-[11.5px] tabular-nums text-right group-hover:hidden ${
+                                item.unread
+                                  ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
+                                  : dark ? 'text-[#94A3B8]' : 'text-[#64748B]'
+                              }`}
+                            >
+                              {item.time}
+                            </span>
+
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className={`hidden group-hover:flex items-center gap-0.5 ${
+                                dark ? 'bg-[#202737] border border-[#2D3648]' : 'bg-white border border-[#CBD5E1] shadow-sm'
+                              } px-1 py-0.5 rounded-lg`}
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => isDone ? restoreItem(item, e) : markDone(item, e)}
+                                title={isDone ? 'Restore' : 'Mark done'}
+                                className={`p-1 rounded-md transition cursor-pointer hover:scale-110 active:scale-95 ${
+                                  dark ? 'text-[#94A3B8] hover:text-emerald-400 hover:bg-[#2D3648]' : 'text-[#64748B] hover:text-emerald-600 hover:bg-emerald-50'
+                                }`}
+                              >
+                                {isDone ? <RotateCcw className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  triggerToast('Snoozed for 3 hours');
+                                }}
+                                title="Snooze"
+                                className={`p-1 rounded-md transition cursor-pointer hover:scale-110 active:scale-95 ${
+                                  dark ? 'text-[#94A3B8] hover:text-[#F59E0B] hover:bg-[#2D3648]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#581C87]/10'
+                                }`}
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                              </button>
+                              <a
+                                href={`https://mail.google.com/mail/u/0/#inbox/${item.thread_id || item.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Open in Gmail"
+                                className={`p-1 rounded-md transition cursor-pointer hover:scale-110 active:scale-95 ${
+                                  dark ? 'text-[#94A3B8] hover:text-[#F59E0B] hover:bg-[#2D3648]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#581C87]/10'
+                                }`}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+                          </div>
                         </div>
 
-                        {/* Subject & Snippet Column */}
-                        <div className="flex-1 min-w-0 flex items-center gap-1.5 truncate pr-3">
+                        {/* Row 2: Subject + Snippet + OTP Copy Chip + Attachment */}
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <span
-                            className={`shrink-0 truncate max-w-[50%] transition-colors ${
+                            className={`truncate text-[13px] ${
+                              isCompactSplit ? 'max-w-[58%]' : 'max-w-[46%]'
+                            } shrink-0 ${
                               item.unread
-                                ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
-                                : dark ? 'font-normal text-[#CBD5E1]' : 'font-medium text-[#2E1840]'
+                                ? dark ? 'font-semibold text-[#F8FAFC]' : 'font-semibold text-[#1E1231]'
+                                : dark ? 'font-normal text-[#CBD5E1]' : 'font-medium text-[#334155]'
                             }`}
                           >
                             {item.subject}
                           </span>
-                          <span className={`shrink-0 ${dark ? 'text-[#64748B]' : 'text-[#CBD5E1]'}`}>—</span>
-                          <span className={`truncate text-xs sm:text-[13px] ${
-                            dark ? 'text-[#94A3B8]' : 'text-[#6B5E78]'
+                          <span className={`shrink-0 text-xs ${dark ? 'text-[#475569]' : 'text-[#CBD5E1]'}`}>—</span>
+                          <span className={`truncate text-xs flex-1 min-w-0 ${
+                            dark ? 'text-[#94A3B8]' : 'text-[#64748B]'
                           }`}>
                             {item.paragraphs?.[0] || item.snippet || ''}
                           </span>
 
-                          {/* Inline Tag Chips: OTP, Attachment */}
                           {item.otp && (
-                            <span className="ml-2 shrink-0 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D] shadow-xs">
-                              OTP: {item.otp}
-                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyOtp(item.otp, item.id);
+                              }}
+                              title="Click to copy verification code"
+                              className="ml-1 shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-mono font-bold bg-[#FEF3C7] text-[#92400E] border border-[#FCD34D] hover:bg-[#FDE68A] transition cursor-pointer shadow-sm"
+                            >
+                              <span>{copiedId === item.id ? 'Copied ✓' : `OTP: ${item.otp}`}</span>
+                            </button>
                           )}
                           {item.attachment && (
                             <Paperclip className={`w-3.5 h-3.5 shrink-0 ml-1 ${dark ? 'text-[#94A3B8]' : 'text-[#64748B]'}`} />
                           )}
                         </div>
-
-                        {/* Timestamp & Hover Actions (Right Edge) */}
-                        <div className="relative shrink-0 flex items-center justify-end w-24">
-                          {/* Timestamp */}
-                          <span
-                            className={`text-xs tabular-nums text-right group-hover:hidden ${
-                              item.unread
-                                ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
-                                : dark ? 'text-[#94A3B8]' : 'text-[#716080]'
-                            }`}
-                          >
-                            {item.time}
-                          </span>
-
-                          {/* Floating Hover Quick Actions */}
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className={`hidden group-hover:flex items-center gap-1 ${
-                              dark ? 'bg-[#202737] border border-[#2D3648]' : 'bg-white/95 backdrop-blur-xs border border-[#CBD5E1] shadow-sm'
-                            } px-1.5 py-0.5 rounded-lg`}
-                          >
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                triggerToast('Snoozed for 3 hours');
-                              }}
-                              title="Snooze"
-                              className={`p-1 rounded-md transition cursor-pointer hover:scale-110 active:scale-95 ${
-                                dark ? 'text-[#94A3B8] hover:text-[#F59E0B] hover:bg-[#2D3648]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#581C87]/10'
-                              }`}
-                            >
-                              <Clock className="w-3.5 h-3.5" />
-                            </button>
-                            <a
-                              href={`https://mail.google.com/mail/u/0/#inbox/${item.thread_id || item.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="Open in Gmail"
-                              className={`p-1 rounded-md transition cursor-pointer hover:scale-110 active:scale-95 ${
-                                dark ? 'text-[#94A3B8] hover:text-[#F59E0B] hover:bg-[#2D3648]' : 'text-[#64748B] hover:text-[#581C87] hover:bg-[#581C87]/10'
-                              }`}
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          </div>
-                        </div>
                       </div>
-                    );
-                  })
-                )}
+                    </div>
+                  );
+                })
+              )}
 
-                {/* Bottom Pagination Button */}
-                {hasNextPage && (
-                  <div className="p-4 text-center">
-                    <button
-                      onClick={async () => {
-                        try {
-                          const count = await emailsHook.loadMore?.();
-                          if (count > 0) {
-                            triggerToast(`Loaded ${count} older emails`);
-                          } else {
-                            triggerToast('All available emails loaded');
-                          }
-                        } catch {
-                          triggerToast('Failed to load more emails');
+              {/* Clean Footer Pagination Load More Card */}
+              {hasNextPage && (
+                <div className={`p-4 text-center border-t ${dark ? 'border-[#22293A]' : 'border-[#EBF0F5]'}`}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const count = await emailsHook.loadMore?.();
+                        if (count > 0) {
+                          triggerToast(`Loaded ${count} older emails`);
+                        } else {
+                          triggerToast('All available emails loaded');
                         }
-                      }}
-                      disabled={emailsHook.isLoadingMore}
-                      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow-sm border ${
-                        dark
-                          ? 'bg-[#241232] text-[#F8FAFC] border-[#3B1E52] hover:bg-[#2E163F] hover:border-[#F59E0B]/40 disabled:opacity-50'
-                          : 'bg-[#FFFFFF] text-[#1D0B2B] border-[#CBD5E1] hover:bg-[#F8FAFC] hover:border-[#7E22CE]/40 disabled:opacity-50'
-                      }`}
-                    >
-                      {emailsHook.isLoadingMore ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#F59E0B]" />
-                          <span>Loading more emails...</span>
-                        </>
-                      ) : (
-                        <span>Load more emails</span>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+                      } catch {
+                        triggerToast('Failed to load more emails');
+                      }
+                    }}
+                    disabled={emailsHook.isLoadingMore}
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer shadow-sm border ${
+                      dark
+                        ? 'bg-[#202737] text-[#F8FAFC] border-[#2D3648] hover:bg-[#283144] hover:border-[#F59E0B]/40 disabled:opacity-50'
+                        : 'bg-[#F8FAFC] text-[#1D0B2B] border-[#CBD5E1] hover:bg-white hover:border-[#581C87]/40 disabled:opacity-50'
+                    }`}
+                  >
+                    {emailsHook.isLoadingMore ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#F59E0B]" />
+                        <span>Loading older emails...</span>
+                      </>
+                    ) : (
+                      <span>Load more emails ({endNum} of {currentViewTotal.toLocaleString()} shown)</span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* OPEN EMAIL READING CANVAS */}
             {(readingEmailId || layoutMode === 'split') && (
               <div
-                className={`flex-1 flex flex-col overflow-y-auto ${
-                  dark ? 'bg-[#140A1D]' : 'bg-[#FFFFFF]'
+                className={`${
+                  readingEmailId || mobileReading ? 'flex' : 'hidden lg:flex'
+                } flex-1 flex-col overflow-y-auto smooth-scroll transition-colors ${
+                  dark ? 'bg-[#131722]' : 'bg-[#FFFFFF]'
                 }`}
               >
                 {currentEmail ? (
                   <>
                     {/* Action Header Strip for Email */}
                     <div
-                      className={`h-12 px-6 flex items-center justify-between border-b shrink-0 ${
-                        dark ? 'bg-[#1A0C24]/80 border-[#2D153E]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
+                      className={`min-h-[48px] px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 border-b shrink-0 backdrop-blur-sm ${
+                        dark ? 'bg-[#161B26]/90 border-[#252D3C]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
                       }`}
                     >
                       {/* Left: Priority Badge Popover + View Toggle */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <div className="relative" onClick={(e) => e.stopPropagation()}>
                           <button
+                            type="button"
                             onClick={() => {
                               setPriorityMenuOpen((o) => !o);
                             }}
                             className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer border ${
                               dark
-                                ? 'bg-[#281438] text-[#F8FAFC] border-[#3B1E52] hover:bg-[#341A49]'
+                                ? 'bg-[#202737] text-[#F8FAFC] border-[#2D3648] hover:bg-[#283144]'
                                 : 'bg-[#FFFFFF] text-[#1D0B2B] border-[#CBD5E1] hover:bg-[#F1F5F9]'
                             }`}
                           >
@@ -1854,43 +2339,65 @@ export default function App() {
 
                           {priorityMenuOpen && (
                             <div
-                              className={`absolute left-0 top-9 z-50 w-64 rounded-2xl p-3 shadow-xl border space-y-3 ${
+                              className={`absolute left-0 top-9 z-50 w-72 rounded-2xl p-3.5 shadow-xl border space-y-3 animate-scale-in ${
                                 dark
-                                  ? 'bg-[#1E0F2B] border-[#361A4B] text-[#F8FAFC]'
+                                  ? 'bg-[#1E2534] border-[#2E384B] text-[#F8FAFC]'
                                   : 'bg-[#FFFFFF] border-[#E2E8F0] text-[#1D0B2B]'
                               }`}
                             >
                               <div className="text-xs space-y-1.5">
-                                <p>Matched: <span className="text-[#F59E0B] font-medium">{currentEmail.matched}</span></p>
+                                <p>
+                                  Matched:{' '}
+                                  <span className="text-[#F59E0B] font-semibold">
+                                    {currentEmail.matched}
+                                  </span>
+                                </p>
                                 {currentEmail.raw?.top_signals?.length > 0 && (
                                   <div className="flex flex-wrap gap-1 pt-0.5">
                                     {currentEmail.raw.top_signals.slice(0, 4).map((sig, sIdx) => (
                                       <span
                                         key={sIdx}
                                         className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                                          dark ? 'bg-[#281438] border-[#3B1E52] text-[#CBD5E1]' : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#475569]'
+                                          dark
+                                            ? 'bg-[#252D3F] border-[#334155] text-[#CBD5E1]'
+                                            : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#475569]'
                                         }`}
                                         title={`Weight: +${sig.weight}`}
                                       >
-                                        +{sig.term}{sig.contribution_pct != null ? ` (${sig.contribution_pct}%)` : ''}
+                                        +{sig.term}
+                                        {sig.contribution_pct != null ? ` (${sig.contribution_pct}%)` : ''}
                                       </span>
                                     ))}
                                   </div>
                                 )}
-                                {currentEmail.note && <p className="text-[#94A3B8]">{currentEmail.note}</p>}
+                                {currentEmail.note && (
+                                  <p className="text-[#94A3B8] leading-relaxed">{currentEmail.note}</p>
+                                )}
                               </div>
-                              <div className="pt-2 border-t grid grid-cols-4 gap-1 border-[#361A4B] dark:border-[#361A4B]">
+                              <div
+                                className={`pt-2 border-t grid grid-cols-4 gap-1 ${
+                                  dark ? 'border-[#2E384B]' : 'border-[#E2E8F0]'
+                                }`}
+                              >
                                 {Object.values(PRIORITIES).map((tier) => (
                                   <button
                                     key={tier.id}
+                                    type="button"
                                     onClick={() => changePriority(currentEmail, tier.id)}
-                                    className={`py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition ${
+                                    className={`py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition cursor-pointer ${
                                       currentEmail.priority === tier.id
-                                        ? dark ? 'bg-[#341A49] text-white border border-[#7E22CE]/50' : 'bg-[#EDE9FE] text-[#2E103F] border border-[#7E22CE]/30'
-                                        : dark ? 'hover:bg-[#281438] text-[#94A3B8]' : 'hover:bg-[#EDF2F7] text-[#64748B]'
+                                        ? dark
+                                          ? 'bg-[#2E1A40] text-white border border-[#7E22CE]/60'
+                                          : 'bg-[#EDE9FE] text-[#2E103F] border border-[#7E22CE]/30'
+                                        : dark
+                                        ? 'hover:bg-[#252D3F] text-[#94A3B8]'
+                                        : 'hover:bg-[#EDF2F7] text-[#64748B]'
                                     }`}
                                   >
-                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tier.color }} />
+                                    <span
+                                      className="w-1.5 h-1.5 rounded-full"
+                                      style={{ backgroundColor: tier.color }}
+                                    />
                                     {tier.id}
                                   </button>
                                 ))}
@@ -1901,24 +2408,32 @@ export default function App() {
 
                         {/* Mode toggle (Rich HTML vs Text) */}
                         {rawHtml && (
-                          <div className={`flex items-center p-0.5 rounded-lg border text-xs ${
-                            dark ? 'border-[#361A4B] bg-[#180B23]' : 'border-[#E2E8F0] bg-[#F1F5F9]'
-                          }`}>
+                          <div
+                            className={`flex items-center p-0.5 rounded-lg border text-xs ${
+                              dark ? 'border-[#252D3C] bg-[#121620]' : 'border-[#E2E8F0] bg-[#F1F5F9]'
+                            }`}
+                          >
                             <button
+                              type="button"
                               onClick={() => setViewMode('rich')}
                               className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
                                 viewMode === 'rich'
-                                  ? dark ? 'bg-[#2E163F] text-[#F8FAFC] shadow-sm' : 'bg-[#FFFFFF] text-[#1D0B2B] shadow-sm'
+                                  ? dark
+                                    ? 'bg-[#283144] text-[#F8FAFC] shadow-sm'
+                                    : 'bg-[#FFFFFF] text-[#1D0B2B] shadow-sm'
                                   : 'text-[#94A3B8]'
                               }`}
                             >
                               Rich HTML
                             </button>
                             <button
+                              type="button"
                               onClick={() => setViewMode('plain')}
                               className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
                                 viewMode === 'plain'
-                                  ? dark ? 'bg-[#2E163F] text-[#F8FAFC] shadow-sm' : 'bg-[#FFFFFF] text-[#1D0B2B] shadow-sm'
+                                  ? dark
+                                    ? 'bg-[#283144] text-[#F8FAFC] shadow-sm'
+                                    : 'bg-[#FFFFFF] text-[#1D0B2B] shadow-sm'
                                   : 'text-[#94A3B8]'
                               }`}
                             >
@@ -1928,15 +2443,61 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Right: Actions (Done, Open in Gmail, Prev/Next) */}
-                      <div className="flex items-center gap-2">
+                      {/* Right: Triage Actions (Done/Restore, Snooze, Open in Gmail, Prev/Next) */}
+                      <div className="flex items-center gap-1 sm:gap-1.5">
+                        {currentTriage?.state === 'done' ? (
+                          <button
+                            type="button"
+                            onClick={() => restoreItem(currentEmail)}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                              dark
+                                ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
+                                : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                            }`}
+                            title="Restore to inbox"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Restore</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => markDone(currentEmail)}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                              dark
+                                ? 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/25'
+                                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                            }`}
+                            title="Mark as done"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Done</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => triggerToast('Snoozed for 3 hours')}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                            dark
+                              ? 'hover:bg-[#202737] text-[#CBD5E1] hover:text-[#F59E0B]'
+                              : 'hover:bg-[#EDF2F7] text-[#4D3A5B] hover:text-[#7E22CE]'
+                          }`}
+                          title="Snooze for 3 hours"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                          <span className="hidden md:inline">Snooze</span>
+                        </button>
+
                         {currentEmail.id && (
                           <a
                             href={`https://mail.google.com/mail/u/0/#inbox/${currentEmail.thread_id || currentEmail.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                              dark ? 'hover:bg-[#281438] text-[#CBD5E1] hover:text-[#F59E0B]' : 'hover:bg-[#EDF2F7] text-[#4D3A5B] hover:text-[#7E22CE]'
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                              dark
+                                ? 'hover:bg-[#202737] text-[#CBD5E1] hover:text-[#F59E0B]'
+                                : 'hover:bg-[#EDF2F7] text-[#4D3A5B] hover:text-[#7E22CE]'
                             }`}
                             title="Open in Gmail"
                           >
@@ -1946,19 +2507,33 @@ export default function App() {
                         )}
 
                         {/* Navigation buttons for next/prev email */}
-                        <div className="flex items-center gap-0.5 ml-2 pl-2 border-l border-[#361A4B] dark:border-[#361A4B]">
+                        <div
+                          className={`flex items-center gap-0.5 ml-1 pl-2 border-l ${
+                            dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'
+                          }`}
+                        >
                           <button
+                            type="button"
                             disabled={!prevEmail}
                             onClick={() => selectEmail(prevEmail)}
-                            className="p-1.5 rounded text-[#94A3B8] hover:text-white disabled:opacity-30"
+                            className={`p-1.5 rounded-lg transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                              dark
+                                ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]'
+                                : 'text-[#64748B] hover:text-[#1D0B2B] hover:bg-[#EDF2F7]'
+                            }`}
                             title="Previous email"
                           >
                             <ChevronLeft className="w-4 h-4" />
                           </button>
                           <button
+                            type="button"
                             disabled={!nextEmail}
                             onClick={() => selectEmail(nextEmail)}
-                            className="p-1.5 rounded text-[#94A3B8] hover:text-white disabled:opacity-30"
+                            className={`p-1.5 rounded-lg transition cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                              dark
+                                ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]'
+                                : 'text-[#64748B] hover:text-[#1D0B2B] hover:bg-[#EDF2F7]'
+                            }`}
                             title="Next email"
                           >
                             <ChevronRight className="w-4 h-4" />
@@ -1968,27 +2543,46 @@ export default function App() {
                     </div>
 
                     {/* Email Reader Canvas */}
-                    <article className="px-6 sm:px-12 py-8 max-w-4xl w-full select-text">
-                      <h1 className={`text-xl sm:text-2xl font-bold tracking-tight mb-6 ${dark ? 'text-[#F8FAFC]' : 'text-[#1D0B2B]'}`}>
+                    <article
+                      key={currentEmail.id}
+                      className="px-4 sm:px-8 lg:px-10 py-6 sm:py-8 max-w-4xl w-full select-text animate-fade-in"
+                    >
+                      <h1
+                        className={`text-lg sm:text-2xl font-bold tracking-tight leading-snug mb-5 ${
+                          dark ? 'text-[#F8FAFC]' : 'text-[#1D0B2B]'
+                        }`}
+                      >
                         {currentEmail.subject}
                       </h1>
 
                       {/* Sender row header */}
-                      <div className={`flex items-start justify-between gap-4 mb-8 pb-6 border-b ${
-                        dark ? 'border-[#2D153E]' : 'border-[#E2E8F0]'
-                      }`}>
+                      <div
+                        className={`flex items-start justify-between gap-4 mb-5 pb-5 border-b ${
+                          dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'
+                        }`}
+                      >
                         <div className="flex items-center gap-3.5 min-w-0">
                           <div
-                            className={`w-10 h-10 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ${
-                              dark ? 'bg-[#281438] text-[#F8FAFC] ring-1 ring-[#3B1E52]' : 'bg-[#EDE9FE] text-[#3B0764] ring-1 ring-[#CBD5E1]'
-                            }`}
+                            className={`w-10 h-10 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ring-1 ${getAvatarToneClass(
+                              currentEmail.email || currentEmail.sender,
+                              currentEmail.priority,
+                              dark
+                            )}`}
                           >
                             {currentEmail.initials}
                           </div>
-                          <div className="min-w-0 truncate">
-                            <div className="flex items-baseline gap-2">
-                              <span className={`text-sm font-semibold truncate ${dark ? 'text-[#F8FAFC]' : 'text-[#1D0B2B]'}`}>{currentEmail.sender}</span>
-                              <span className="text-xs text-[#94A3B8] truncate">&lt;{currentEmail.email}&gt;</span>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                              <span
+                                className={`text-sm font-semibold truncate ${
+                                  dark ? 'text-[#F8FAFC]' : 'text-[#1D0B2B]'
+                                }`}
+                              >
+                                {currentEmail.sender}
+                              </span>
+                              <span className="text-xs text-[#94A3B8] truncate">
+                                &lt;{currentEmail.email}&gt;
+                              </span>
                             </div>
                             <div className="text-xs text-[#94A3B8] mt-0.5">to: me</div>
                           </div>
@@ -2005,14 +2599,137 @@ export default function App() {
                         </div>
                       </div>
 
+                      {/* Quick Action Callout: OTP Verification Code */}
+                      {currentEmail.otp && (
+                        <div
+                          className={`mb-5 px-4 py-3 rounded-xl border flex flex-wrap items-center justify-between gap-3 ${
+                            dark
+                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                              : 'bg-[#FFFBEB] border-[#FCD34D] text-[#78350F]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs font-semibold uppercase tracking-wider opacity-80">
+                              Verification Code
+                            </span>
+                            <code
+                              className={`px-2.5 py-1 rounded-lg text-sm font-mono font-bold tracking-widest ${
+                                dark ? 'bg-[#131722] text-[#FBBF24]' : 'bg-white text-[#92400E] shadow-sm'
+                              }`}
+                            >
+                              {currentEmail.otp}
+                            </code>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyOtp(currentEmail.otp, currentEmail.id)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                              copiedId === currentEmail.id
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-[#F59E0B] text-white hover:bg-[#D97706]'
+                            }`}
+                          >
+                            {copiedId === currentEmail.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <span>Copy Code</span>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Deadline Alert Strip */}
+                      {currentEmail.raw?.deadline_display && (
+                        <div
+                          className={`mb-5 px-3.5 py-2.5 rounded-xl border flex items-center gap-2.5 text-xs font-medium ${
+                            dark
+                              ? 'bg-rose-500/10 border-rose-500/25 text-rose-300'
+                              : 'bg-rose-50 border-rose-200 text-rose-700'
+                          }`}
+                        >
+                          <Calendar className="w-4 h-4 shrink-0" />
+                          <span>
+                            Detected deadline: <strong>{currentEmail.raw.deadline_display}</strong>
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Collapsible AI Priority Attribution Strip */}
+                      {(currentEmail.matched || currentEmail.raw?.top_signals?.length > 0) && (
+                        <div
+                          className={`mb-6 rounded-xl border overflow-hidden transition-colors ${
+                            dark
+                              ? 'bg-[#181D29] border-[#252D3C]'
+                              : 'bg-[#F8FAFC] border-[#E2E8F0]'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setAiSignalsExpanded((v) => !v)}
+                            className="w-full px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Sparkles className="w-3.5 h-3.5 text-[#F59E0B] shrink-0" />
+                              <span
+                                className={`font-semibold ${
+                                  dark ? 'text-[#E2E8F0]' : 'text-[#334155]'
+                                }`}
+                              >
+                                AI Triage Insight
+                              </span>
+                              <span className="text-[#94A3B8] truncate">
+                                · {currentEmail.matched}
+                              </span>
+                            </div>
+                            <ChevronDown
+                              className={`w-3.5 h-3.5 text-[#94A3B8] shrink-0 transition-transform duration-200 ${
+                                aiSignalsExpanded ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+                          {aiSignalsExpanded && (
+                            <div
+                              className={`px-3.5 pb-3 pt-1 border-t space-y-2 text-xs animate-fade-in ${
+                                dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'
+                              }`}
+                            >
+                              {currentEmail.note && (
+                                <p className="text-[#94A3B8] leading-relaxed">{currentEmail.note}</p>
+                              )}
+                              {currentEmail.raw?.top_signals?.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {currentEmail.raw.top_signals.slice(0, 6).map((sig, sIdx) => (
+                                    <span
+                                      key={sIdx}
+                                      className={`px-2 py-0.5 rounded-md text-[11px] font-medium border ${
+                                        dark
+                                          ? 'bg-[#202737] border-[#2D3648] text-[#CBD5E1]'
+                                          : 'bg-white border-[#CBD5E1] text-[#334155]'
+                                      }`}
+                                      title={`Weight: +${sig.weight}`}
+                                    >
+                                      +{sig.term}
+                                      {sig.contribution_pct != null ? ` (${sig.contribution_pct}%)` : ''}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Body Rendering */}
                       <div className="min-h-[220px]">
                         {loadingDetail && !rawHtml && !rawBody ? (
-                          <div className="py-8 space-y-4 animate-pulse">
-                            <div className={`h-4 rounded w-3/4 ${dark ? 'bg-[#281438]' : 'bg-[#EDF2F7]'}`} />
-                            <div className={`h-4 rounded w-full ${dark ? 'bg-[#281438]' : 'bg-[#EDF2F7]'}`} />
-                            <div className={`h-4 rounded w-5/6 ${dark ? 'bg-[#281438]' : 'bg-[#EDF2F7]'}`} />
-                            <div className={`h-36 rounded w-full ${dark ? 'bg-[#241232]' : 'bg-[#F8FAFC]'}`} />
+                          <div className="py-6 space-y-3.5">
+                            <div className="h-4 rounded-md w-3/4 animate-shimmer" />
+                            <div className="h-4 rounded-md w-full animate-shimmer" />
+                            <div className="h-4 rounded-md w-5/6 animate-shimmer" />
+                            <div className="h-36 rounded-xl w-full animate-shimmer mt-2" />
                           </div>
                         ) : viewMode === 'rich' && rawHtml ? (
                           <HtmlEmailViewer html={rawHtml} dark={dark} />
@@ -2026,11 +2743,14 @@ export default function App() {
 
                       {/* Attachment Pills */}
                       {currentEmail.attachment && (
-                        <div className={`mt-8 pt-6 border-t ${dark ? 'border-[#2D153E]' : 'border-[#E2E8F0]'}`}>
+                        <div className={`mt-8 pt-6 border-t ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
                           <button
+                            type="button"
                             onClick={() => triggerToast(`Downloaded ${currentEmail.attachment.name}`)}
                             className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer border ${
-                              dark ? 'bg-[#281438] text-[#F8FAFC] border-[#3B1E52] hover:bg-[#341A49]' : 'bg-[#FFFFFF] text-[#1D0B2B] border-[#CBD5E1] hover:bg-[#F1F5F9]'
+                              dark
+                                ? 'bg-[#202737] text-[#F8FAFC] border-[#2D3648] hover:bg-[#283144]'
+                                : 'bg-[#FFFFFF] text-[#1D0B2B] border-[#CBD5E1] hover:bg-[#F1F5F9]'
                             }`}
                           >
                             <Paperclip className="w-3.5 h-3.5 text-[#F59E0B]" />
@@ -2042,8 +2762,20 @@ export default function App() {
                     </article>
                   </>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center text-[#94A3B8] text-sm">
-                    No message selected
+                  <div className="flex-1 flex flex-col items-center justify-center p-10 text-center text-[#94A3B8]">
+                    <div
+                      className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
+                        dark ? 'bg-[#202737] text-[#F59E0B]' : 'bg-[#FAF5FF] text-[#7E22CE]'
+                      }`}
+                    >
+                      <Mail className="w-7 h-7 stroke-[1.5]" />
+                    </div>
+                    <p className={`text-sm font-semibold ${dark ? 'text-[#F8FAFC]' : 'text-[#1D0B2B]'}`}>
+                      Select an email to read
+                    </p>
+                    <p className="text-xs text-[#94A3B8] mt-1 max-w-xs">
+                      Choose any message on the left or press <kbd className="px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 font-mono">j</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 font-mono">k</kbd> to step through your inbox.
+                    </p>
                   </div>
                 )}
               </div>
@@ -2055,15 +2787,16 @@ export default function App() {
       {/* Floating Undo / Action Toast */}
       {toast && (
         <div
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl shadow-2xl border text-xs font-medium flex items-center gap-3 z-50 ${
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl shadow-2xl border text-xs font-medium flex items-center gap-3 z-50 safe-bottom-pad animate-fade-up ${
             dark
-              ? 'bg-[#241232] border-[#3B1E52] text-[#F8FAFC]'
+              ? 'bg-[#202737] border-[#2D3648] text-[#F8FAFC]'
               : 'bg-[#1D0B2B] border-[#3B1254] text-[#F8FAFC]'
           }`}
         >
           <span>{toast.message}</span>
           {toast.undo && (
             <button
+              type="button"
               onClick={() => {
                 toast.undo();
                 setToast(null);

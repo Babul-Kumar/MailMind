@@ -1351,3 +1351,26 @@ button:focus-visible,
 .inbox-sort-select:hover {
   border-color: rgba(126, 34, 206, 0.35) !important;
 }
+
+/* Smooth scrolling & subtle responsive utilities */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.safe-top-pad {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom-pad {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
