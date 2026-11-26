@@ -34,7 +34,9 @@ import {
   MailOpen,
   Trash2,
   Sparkles,
-  Calendar
+  Calendar,
+  Keyboard,
+  Filter
 } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useEmails } from './hooks/useEmails';
@@ -165,9 +167,9 @@ function getAvatarToneClass(seed, priority, dark) {
 // RICH GMAIL-STYLE EMAIL CONTENT RENDERERS
 // ============================================================================
 
-function HtmlEmailViewer({ html, dark }) {
+function HtmlEmailViewer({ html }) {
   const iframeRef = useRef(null);
-  const [iframeHeight, setIframeHeight] = useState(500);
+  const [iframeHeight, setIframeHeight] = useState(420);
 
   const cleanHtml = useMemo(() => {
     if (!html) return '';
@@ -193,11 +195,11 @@ function HtmlEmailViewer({ html, dark }) {
       <style>
         html, body {
           margin: 0;
-          padding: 16px 20px;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          padding: 16px 18px;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           font-size: 14px;
-          line-height: 1.6;
-          color: ${dark ? '#F8FAFC' : '#1D0B2B'};
+          line-height: 1.65;
+          color: #1E293B;
           background-color: transparent !important;
           word-break: break-word;
           overflow-wrap: break-word;
@@ -205,18 +207,37 @@ function HtmlEmailViewer({ html, dark }) {
         img {
           max-width: 100% !important;
           height: auto !important;
+          border-radius: 6px;
         }
         table {
           max-width: 100% !important;
         }
+        pre, code {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 13px;
+          background: #F1F5F9;
+          padding: 2px 5px;
+          border-radius: 4px;
+        }
+        pre {
+          padding: 12px 14px;
+          overflow-x: auto;
+        }
+        hr {
+          border: none;
+          border-top: 1px solid #E2E8F0;
+          margin: 16px 0;
+        }
         a {
-          color: ${dark ? '#C084FC' : '#7E22CE'};
+          color: #6D28D9;
+          text-decoration-thickness: 1px;
+          text-underline-offset: 2px;
         }
         blockquote {
-          border-left: 2px solid ${dark ? '#3B1E52' : '#E2E8F0'};
-          margin: 8px 0;
+          border-left: 3px solid #CBD5E1;
+          margin: 10px 0;
           padding-left: 12px;
-          color: ${dark ? '#94A3B8' : '#786B84'};
+          color: #475569;
         }
       </style>
     `;
@@ -226,32 +247,50 @@ function HtmlEmailViewer({ html, dark }) {
     } else {
       return `${resetStyles}${processed}`;
     }
-  }, [html, dark]);
+  }, [html]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
+    let observer = null;
     const measureHeight = () => {
       try {
         const doc = iframe.contentDocument || iframe.contentWindow?.document;
         if (doc && doc.body) {
           const bodyH = doc.body.scrollHeight;
           const docH = doc.documentElement.scrollHeight;
-          const h = Math.max(bodyH, docH, 350);
-          setIframeHeight(h + 30);
+          const h = Math.max(bodyH, docH, 280);
+          setIframeHeight(h + 24);
         }
-      } catch (err) {
+      } catch {
         // Fallback for sandboxed context
       }
     };
 
-    iframe.addEventListener('load', measureHeight);
-    const interval = setInterval(measureHeight, 500);
-    const stopTimer = setTimeout(() => clearInterval(interval), 3500);
+    const handleLoad = () => {
+      measureHeight();
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc?.body && typeof ResizeObserver !== 'undefined') {
+          observer = new ResizeObserver(measureHeight);
+          observer.observe(doc.body);
+        }
+        doc?.querySelectorAll('img').forEach((img) => {
+          img.addEventListener('load', measureHeight, { once: true });
+        });
+      } catch {
+        // Ignore cross-origin restrictions if any
+      }
+    };
+
+    iframe.addEventListener('load', handleLoad);
+    const interval = setInterval(measureHeight, 450);
+    const stopTimer = setTimeout(() => clearInterval(interval), 4000);
 
     return () => {
-      iframe.removeEventListener('load', measureHeight);
+      iframe.removeEventListener('load', handleLoad);
+      observer?.disconnect();
       clearInterval(interval);
       clearTimeout(stopTimer);
     };
@@ -265,7 +304,7 @@ function HtmlEmailViewer({ html, dark }) {
       sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
       style={{
         width: '100%',
-        minHeight: '350px',
+        minHeight: '280px',
         height: `${iframeHeight}px`,
         border: 'none',
         display: 'block',
@@ -523,10 +562,13 @@ export default function App() {
   const [priorityFilter, setPriorityFilter] = useState(null); // null | 'P1' | 'P2' | 'P3' | 'P4'
   const [windowId, setWindowId] = useState('last_3_months');
   const [search, setSearch] = useState('');
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [mobileReading, setMobileReading] = useState(false);
   const [aiSignalsExpanded, setAiSignalsExpanded] = useState(false);
 
   const listScrollRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Synchronize windowId with emailsHook.analysisPeriod when restored
   useEffect(() => {
@@ -624,7 +666,21 @@ export default function App() {
     setUserMenuOpen(false);
     setSelectMenuOpen(false);
     setSearchPopoverOpen(false);
+    setShortcutsOpen(false);
   };
+
+  // Live priority & unread breakdown counts
+  const { unreadCount, priorityCounts } = useMemo(() => {
+    const pCounts = { P1: 0, P2: 0, P3: 0, P4: 0 };
+    let unread = 0;
+    emails.forEach((em) => {
+      if (em.unread && !statusMap[em.id]) unread++;
+      if (pCounts[em.priority] !== undefined) {
+        pCounts[em.priority]++;
+      }
+    });
+    return { unreadCount: unread, priorityCounts: pCounts };
+  }, [emails, statusMap]);
 
   // Active Window Cutoff
   const cutoffDays = useMemo(() => {
@@ -698,6 +754,10 @@ export default function App() {
         if (!item.analyzed || item.priority !== priorityFilter) return false;
       }
 
+      if (unreadOnly && !item.unread) {
+        return false;
+      }
+
       if (search.trim()) {
         const q = search.toLowerCase();
         return (
@@ -733,7 +793,7 @@ export default function App() {
       };
       return getEmailTime(b) - getEmailTime(a);
     });
-  }, [emails, view, categoryTab, statusMap, starredIds, priorityFilter, search, windowId]);
+  }, [emails, view, categoryTab, statusMap, starredIds, priorityFilter, unreadOnly, search, windowId]);
 
   // Active email
   const currentEmail = useMemo(() => {
@@ -954,16 +1014,32 @@ export default function App() {
   const prevEmail = currentIdx > 0 ? visibleEmails[currentIdx - 1] : null;
   const nextEmail = currentIdx >= 0 && currentIdx < visibleEmails.length - 1 ? visibleEmails[currentIdx + 1] : null;
 
-  // Keyboard navigation (Escape, j/k, ArrowDown/Up, Enter, e)
+  // Keyboard navigation (Escape, /, Cmd/Ctrl+K, j/k, ArrowDown/Up, e, s, ?, Enter)
   useEffect(() => {
     const onKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        closeAllMenus();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select?.();
+        return;
+      }
+
       if (e.key === 'Escape') {
-        const anyMenuOpen = priorityMenuOpen || windowMenuOpen || userMenuOpen || selectMenuOpen || searchPopoverOpen || mobileNavOpen;
+        const anyMenuOpen =
+          priorityMenuOpen ||
+          windowMenuOpen ||
+          userMenuOpen ||
+          selectMenuOpen ||
+          searchPopoverOpen ||
+          shortcutsOpen ||
+          mobileNavOpen;
         setPriorityMenuOpen(false);
         setWindowMenuOpen(false);
         setUserMenuOpen(false);
         setSelectMenuOpen(false);
         setSearchPopoverOpen(false);
+        setShortcutsOpen(false);
         setMobileNavOpen(false);
         if (!anyMenuOpen && (readingEmailId || mobileReading)) {
           setReadingEmailId(null);
@@ -978,7 +1054,14 @@ export default function App() {
         return;
       }
 
-      if (e.key === 'j' || e.key === 'ArrowDown') {
+      if (e.key === '/') {
+        e.preventDefault();
+        closeAllMenus();
+        searchInputRef.current?.focus();
+      } else if (e.key === '?') {
+        e.preventDefault();
+        setShortcutsOpen((o) => !o);
+      } else if (e.key === 'j' || e.key === 'ArrowDown') {
         if (nextEmail) {
           e.preventDefault();
           setSelectedId(nextEmail.id);
@@ -990,6 +1073,16 @@ export default function App() {
           setSelectedId(prevEmail.id);
           if (readingEmailId) setReadingEmailId(prevEmail.id);
         }
+      } else if (e.key === 'e' && currentEmail) {
+        e.preventDefault();
+        if (statusMap[currentEmail.id]?.state === 'done') {
+          restoreItem(currentEmail);
+        } else {
+          markDone(currentEmail);
+        }
+      } else if (e.key === 's' && currentEmail) {
+        e.preventDefault();
+        toggleStarEmail(currentEmail.id);
       } else if (e.key === 'Enter' && !readingEmailId && layoutMode === 'table' && currentEmail) {
         // Only trigger Enter if focus is not already inside an interactive button/link
         if (tag !== 'BUTTON' && tag !== 'A' && !e.target?.getAttribute('role')) {
@@ -1007,6 +1100,7 @@ export default function App() {
     userMenuOpen,
     selectMenuOpen,
     searchPopoverOpen,
+    shortcutsOpen,
     mobileNavOpen,
     readingEmailId,
     mobileReading,
@@ -1014,6 +1108,7 @@ export default function App() {
     currentEmail,
     nextEmail,
     prevEmail,
+    statusMap,
   ]);
 
   // Render OAuth callback
@@ -1061,7 +1156,7 @@ export default function App() {
   // Calculate Gmail pagination and counts
   const inboxTotalCount = emailsHook.pagination?.total_emails || emails.length;
   const isPrioritySynced = !priorityFilter || emailsHook.activeFilter === priorityFilter;
-  const isCustomFiltered = Boolean((view === 'all' && categoryTab !== 'all') || search.trim());
+  const isCustomFiltered = Boolean((view === 'all' && categoryTab !== 'all') || unreadOnly || search.trim());
   const currentViewTotal = isCustomFiltered
     ? visibleEmails.length
     : (view === 'attention'
@@ -1087,6 +1182,7 @@ export default function App() {
     setMobileReading(false);
     setMobileNavOpen(false);
     setPriorityFilter(null);
+    setUnreadOnly(false);
     if (navId === 'all') {
       setCategoryTab('all');
       emailsHook.setActiveFilter?.('ALL');
@@ -1184,60 +1280,78 @@ export default function App() {
         </nav>
 
         {/* Priority Section */}
-        {expanded && (
-          <div className="pt-3 border-t border-[#CBD5E1] dark:border-[#252D3C]">
+        <div className={`pt-3 border-t ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
+          {expanded && (
             <div className="px-3 pb-1.5 text-[11px] font-semibold text-[#94A3B8] uppercase tracking-wider">
               Priority
             </div>
-            <div className="space-y-0.5">
-              {Object.values(PRIORITIES).map((tier) => {
-                const active = priorityFilter === tier.id;
-                return (
-                  <button
-                    key={tier.id}
-                    type="button"
-                    onClick={() => {
-                      const nextPriority = priorityFilter === tier.id ? null : tier.id;
-                      setView('all');
-                      setPriorityFilter(nextPriority);
-                      setCategoryTab('all');
-                      setReadingEmailId(null);
-                      setMobileReading(false);
-                      setMobileNavOpen(false);
-                      emailsHook.setActiveFilter?.(nextPriority || 'ALL');
-                      listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] transition-all duration-150 cursor-pointer ${
-                      active
-                        ? dark
-                          ? 'bg-[#2E1A40] text-[#F8FAFC] font-semibold ring-1 ring-[#F59E0B]/40'
-                          : 'bg-white text-[#3B0764] font-semibold shadow-sm border border-[#E2E8F0]'
-                        : dark
-                        ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
-                        : 'text-[#524365] hover:text-[#2E084D] hover:bg-white/70'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
-                        style={{ backgroundColor: tier.color }}
-                      />
-                      <span>{tier.name}</span>
-                    </span>
-                    {active && (
+          )}
+          <div className={expanded ? 'space-y-0.5' : 'space-y-1.5 flex flex-col items-center'}>
+            {Object.values(PRIORITIES).map((tier) => {
+              const active = priorityFilter === tier.id;
+              const tierCount = priorityCounts[tier.id] || 0;
+              return (
+                <button
+                  key={tier.id}
+                  type="button"
+                  title={`${tier.name}${tierCount ? ` (${tierCount})` : ''}`}
+                  onClick={() => {
+                    const nextPriority = priorityFilter === tier.id ? null : tier.id;
+                    setView('all');
+                    setPriorityFilter(nextPriority);
+                    setCategoryTab('all');
+                    setReadingEmailId(null);
+                    setMobileReading(false);
+                    setMobileNavOpen(false);
+                    emailsHook.setActiveFilter?.(nextPriority || 'ALL');
+                    listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`${
+                    expanded
+                      ? 'w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px]'
+                      : 'w-9 h-9 flex items-center justify-center rounded-xl'
+                  } transition-all duration-150 cursor-pointer ${
+                    active
+                      ? dark
+                        ? 'bg-[#2E1A40] text-[#F8FAFC] font-semibold ring-1 ring-[#F59E0B]/40'
+                        : 'bg-white text-[#3B0764] font-semibold shadow-sm border border-[#E2E8F0]'
+                      : dark
+                      ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                      : 'text-[#524365] hover:text-[#2E084D] hover:bg-white/80'
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-sm ${
+                        active ? 'ring-2 ring-offset-1 ring-[#F59E0B]/50' : ''
+                      }`}
+                      style={{ backgroundColor: tier.color }}
+                    />
+                    {expanded && <span>{tier.name}</span>}
+                  </span>
+                  {expanded && (
+                    active ? (
                       <span className="text-[11px] text-[#F59E0B] hover:text-[#D97706] font-bold">Clear</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                    ) : tierCount > 0 ? (
+                      <span
+                        className={`text-[11px] tabular-nums font-semibold px-1.5 py-0.5 rounded-md ${
+                          dark ? 'text-[#94A3B8] bg-[#202737]' : 'text-[#64748B] bg-[#EEF2F7]'
+                        }`}
+                      >
+                        {tierCount}
+                      </span>
+                    ) : null
+                  )}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Footer of Sidebar: Timeframe Selector */}
       {expanded && (
-        <div className="px-3 pt-3 border-t border-[#CBD5E1] dark:border-[#252D3C]">
+        <div className={`px-3 pt-3 border-t ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
@@ -1374,6 +1488,7 @@ export default function App() {
           >
             <Search className={`w-4 h-4 shrink-0 mr-2 sm:mr-3 ${dark ? 'text-[#94A3B8]' : 'text-[#581C87]'}`} />
             <input
+              ref={searchInputRef}
               type="text"
               aria-label="Search in emails"
               value={search}
@@ -1388,48 +1503,82 @@ export default function App() {
                   : 'text-[#1E1231] placeholder-[#786B84]'
               }`}
             />
-            {search ? (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => {
-                  setSearch('');
-                  emailsHook.setSearchQuery?.('');
-                }}
-                className={`p-1 rounded-full transition cursor-pointer ${dark ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]' : 'text-[#786B84] hover:text-[#1E1231] hover:bg-[#F1F5F9]'}`}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            ) : (
+
+            <div className="flex items-center gap-1 shrink-0 ml-1">
+              {!search && (
+                <kbd
+                  className={`hidden sm:inline-flex kbd-pill border mr-0.5 ${
+                    dark
+                      ? 'bg-[#202737] border-[#2D3648] text-[#94A3B8]'
+                      : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#64748B]'
+                  }`}
+                  title="Press / or Ctrl+K to search"
+                >
+                  /
+                </kbd>
+              )}
+
+              {search && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearch('');
+                    emailsHook.setSearchQuery?.('');
+                    searchInputRef.current?.focus();
+                  }}
+                  className={`p-1 rounded-full transition cursor-pointer ${
+                    dark
+                      ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]'
+                      : 'text-[#786B84] hover:text-[#1E1231] hover:bg-[#F1F5F9]'
+                  }`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+
               <button
                 type="button"
                 aria-label="Quick filters"
-                onClick={() => setSearchPopoverOpen((o) => !o)}
+                onClick={() => {
+                  setSearchPopoverOpen((o) => !o);
+                  setShortcutsOpen(false);
+                }}
                 title="Quick triage filters"
-                className={`p-1 rounded-full transition cursor-pointer ${
+                className={`relative p-1.5 rounded-full transition cursor-pointer ${
                   searchPopoverOpen
-                    ? 'text-[#F59E0B]'
-                    : dark ? 'text-[#94A3B8] hover:text-white' : 'text-[#786B84] hover:text-[#1E1231]'
+                    ? dark
+                      ? 'bg-[#202737] text-[#F59E0B]'
+                      : 'bg-[#FAF5FF] text-[#581C87]'
+                    : dark
+                    ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]'
+                    : 'text-[#786B84] hover:text-[#1E1231] hover:bg-[#F1F5F9]'
                 }`}
               >
                 <SlidersHorizontal className="w-4 h-4" />
+                {(priorityFilter || unreadOnly || view !== 'all') && (
+                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
+                )}
               </button>
-            )}
+            </div>
           </div>
 
           {searchPopoverOpen && (
             <div
-              className={`absolute left-1 sm:left-6 right-1 sm:right-6 top-12 rounded-2xl p-3 shadow-xl border z-50 animate-slide-down ${
+              className={`absolute left-1 sm:left-6 right-1 sm:right-6 top-12 rounded-2xl p-3.5 shadow-xl border z-50 animate-slide-down ${
                 dark ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]' : 'bg-white border-[#CBD5E1] text-[#1E1231]'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">Quick Filters</span>
-                {(priorityFilter || view !== 'all' || search) && (
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
+                  Quick Filters
+                </span>
+                {(priorityFilter || unreadOnly || view !== 'all' || search) && (
                   <button
                     type="button"
                     onClick={() => {
                       setPriorityFilter(null);
+                      setUnreadOnly(false);
                       setView('all');
                       setCategoryTab('all');
                       setSearch('');
@@ -1449,9 +1598,10 @@ export default function App() {
                     key={tier.id}
                     type="button"
                     onClick={() => {
+                      const nextP = priorityFilter === tier.id ? null : tier.id;
                       setView('all');
-                      setPriorityFilter(tier.id);
-                      emailsHook.setActiveFilter?.(tier.id);
+                      setPriorityFilter(nextP);
+                      emailsHook.setActiveFilter?.(nextP || 'ALL');
                       setSearchPopoverOpen(false);
                     }}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
@@ -1464,6 +1614,21 @@ export default function App() {
                     <span>{tier.name}</span>
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUnreadOnly((u) => !u);
+                    setSearchPopoverOpen(false);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
+                    unreadOnly
+                      ? dark ? 'bg-[#2E1A40] border-[#F59E0B] text-white' : 'bg-[#FAF5FF] border-[#581C87] text-[#3B0764]'
+                      : dark ? 'bg-[#141822] border-[#252D3C] hover:bg-[#202737]' : 'bg-[#F8FAFC] border-[#E2E8F0] hover:bg-[#EEF2F7]'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5 text-[#F59E0B]" />
+                  <span>Unread only{unreadCount > 0 ? ` (${unreadCount})` : ''}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -1484,8 +1649,8 @@ export default function App() {
           )}
         </div>
 
-        {/* Right: Quick Controls + User Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Right: Quick Controls + Keyboard Help + User Profile */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             type="button"
             aria-label="Sync mailbox"
@@ -1499,6 +1664,64 @@ export default function App() {
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin text-[#F59E0B]' : ''}`} />
           </button>
+
+          <div className="relative hidden md:block" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              aria-label="Keyboard shortcuts"
+              onClick={() => {
+                setShortcutsOpen((o) => !o);
+                setUserMenuOpen(false);
+                setSearchPopoverOpen(false);
+              }}
+              className={`p-2 rounded-full transition cursor-pointer hover:scale-105 active:scale-95 ${
+                shortcutsOpen
+                  ? dark
+                    ? 'bg-[#202737] text-[#F59E0B]'
+                    : 'bg-white text-[#581C87] shadow-sm'
+                  : dark
+                  ? 'text-[#CBD5E1] hover:text-white hover:bg-[#202737]'
+                  : 'text-[#4D3A5B] hover:text-[#581C87] hover:bg-white hover:shadow-sm'
+              }`}
+              title="Keyboard shortcuts (?)"
+            >
+              <Keyboard className="w-4 h-4" />
+            </button>
+
+            {shortcutsOpen && (
+              <div
+                className={`absolute right-0 top-11 w-64 rounded-2xl p-3.5 shadow-xl border z-50 animate-slide-down ${
+                  dark ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]' : 'bg-white border-[#CBD5E1] text-[#1E1231]'
+                }`}
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8] mb-2">
+                  Keyboard Shortcuts
+                </div>
+                <div className="space-y-2 text-xs">
+                  {[
+                    { key: 'j / k', label: 'Next / Previous email' },
+                    { key: '/ or ⌘K', label: 'Search emails' },
+                    { key: 'e', label: 'Mark done / Restore' },
+                    { key: 's', label: 'Toggle star' },
+                    { key: 'Esc', label: 'Back / Close menu' },
+                  ].map((item) => (
+                    <div key={item.key} className="flex items-center justify-between gap-2">
+                      <span className={dark ? 'text-[#CBD5E1]' : 'text-[#4D3A5B]'}>{item.label}</span>
+                      <kbd
+                        className={`kbd-pill border ${
+                          dark
+                            ? 'bg-[#121620] border-[#2D3648] text-[#FBBF24]'
+                            : 'bg-[#F8FAFC] border-[#CBD5E1] text-[#581C87]'
+                        }`}
+                      >
+                        {item.key}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
@@ -1515,7 +1738,7 @@ export default function App() {
           </button>
 
           {/* User Profile Avatar Dropdown */}
-          <div className="relative ml-1 sm:ml-2" onClick={(e) => e.stopPropagation()}>
+          <div className="relative ml-1" onClick={(e) => e.stopPropagation()}>
             {auth.isAuthenticated ? (
               <button
                 type="button"
@@ -1523,8 +1746,9 @@ export default function App() {
                 onClick={() => {
                   setUserMenuOpen((o) => !o);
                   setWindowMenuOpen(false);
+                  setShortcutsOpen(false);
                 }}
-                className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ring-2 cursor-pointer transition ${
+                className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center shrink-0 ring-2 cursor-pointer transition hover:scale-105 active:scale-95 ${
                   dark
                     ? 'bg-gradient-to-br from-[#2E084D] to-[#120420] text-[#F8FAFC] ring-[#F59E0B] hover:ring-[#FBBF24]'
                     : 'bg-gradient-to-br from-[#2E084D] to-[#1A042D] text-white ring-[#F59E0B] hover:ring-[#D97706] shadow-sm'
@@ -1546,15 +1770,19 @@ export default function App() {
 
             {userMenuOpen && auth.isAuthenticated && (
               <div
-                className={`absolute right-0 top-11 w-56 rounded-2xl p-2 shadow-xl border z-50 animate-slide-down ${
+                className={`absolute right-0 top-11 w-60 rounded-2xl p-2 shadow-xl border z-50 animate-slide-down ${
                   dark
-                    ? 'bg-[#1E0F2B] border-[#361A4B] text-[#F8FAFC]'
-                    : 'bg-[#FFFFFF] border-[#E2E8F0] text-[#1D0B2B]'
+                    ? 'bg-[#181D29] border-[#2D3648] text-[#F8FAFC]'
+                    : 'bg-[#FFFFFF] border-[#CBD5E1] text-[#1D0B2B]'
                 }`}
               >
-                <div className="px-3 py-2 border-b border-[#361A4B]/40 dark:border-[#361A4B] mb-1">
+                <div className={`px-3 py-2.5 border-b mb-1 ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}>
                   <p className="text-xs font-semibold truncate">{userName}</p>
                   <p className="text-[11px] text-[#94A3B8] truncate">{auth.user?.email || 'Connected'}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5 text-[10.5px] font-medium text-emerald-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span>Gmail synced · {inboxTotalCount.toLocaleString()} indexed</span>
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -1562,10 +1790,10 @@ export default function App() {
                     setUserMenuOpen(false);
                     auth.logout();
                   }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition cursor-pointer ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer ${
                     dark
-                      ? 'hover:bg-[#281438] text-rose-400'
-                      : 'hover:bg-[#EDF2F7] text-rose-600'
+                      ? 'hover:bg-[#202737] text-rose-400'
+                      : 'hover:bg-rose-50 text-rose-600'
                   }`}
                 >
                   <LogOut className="w-4 h-4" />
@@ -1683,9 +1911,42 @@ export default function App() {
                     <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin text-[#F59E0B]' : ''}`} />
                   </button>
 
+                  {/* Unread Only Quick Toggle */}
+                  <button
+                    type="button"
+                    aria-pressed={unreadOnly}
+                    onClick={() => setUnreadOnly((u) => !u)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold transition cursor-pointer border ${
+                      unreadOnly
+                        ? dark
+                          ? 'bg-[#2E1A40] text-[#FBBF24] border-[#F59E0B]/50 shadow-sm'
+                          : 'bg-[#581C87] text-white border-[#581C87] shadow-sm'
+                        : dark
+                        ? 'bg-[#141822] text-[#94A3B8] border-[#252D3C] hover:text-white hover:border-[#334155]'
+                        : 'bg-[#F8FAFC] text-[#4D3A5B] border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-white'
+                    }`}
+                    title="Filter unread messages"
+                  >
+                    <Filter className="w-3 h-3" />
+                    <span>Unread</span>
+                    {unreadCount > 0 && (
+                      <span
+                        className={`tabular-nums px-1.5 py-0 rounded-full text-[10px] font-bold ${
+                          unreadOnly
+                            ? 'bg-white/20 text-white'
+                            : dark
+                            ? 'bg-[#202737] text-[#FBBF24]'
+                            : 'bg-[#E2E8F0] text-[#3B0764]'
+                        }`}
+                      >
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+
                   {/* Batch actions when checkboxes selected */}
                   {checkedIds.size > 0 && (
-                    <div className="flex items-center gap-1.5 ml-1 pl-2.5 border-l border-[#CBD5E1] dark:border-[#2D3648] animate-fade-in">
+                    <div className={`flex items-center gap-1.5 ml-1 pl-2.5 border-l animate-fade-in ${dark ? 'border-[#2D3648]' : 'border-[#CBD5E1]'}`}>
                       <span className="font-semibold text-xs text-[#F59E0B] tabular-nums">
                         {checkedIds.size} selected
                       </span>
@@ -1808,14 +2069,14 @@ export default function App() {
                     key={tab.id}
                     type="button"
                     onClick={() => setCategoryTab(tab.id)}
-                    className={`group shrink-0 flex items-center gap-2 px-3 sm:px-4 py-2.5 text-[13px] font-medium transition cursor-pointer border-b-2 -mb-[1px] rounded-t-xl ${
+                    className={`relative group shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-[13px] font-medium transition cursor-pointer rounded-t-xl ${
                       active
                         ? dark
-                          ? 'border-[#F59E0B] text-[#FBBF24] font-bold bg-[#F59E0B]/5'
-                          : 'border-[#581C87] text-[#3B0764] font-bold bg-[#581C87]/6 shadow-[inset_0_-2px_0_0_#581C87]'
+                          ? 'text-[#FBBF24] font-bold bg-[#F59E0B]/5'
+                          : 'text-[#3B0764] font-bold bg-[#581C87]/5'
                         : dark
-                        ? 'border-transparent text-[#94A3B8] hover:text-white hover:bg-[#202737]'
-                        : 'border-transparent text-[#64748B] hover:text-[#3B0764] hover:bg-[#F1F5F9]'
+                        ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]/70'
+                        : 'text-[#64748B] hover:text-[#3B0764] hover:bg-[#F1F5F9]'
                     }`}
                   >
                     <IconComponent
@@ -1840,6 +2101,16 @@ export default function App() {
                       >
                         {tab.count.toLocaleString()}
                       </span>
+                    )}
+                    {active && (
+                      <span
+                        aria-hidden="true"
+                        className={`absolute bottom-0 inset-x-3 h-[2.5px] rounded-t-full ${
+                          dark
+                            ? 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
+                            : 'bg-gradient-to-r from-[#581C87] to-[#F59E0B]'
+                        }`}
+                      />
                     )}
                   </button>
                 );
@@ -1889,7 +2160,7 @@ export default function App() {
           )}
 
           {/* Active Filter Chips Strip */}
-          {(priorityFilter || search.trim() || (view === 'all' && categoryTab !== 'all')) && !readingEmailId && (
+          {(priorityFilter || unreadOnly || search.trim() || (view === 'all' && categoryTab !== 'all')) && !readingEmailId && (
             <div className={`${mobileReading && layoutMode === 'split' ? 'hidden lg:flex' : 'flex'} px-3 sm:px-4 py-2 border-b items-center flex-wrap gap-1.5 text-xs ${
               dark ? 'bg-[#141822]/80 border-[#252D3C]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
             }`}>
@@ -1907,6 +2178,18 @@ export default function App() {
                 >
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PRIORITIES[priorityFilter]?.color }} />
                   <span>Priority: {PRIORITIES[priorityFilter]?.name}</span>
+                  <X className="w-3 h-3 opacity-70" />
+                </button>
+              )}
+              {unreadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setUnreadOnly(false)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium border cursor-pointer transition ${
+                    dark ? 'bg-[#202737] border-[#2D3648] text-[#FBBF24]' : 'bg-white border-[#CBD5E1] text-[#581C87]'
+                  }`}
+                >
+                  <span>Unread only</span>
                   <X className="w-3 h-3 opacity-70" />
                 </button>
               )}
@@ -1941,6 +2224,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   setPriorityFilter(null);
+                  setUnreadOnly(false);
                   setCategoryTab('all');
                   setSearch('');
                   emailsHook.setSearchQuery?.('');
@@ -1992,7 +2276,7 @@ export default function App() {
               } ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}
             >
               {emailsHook.isLoading && visibleEmails.length === 0 ? (
-                <div className="divide-y divide-[#EBF0F5] dark:divide-[#22293A]">
+                <div className={`divide-y ${dark ? 'divide-[#22293A]' : 'divide-[#EBF0F5]'}`}>
                   {Array.from({ length: 8 }).map((_, skIdx) => (
                     <div key={skIdx} className="px-4 py-3.5 flex items-start gap-3">
                       <div className="w-8 h-8 rounded-full animate-shimmer shrink-0 mt-0.5" />
@@ -2017,11 +2301,12 @@ export default function App() {
                   <p className="text-xs text-[#94A3B8] mt-1 max-w-xs">
                     No messages match your active filters or date range.
                   </p>
-                  {(priorityFilter || search.trim() || categoryTab !== 'all') && (
+                  {(priorityFilter || unreadOnly || search.trim() || categoryTab !== 'all') && (
                     <button
                       type="button"
                       onClick={() => {
                         setPriorityFilter(null);
+                        setUnreadOnly(false);
                         setCategoryTab('all');
                         setSearch('');
                         emailsHook.setSearchQuery?.('');
@@ -2161,10 +2446,10 @@ export default function App() {
                             )}
                           </div>
 
-                          {/* Timestamp & Quick Actions */}
-                          <div className="relative shrink-0 flex items-center justify-end">
+                          {/* Timestamp & Smooth Zero-Jitter Quick Actions */}
+                          <div className="relative h-6 min-w-[78px] shrink-0 flex items-center justify-end">
                             <span
-                              className={`text-[11.5px] tabular-nums text-right group-hover:hidden ${
+                              className={`text-[11.5px] tabular-nums text-right transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0 ${
                                 item.unread
                                   ? dark ? 'font-bold text-[#F8FAFC]' : 'font-bold text-[#1E1231]'
                                   : dark ? 'text-[#94A3B8]' : 'text-[#64748B]'
@@ -2175,7 +2460,7 @@ export default function App() {
 
                             <div
                               onClick={(e) => e.stopPropagation()}
-                              className={`hidden group-hover:flex items-center gap-0.5 ${
+                              className={`opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto scale-95 group-hover:scale-100 transition-all duration-150 absolute right-0 flex items-center gap-0.5 ${
                                 dark ? 'bg-[#202737] border border-[#2D3648]' : 'bg-white border border-[#CBD5E1] shadow-sm'
                               } px-1 py-0.5 rounded-lg`}
                             >
@@ -2309,10 +2594,10 @@ export default function App() {
               >
                 {currentEmail ? (
                   <>
-                    {/* Action Header Strip for Email */}
+                    {/* Sticky Action Header Strip for Email */}
                     <div
-                      className={`min-h-[48px] px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 border-b shrink-0 backdrop-blur-sm ${
-                        dark ? 'bg-[#161B26]/90 border-[#252D3C]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
+                      className={`sticky top-0 z-20 min-h-[48px] px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 border-b shrink-0 backdrop-blur-md ${
+                        dark ? 'bg-[#161B26]/95 border-[#252D3C]' : 'bg-[#F8FAFC]/95 border-[#E2E8F0]'
                       }`}
                     >
                       {/* Left: Priority Badge Popover + View Toggle */}
@@ -2732,7 +3017,15 @@ export default function App() {
                             <div className="h-36 rounded-xl w-full animate-shimmer mt-2" />
                           </div>
                         ) : viewMode === 'rich' && rawHtml ? (
-                          <HtmlEmailViewer html={rawHtml} dark={dark} />
+                          <div
+                            className={
+                              dark
+                                ? 'rounded-2xl bg-[#FFFFFF] text-[#1E293B] border border-[#2D3648] shadow-sm p-2 sm:p-4 overflow-hidden'
+                                : ''
+                            }
+                          >
+                            <HtmlEmailViewer html={rawHtml} />
+                          </div>
                         ) : (
                           <FormattedTextEmail
                             text={rawBody || currentEmail.paragraphs?.join('\n\n') || ''}

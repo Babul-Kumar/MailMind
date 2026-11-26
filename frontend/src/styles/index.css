@@ -68,13 +68,21 @@ body.mobile-drawer-open {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(88, 28, 135, 0.25);
+  background: rgba(88, 28, 135, 0.22);
   border-radius: var(--radius-full);
   transition: background var(--transition-fast);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 158, 11, 0.75);
+  background: rgba(245, 158, 11, 0.72);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.24);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.7);
 }
 
 /* Responsive email detail drawer */
@@ -1373,4 +1381,18 @@ button:focus-visible,
 
 .safe-bottom-pad {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.kbd-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
