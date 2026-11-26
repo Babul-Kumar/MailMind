@@ -10,10 +10,6 @@ import {
   AlertCircle,
   Star,
   Clock,
-  Archive,
-  Tag,
-  Users,
-  Info,
   Check,
   CheckSquare,
   Square,
@@ -475,23 +471,6 @@ function formatRealEmail(item, index) {
   };
 }
 
-export function getEmailCategory(item) {
-  const text = `${item.subject || ''} ${item.sender || ''}`.toLowerCase();
-  if (/offer|drop|price|sale|discount|deal|free|win|festive|reward|quiz|internship|hiring|coupon|promo/i.test(text)) {
-    return 'promotions';
-  }
-  if (/quora|linkedin|twitter|facebook|connect|network|community|discussion|instagram|threads/i.test(text)) {
-    return 'social';
-  }
-  if (
-    item.priority === 'P3' ||
-    /update|code|verify|digest|notification|security|system|admit|receipt|alert|statement|billing|invoice|github|gitlab|atcoder|codechef|leetcode/i.test(text)
-  ) {
-    return 'updates';
-  }
-  return 'primary';
-}
-
 // ============================================================================
 // MAIN APPLICATION
 // ============================================================================
@@ -556,7 +535,6 @@ export default function App() {
     return typeof window !== 'undefined' && window.innerWidth >= 1100 ? 'split' : 'table';
   }); // 'table' | 'split'
   const [view, setView] = useState('all'); // 'all' | 'attention' | 'recent'
-  const [categoryTab, setCategoryTab] = useState('all'); // 'all' | 'primary' | 'promotions' | 'social' | 'updates'
   const [readingEmailId, setReadingEmailId] = useState(null); // when null: table view; when id: open email view
   const [selectedId, setSelectedId] = useState(null);
   const [priorityFilter, setPriorityFilter] = useState(null); // null | 'P1' | 'P2' | 'P3' | 'P4'
@@ -698,30 +676,7 @@ export default function App() {
     return emails.filter((e) => e.needsAttention && !statusMap[e.id]).length;
   }, [view, emailsHook.pagination?.total_emails, emailsHook.stats, emails, statusMap]);
 
-  // Category Counts for Gmail Category Tabs
-  const categoryCounts = useMemo(() => {
-    let primary = 0;
-    let updates = 0;
-    let promotions = 0;
-    let social = 0;
-
-    emails.forEach((item) => {
-      const cat = getEmailCategory(item);
-      if (cat === 'promotions') {
-        promotions++;
-      } else if (cat === 'social') {
-        social++;
-      } else if (cat === 'updates') {
-        updates++;
-      } else {
-        primary++;
-      }
-    });
-
-    return { primary, updates, promotions, social };
-  }, [emails]);
-
-  // Filtered List Items (Meticulous Gmail Tab & Folder Filtering with Timeframe & Strict Time Sorting)
+  // Filtered List Items (Folder Filtering with Timeframe & Strict Time Sorting)
   const visibleEmails = useMemo(() => {
     const filtered = emails.filter((item) => {
       // 1. Timeframe window filter: strictly enforce "This month" or "Last 3 months" for demo items
@@ -735,19 +690,6 @@ export default function App() {
         if (!item.needsAttention) return false;
       } else if (view === 'recent') {
         if (item.daysAgo > 30) return false;
-      }
-
-      // 3. Category Tab Filtering (applies only in main mailbox view 'all')
-      if (view === 'all' && categoryTab !== 'all') {
-        const cat = getEmailCategory(item);
-        if (cat !== categoryTab) {
-          // Keep critical P1/P2 items in primary so they are never missed
-          if (categoryTab === 'primary' && (item.priority === 'P1' || item.priority === 'P2')) {
-            // Include in primary
-          } else {
-            return false;
-          }
-        }
       }
 
       if (priorityFilter) {
@@ -793,7 +735,7 @@ export default function App() {
       };
       return getEmailTime(b) - getEmailTime(a);
     });
-  }, [emails, view, categoryTab, statusMap, starredIds, priorityFilter, unreadOnly, search, windowId]);
+  }, [emails, view, statusMap, starredIds, priorityFilter, unreadOnly, search, windowId]);
 
   // Active email
   const currentEmail = useMemo(() => {
@@ -1156,7 +1098,7 @@ export default function App() {
   // Calculate Gmail pagination and counts
   const inboxTotalCount = emailsHook.pagination?.total_emails || emails.length;
   const isPrioritySynced = !priorityFilter || emailsHook.activeFilter === priorityFilter;
-  const isCustomFiltered = Boolean((view === 'all' && categoryTab !== 'all') || unreadOnly || search.trim());
+  const isCustomFiltered = Boolean(unreadOnly || search.trim());
   const currentViewTotal = isCustomFiltered
     ? visibleEmails.length
     : (view === 'attention'
@@ -1183,14 +1125,9 @@ export default function App() {
     setMobileNavOpen(false);
     setPriorityFilter(null);
     setUnreadOnly(false);
-    if (navId === 'all') {
-      setCategoryTab('all');
-      emailsHook.setActiveFilter?.('ALL');
-    } else if (navId === 'attention') {
-      setCategoryTab('all');
+    if (navId === 'attention') {
       emailsHook.setActiveFilter?.('NEEDS_ATTENTION');
-    } else if (navId === 'recent') {
-      setCategoryTab('all');
+    } else {
       emailsHook.setActiveFilter?.('ALL');
     }
     listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1299,7 +1236,6 @@ export default function App() {
                     const nextPriority = priorityFilter === tier.id ? null : tier.id;
                     setView('all');
                     setPriorityFilter(nextPriority);
-                    setCategoryTab('all');
                     setReadingEmailId(null);
                     setMobileReading(false);
                     setMobileNavOpen(false);
@@ -1464,7 +1400,6 @@ export default function App() {
               setReadingEmailId(null);
               setMobileReading(false);
               setView('all');
-              setCategoryTab('all');
               setPriorityFilter(null);
               emailsHook.setActiveFilter?.('ALL');
             }}
@@ -1580,7 +1515,6 @@ export default function App() {
                       setPriorityFilter(null);
                       setUnreadOnly(false);
                       setView('all');
-                      setCategoryTab('all');
                       setSearch('');
                       emailsHook.setSearchQuery?.('');
                       emailsHook.setActiveFilter?.('ALL');
@@ -2048,76 +1982,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* 2. CATEGORY TABS (Primary, Promotions, Social, Updates, All) */}
-          {!readingEmailId && view === 'all' && (
-            <div
-              className={`${mobileReading && layoutMode === 'split' ? 'hidden lg:flex' : 'flex'} items-center overflow-x-auto no-scrollbar border-b shrink-0 px-2 sm:px-4 gap-1 ${
-                dark ? 'bg-[#161B26] border-[#252D3C]' : 'bg-[#FFFFFF] border-[#E2E8F0]'
-              }`}
-            >
-              {[
-                { id: 'primary', label: 'Primary', icon: Inbox, count: categoryCounts.primary },
-                { id: 'promotions', label: 'Promotions', icon: Tag, count: categoryCounts.promotions },
-                { id: 'social', label: 'Social', icon: Users, count: categoryCounts.social },
-                { id: 'updates', label: 'Updates', icon: Info, count: categoryCounts.updates },
-                { id: 'all', label: 'All', icon: Archive, count: inboxTotalCount }
-              ].map((tab) => {
-                const active = categoryTab === tab.id;
-                const IconComponent = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setCategoryTab(tab.id)}
-                    className={`relative group shrink-0 flex items-center gap-2 px-3.5 sm:px-4 py-2.5 text-[13px] font-medium transition cursor-pointer rounded-t-xl ${
-                      active
-                        ? dark
-                          ? 'text-[#FBBF24] font-bold bg-[#F59E0B]/5'
-                          : 'text-[#3B0764] font-bold bg-[#581C87]/5'
-                        : dark
-                        ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]/70'
-                        : 'text-[#64748B] hover:text-[#3B0764] hover:bg-[#F1F5F9]'
-                    }`}
-                  >
-                    <IconComponent
-                      className={`w-4 h-4 shrink-0 transition-colors ${
-                        active
-                          ? dark ? 'text-[#F59E0B]' : 'text-[#581C87]'
-                          : dark ? 'text-[#94A3B8] group-hover:text-white' : 'text-[#94A3B8] group-hover:text-[#581C87]'
-                      }`}
-                    />
-                    <span>{tab.label}</span>
-                    {tab.count > 0 && (
-                      <span
-                        className={`text-[11px] tabular-nums px-2 py-0.5 rounded-full font-bold transition-all ${
-                          active
-                            ? dark
-                              ? 'bg-[#F59E0B] text-[#1E082B] shadow-sm'
-                              : 'bg-[#581C87] text-white shadow-sm'
-                            : dark
-                            ? 'bg-[#252D3C] text-[#94A3B8]'
-                            : 'bg-[#F1F5F9] text-[#64748B] border border-[#E2E8F0] group-hover:border-[#CBD5E1]'
-                        }`}
-                      >
-                        {tab.count.toLocaleString()}
-                      </span>
-                    )}
-                    {active && (
-                      <span
-                        aria-hidden="true"
-                        className={`absolute bottom-0 inset-x-3 h-[2.5px] rounded-t-full ${
-                          dark
-                            ? 'bg-gradient-to-r from-[#F59E0B] to-[#FBBF24]'
-                            : 'bg-gradient-to-r from-[#581C87] to-[#F59E0B]'
-                        }`}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
           {/* NEEDS ATTENTION QUEUE HEADER BANNER */}
           {!readingEmailId && view === 'attention' && (
             <div
@@ -2160,7 +2024,7 @@ export default function App() {
           )}
 
           {/* Active Filter Chips Strip */}
-          {(priorityFilter || unreadOnly || search.trim() || (view === 'all' && categoryTab !== 'all')) && !readingEmailId && (
+          {(priorityFilter || unreadOnly || search.trim()) && !readingEmailId && (
             <div className={`${mobileReading && layoutMode === 'split' ? 'hidden lg:flex' : 'flex'} px-3 sm:px-4 py-2 border-b items-center flex-wrap gap-1.5 text-xs ${
               dark ? 'bg-[#141822]/80 border-[#252D3C]' : 'bg-[#F8FAFC] border-[#E2E8F0]'
             }`}>
@@ -2193,18 +2057,6 @@ export default function App() {
                   <X className="w-3 h-3 opacity-70" />
                 </button>
               )}
-              {view === 'all' && categoryTab !== 'all' && (
-                <button
-                  type="button"
-                  onClick={() => setCategoryTab('all')}
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium border cursor-pointer transition capitalize ${
-                    dark ? 'bg-[#202737] border-[#2D3648] text-[#CBD5E1]' : 'bg-white border-[#CBD5E1] text-[#4D3A5B]'
-                  }`}
-                >
-                  <span>Tab: {categoryTab}</span>
-                  <X className="w-3 h-3 opacity-70" />
-                </button>
-              )}
               {search.trim() && (
                 <button
                   type="button"
@@ -2225,7 +2077,6 @@ export default function App() {
                 onClick={() => {
                   setPriorityFilter(null);
                   setUnreadOnly(false);
-                  setCategoryTab('all');
                   setSearch('');
                   emailsHook.setSearchQuery?.('');
                   emailsHook.setActiveFilter?.('ALL');
@@ -2301,13 +2152,12 @@ export default function App() {
                   <p className="text-xs text-[#94A3B8] mt-1 max-w-xs">
                     No messages match your active filters or date range.
                   </p>
-                  {(priorityFilter || unreadOnly || search.trim() || categoryTab !== 'all') && (
+                  {(priorityFilter || unreadOnly || search.trim()) && (
                     <button
                       type="button"
                       onClick={() => {
                         setPriorityFilter(null);
                         setUnreadOnly(false);
-                        setCategoryTab('all');
                         setSearch('');
                         emailsHook.setSearchQuery?.('');
                         emailsHook.setActiveFilter?.('ALL');
