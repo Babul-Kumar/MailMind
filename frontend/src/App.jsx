@@ -921,7 +921,22 @@ export default function App() {
 
   // Render OAuth callback
   if (currentPath === '/auth/callback') {
-    return <AuthCallback />;
+    return (
+      <AuthCallback
+        exchangeHandoff={auth.exchangeHandoff}
+        onSuccess={() => {
+          window.history.replaceState({}, document.title, '/');
+          setCurrentPath('/');
+          if (!auth.isAuthenticated) {
+            auth.refreshStatus?.();
+          }
+        }}
+        onCancel={() => {
+          window.history.replaceState({}, document.title, '/');
+          setCurrentPath('/');
+        }}
+      />
+    );
   }
 
   // Render Login Page when unauthenticated

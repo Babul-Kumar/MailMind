@@ -20,6 +20,16 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
   const [status, setStatus] = useState('exchanging'); // 'exchanging' | 'success' | 'error'
   const [errorMessage, setErrorMessage] = useState(null);
 
+  const onSuccessRef = useRef(onSuccess);
+  const onAuthCompleteRef = useRef(onAuthenticationComplete);
+  const exchangeHandoffRef = useRef(exchangeHandoff);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onAuthCompleteRef.current = onAuthenticationComplete;
+    exchangeHandoffRef.current = exchangeHandoff;
+  }, [onSuccess, onAuthenticationComplete, exchangeHandoff]);
+
   useEffect(() => {
     let isMounted = true;
     const urlParams = new URLSearchParams(window.location.search);
@@ -47,9 +57,13 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
         if (authStatus && authStatus.authenticated && authStatus.user) {
           setStatus('success');
           window.history.replaceState({}, document.title, '/');
-          if (onAuthenticationComplete) onAuthenticationComplete(authStatus.user);
+          onAuthCompleteRef.current?.(authStatus.user);
           setTimeout(() => {
-            if (onSuccess) onSuccess(authStatus.user);
+            if (onSuccessRef.current) {
+              onSuccessRef.current(authStatus.user);
+            } else {
+              window.location.replace('/');
+            }
           }, 350);
         } else {
           setStatus('error');
@@ -74,7 +88,7 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         if (!isMounted) return;
         try {
-          const doExchange = exchangeHandoff || fetchAuthExchange;
+          const doExchange = exchangeHandoffRef.current || fetchAuthExchange;
           const data = await doExchange(code);
           if (data && (data.authenticated || data.user)) {
             return data;
@@ -110,15 +124,16 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
       .then((data) => {
         if (!isMounted) return;
         if (data && (data.authenticated || data.user)) {
+          _currentHandoffCode = null;
           setStatus('success');
           window.history.replaceState({}, document.title, '/');
           const user = data.user || data;
-          if (onAuthenticationComplete) {
-            onAuthenticationComplete(user);
-          }
+          onAuthCompleteRef.current?.(user);
           setTimeout(() => {
-            if (onSuccess) {
-              onSuccess(user);
+            if (onSuccessRef.current) {
+              onSuccessRef.current(user);
+            } else {
+              window.location.replace('/');
             }
           }, 350);
         } else {
@@ -127,6 +142,7 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
       })
       .catch(async (err) => {
         if (!isMounted) return;
+        _currentHandoffCode = null;
         console.error('Handoff exchange failed:', err);
         setStatus('error');
         const isExpiredOrUsed =
@@ -149,7 +165,7 @@ export function AuthCallback({ onSuccess, onCancel, onAuthenticationComplete, ex
     return () => {
       isMounted = false;
     };
-  }, [onSuccess, onAuthenticationComplete, exchangeHandoff]);
+  }, []);
 
   const handleReturnToLogin = () => {
     window.history.replaceState({}, document.title, '/');
