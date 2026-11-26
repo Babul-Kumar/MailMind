@@ -21,7 +21,18 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
+}
+
+::selection {
+  background: rgba(88, 28, 135, 0.14);
+  color: inherit;
+}
+
+[data-theme="dark"] ::selection {
+  background: rgba(245, 158, 11, 0.25);
+  color: #f8fafc;
 }
 
 button, [role="button"], a {
@@ -1395,4 +1406,8 @@ button:focus-visible,
   line-height: 1;
   border-radius: 5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.iframe-smooth {
+  transition: height 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out;
 }

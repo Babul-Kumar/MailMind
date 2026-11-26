@@ -16,6 +16,7 @@ import {
   MinusSquare,
   RotateCcw,
   ArrowLeft,
+  ArrowUp,
   ExternalLink,
   ChevronDown,
   ChevronLeft,
@@ -159,6 +160,28 @@ function getAvatarToneClass(seed, priority, dark) {
   return dark ? AVATAR_TONES_DARK[idx] : AVATAR_TONES_LIGHT[idx];
 }
 
+function HighlightMatch({ text, query, dark }) {
+  const str = String(text || '');
+  const q = String(query || '').trim();
+  if (!q) return str;
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = str.split(new RegExp(`(${escaped})`, 'gi'));
+  return parts.map((part, idx) =>
+    part.toLowerCase() === q.toLowerCase() ? (
+      <mark
+        key={idx}
+        className={`rounded px-0.5 font-semibold ${
+          dark ? 'bg-amber-500/25 text-[#FDE68A]' : 'bg-[#FDE68A]/70 text-[#78350F]'
+        }`}
+      >
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
 // ============================================================================
 // RICH GMAIL-STYLE EMAIL CONTENT RENDERERS
 // ============================================================================
@@ -166,6 +189,7 @@ function getAvatarToneClass(seed, priority, dark) {
 function HtmlEmailViewer({ html }) {
   const iframeRef = useRef(null);
   const [iframeHeight, setIframeHeight] = useState(420);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const cleanHtml = useMemo(() => {
     if (!html) return '';
@@ -248,6 +272,7 @@ function HtmlEmailViewer({ html }) {
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
+    setIframeLoaded(false);
 
     let observer = null;
     const measureHeight = () => {
@@ -266,6 +291,7 @@ function HtmlEmailViewer({ html }) {
 
     const handleLoad = () => {
       measureHeight();
+      setIframeLoaded(true);
       try {
         const doc = iframe.contentDocument || iframe.contentWindow?.document;
         if (doc?.body && typeof ResizeObserver !== 'undefined') {
@@ -283,12 +309,14 @@ function HtmlEmailViewer({ html }) {
     iframe.addEventListener('load', handleLoad);
     const interval = setInterval(measureHeight, 450);
     const stopTimer = setTimeout(() => clearInterval(interval), 4000);
+    const fadeFallback = setTimeout(() => setIframeLoaded(true), 220);
 
     return () => {
       iframe.removeEventListener('load', handleLoad);
       observer?.disconnect();
       clearInterval(interval);
       clearTimeout(stopTimer);
+      clearTimeout(fadeFallback);
     };
   }, [cleanHtml]);
 
@@ -298,10 +326,12 @@ function HtmlEmailViewer({ html }) {
       title="Email Content"
       srcDoc={cleanHtml}
       sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+      className="iframe-smooth"
       style={{
         width: '100%',
         minHeight: '280px',
         height: `${iframeHeight}px`,
+        opacity: iframeLoaded ? 1 : 0,
         border: 'none',
         display: 'block',
         backgroundColor: 'transparent',
@@ -544,9 +574,19 @@ export default function App() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [mobileReading, setMobileReading] = useState(false);
   const [aiSignalsExpanded, setAiSignalsExpanded] = useState(false);
+  const [splitWidth, setSplitWidth] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem('mailmind_split_width'));
+      if (saved >= 350 && saved <= 620) return saved;
+    } catch {}
+    return 430;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const listScrollRef = useRef(null);
   const readerScrollRef = useRef(null);
+  const splitContainerRef = useRef(null);
   const searchInputRef = useRef(null);
 
   // Synchronize windowId with emailsHook.analysisPeriod when restored
@@ -1339,19 +1379,22 @@ export default function App() {
                 }`}
                 title={nav.label}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  {active && !dark && (
-                    <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-[#F59E0B] to-[#D97706] shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0" />
-                  )}
-                  <IconComponent
-                    className={`w-4 h-4 shrink-0 transition-colors ${
-                      active
-                        ? dark ? 'text-[#F59E0B]' : 'text-[#581C87]'
-                        : dark ? 'text-[#94A3B8]' : 'text-[#716080]'
-                    }`}
-                  />
-                  {expanded && <span className="truncate">{nav.label}</span>}
-                </div>
+                  <div className="relative flex items-center gap-3 min-w-0">
+                    {active && !dark && (
+                      <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-[#F59E0B] to-[#D97706] shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0" />
+                    )}
+                    <IconComponent
+                      className={`w-4 h-4 shrink-0 transition-colors ${
+                        active
+                          ? dark ? 'text-[#F59E0B]' : 'text-[#581C87]'
+                          : dark ? 'text-[#94A3B8]' : 'text-[#716080]'
+                      }`}
+                    />
+                    {!expanded && nav.id === 'attention' && nav.count > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#F59E0B] ring-2 ring-[#F5F8FC] dark:ring-[#141822]" />
+                    )}
+                    {expanded && <span className="truncate">{nav.label}</span>}
+                  </div>
 
                 {expanded && nav.count !== null && nav.count !== undefined && (
                   <span
@@ -1642,22 +1685,27 @@ export default function App() {
               )}
 
               {search && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setSearch('');
-                    emailsHook.setSearchQuery?.('');
-                    searchInputRef.current?.focus();
-                  }}
-                  className={`p-1 rounded-full transition cursor-pointer ${
-                    dark
-                      ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]'
-                      : 'text-[#786B84] hover:text-[#1E1231] hover:bg-[#F1F5F9]'
-                  }`}
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <>
+                  {emailsHook.isRefreshing && (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#F59E0B] mr-0.5 shrink-0" />
+                  )}
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => {
+                      setSearch('');
+                      emailsHook.setSearchQuery?.('');
+                      searchInputRef.current?.focus();
+                    }}
+                    className={`p-1 rounded-full transition cursor-pointer ${
+                      dark
+                        ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]'
+                        : 'text-[#786B84] hover:text-[#1E1231] hover:bg-[#F1F5F9]'
+                    }`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
               )}
 
               <button
@@ -1975,7 +2023,7 @@ export default function App() {
         <aside
           className={`${
             sidebarOpen ? 'w-60' : 'w-16'
-          } relative z-30 hidden md:flex flex-col justify-between shrink-0 border-r py-3 transition-all duration-200 ${
+          } relative z-30 hidden md:flex flex-col justify-between shrink-0 border-r py-3 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             dark
               ? 'bg-[#141822] border-[#252D3C]'
               : 'bg-[#F5F8FC]/80 backdrop-blur-md border-[#CBD5E1]'
@@ -2314,10 +2362,17 @@ export default function App() {
           )}
 
           {/* 3. MAIL CONTENT: LIST VIEW vs SPLIT VIEW vs FULL READER */}
-          <div className="flex-1 flex overflow-hidden">
+          <div ref={splitContainerRef} className="relative flex-1 flex overflow-hidden">
+            {isResizing && <div className="fixed inset-0 z-50 cursor-col-resize select-none" />}
+
             {/* EMAIL LIST COLUMN */}
             <div
               ref={listScrollRef}
+              onScroll={(e) => {
+                const isFar = e.currentTarget.scrollTop > 320;
+                if (isFar !== showScrollTop) setShowScrollTop(isFar);
+              }}
+              style={{ '--split-list-width': `${splitWidth}px` }}
               role="listbox"
               aria-label="Email list"
               className={`${
@@ -2326,10 +2381,12 @@ export default function App() {
                   : (mobileReading || readingEmailId) && layoutMode === 'split'
                   ? 'hidden lg:flex'
                   : 'flex'
-              } flex-col overflow-y-auto smooth-scroll transition-opacity duration-200 ${
+              } relative flex-col overflow-y-auto smooth-scroll transition-opacity duration-200 ${
                 emailsHook.isRefreshing ? 'opacity-80' : 'opacity-100'
               } ${
-                layoutMode === 'split' ? 'w-full lg:w-[410px] xl:w-[460px] shrink-0 lg:border-r' : 'w-full'
+                layoutMode === 'split'
+                  ? 'w-full lg:w-[var(--split-list-width)] shrink-0 lg:border-r'
+                  : 'w-full'
               } ${dark ? 'border-[#252D3C]' : 'border-[#E2E8F0]'}`}
             >
               {emailsHook.isLoading && visibleEmails.length === 0 ? (
@@ -2399,7 +2456,7 @@ export default function App() {
                           selectEmail(item);
                         }
                       }}
-                      className={`group flex items-start gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b transition-all duration-150 cursor-pointer select-none relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7E22CE] ${
+                      className={`group flex items-start gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b transition-[background-color,box-shadow,opacity,transform] duration-150 ease-out active:scale-[0.998] cursor-pointer select-none relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7E22CE] ${
                         isDone || isSnoozed ? 'opacity-60' : ''
                       } ${
                         isSelected && isCompactSplit
@@ -2471,7 +2528,7 @@ export default function App() {
                               }`}
                               title={item.email}
                             >
-                              {item.sender}
+                              <HighlightMatch text={item.sender} query={search} dark={dark} />
                             </span>
 
                             {(item.priority === 'P1' || item.priority === 'P2') && (
@@ -2577,7 +2634,7 @@ export default function App() {
                                 : dark ? 'font-normal text-[#CBD5E1]' : 'font-medium text-[#334155]'
                             }`}
                           >
-                            {item.subject}
+                            <HighlightMatch text={item.subject} query={search} dark={dark} />
                           </span>
                           <span className={`shrink-0 text-xs ${dark ? 'text-[#475569]' : 'text-[#CBD5E1]'}`}>—</span>
                           <span className={`truncate text-xs flex-1 min-w-0 ${
@@ -2644,7 +2701,79 @@ export default function App() {
                   </button>
                 </div>
               )}
+
+              {/* Floating Scroll-to-Top Pill */}
+              {showScrollTop && (
+                <button
+                  type="button"
+                  aria-label="Scroll list to top"
+                  onClick={() => listScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className={`sticky bottom-4 self-end mr-4 z-10 p-2.5 rounded-full shadow-lg border transition-transform hover:scale-105 active:scale-95 animate-fade-up cursor-pointer ${
+                    dark
+                      ? 'bg-[#202737]/95 border-[#334155] text-[#FBBF24] hover:bg-[#283144]'
+                      : 'bg-white/95 border-[#CBD5E1] text-[#581C87] hover:bg-[#FAF5FF]'
+                  } backdrop-blur-md`}
+                  title="Back to top"
+                >
+                  <ArrowUp className="w-4 h-4" />
+                </button>
+              )}
             </div>
+
+            {/* Draggable Desktop Split-Pane Resizer Handle */}
+            {layoutMode === 'split' && (
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize reading pane"
+                title="Drag to resize · Double-click to reset"
+                onDoubleClick={() => {
+                  setSplitWidth(430);
+                  try {
+                    localStorage.setItem('mailmind_split_width', '430');
+                  } catch {}
+                }}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  const container = splitContainerRef.current;
+                  if (!container) return;
+                  setIsResizing(true);
+                  const startX = e.clientX;
+                  const startW = splitWidth;
+                  const onMove = (ev) => {
+                    const maxW = Math.min(620, Math.floor(container.clientWidth * 0.56));
+                    const nextW = Math.max(350, Math.min(maxW, startW + (ev.clientX - startX)));
+                    setSplitWidth(nextW);
+                  };
+                  const onUp = () => {
+                    setIsResizing(false);
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onUp);
+                    setSplitWidth((latest) => {
+                      try {
+                        localStorage.setItem('mailmind_split_width', String(latest));
+                      } catch {}
+                      return latest;
+                    });
+                  };
+                  window.addEventListener('pointermove', onMove);
+                  window.addEventListener('pointerup', onUp);
+                }}
+                className={`hidden lg:flex w-1.5 shrink-0 cursor-col-resize items-center justify-center group transition-colors ${
+                  isResizing
+                    ? dark ? 'bg-[#F59E0B]/35' : 'bg-[#7E22CE]/25'
+                    : dark ? 'bg-transparent hover:bg-[#F59E0B]/25' : 'bg-transparent hover:bg-[#7E22CE]/15'
+                }`}
+              >
+                <span
+                  className={`w-0.5 h-10 rounded-full transition-all ${
+                    isResizing
+                      ? 'bg-[#F59E0B] scale-y-125'
+                      : dark ? 'bg-[#2D3648] group-hover:bg-[#F59E0B]' : 'bg-[#CBD5E1] group-hover:bg-[#7E22CE]'
+                  }`}
+                />
+              </div>
+            )}
 
             {/* OPEN EMAIL READING CANVAS */}
             {(readingEmailId || layoutMode === 'split') && (
@@ -2872,10 +3001,15 @@ export default function App() {
                                 ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]'
                                 : 'text-[#64748B] hover:text-[#1D0B2B] hover:bg-[#EDF2F7]'
                             }`}
-                            title="Previous email"
+                            title="Previous email (k)"
                           >
                             <ChevronLeft className="w-4 h-4" />
                           </button>
+                          {visibleEmails.length > 0 && currentIdx >= 0 && (
+                            <span className="hidden xl:inline-block px-1.5 text-[11px] font-medium tabular-nums text-[#94A3B8]">
+                              {currentIdx + 1} / {visibleEmails.length}
+                            </span>
+                          )}
                           <button
                             type="button"
                             disabled={!nextEmail}
@@ -2885,7 +3019,7 @@ export default function App() {
                                 ? 'text-[#94A3B8] hover:text-white hover:bg-[#202737]'
                                 : 'text-[#64748B] hover:text-[#1D0B2B] hover:bg-[#EDF2F7]'
                             }`}
-                            title="Next email"
+                            title="Next email (j)"
                           >
                             <ChevronRight className="w-4 h-4" />
                           </button>
