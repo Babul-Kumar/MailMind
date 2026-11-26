@@ -61,7 +61,7 @@ const DEMO_EMAILS = {
   },
 };
 
-export function ConnectAccountHero({ onLogin, isLoading, error }) {
+export function ConnectAccountHero({ onLogin, onDevLogin, isLoading, error }) {
   const [activeDemoTier, setActiveDemoTier] = useState('P1');
   const demoEmail = DEMO_EMAILS[activeDemoTier];
 
@@ -259,6 +259,32 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
               </>
             )}
           </button>
+
+          {onDevLogin && (
+            <button
+              onClick={onDevLogin}
+              disabled={isLoading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                width: '100%',
+                padding: '0.65rem 1rem',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                color: 'var(--accent, #818cf8)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: isLoading ? 'default' : 'pointer',
+                transition: 'all var(--transition-fast)',
+              }}
+              title="Connect to local development session"
+            >
+              <span>Quick Dev Login (Localhost)</span>
+            </button>
+          )}
 
           {/* Privacy Trust Note */}
           <div
@@ -487,8 +513,8 @@ export function ConnectAccountHero({ onLogin, isLoading, error }) {
             {
               icon: <Clock size={18} />,
               color: '#10b981',
-              title: 'Dynamic Priority Aging',
-              body: 'Expired OTPs and passed deadlines automatically de-escalate so your critical view stays current and actionable.',
+              title: 'Smart Action Queue',
+              body: 'Prioritizes actionable correspondence and deadlines into an organized queue so your critical view stays current.',
             },
             {
               icon: <Shield size={18} />,

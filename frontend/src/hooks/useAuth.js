@@ -40,13 +40,13 @@ export function useAuth() {
             setIsAuthenticated(false);
             try {
               localStorage.removeItem('mailmind_last_user');
-            } catch (_) {}
+            } catch (_) { }
           } else if (event.data?.type === 'LOGIN' && event.data?.user) {
             setUser(event.data.user);
             setIsAuthenticated(true);
           }
         };
-      } catch (_) {}
+      } catch (_) { }
     }
 
     return () => {
@@ -69,7 +69,7 @@ export function useAuth() {
         }
       }
       keysToRemove.forEach((k) => localStorage.removeItem(k));
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   const checkStatus = useCallback(async (initialError = null) => {
@@ -86,31 +86,8 @@ export function useAuth() {
         setError(null);
         try {
           localStorage.setItem('mailmind_last_user', JSON.stringify(data.user));
-        } catch (_) {}
+        } catch (_) { }
       } else {
-        // In local development, automatically connect to the local active developer mailbox if available
-        const isLocal = typeof window !== 'undefined' && (
-          window.location.hostname === 'localhost' ||
-          window.location.hostname === '127.0.0.1' ||
-          window.location.port === '5173' ||
-          window.location.port === '5174'
-        );
-        if (isLocal) {
-          try {
-            const devData = await fetchAuthDevLogin();
-            if (devData && devData.authenticated && devData.user) {
-              setUser(devData.user);
-              setIsAuthenticated(true);
-              setIsOffline(false);
-              setError(null);
-              try {
-                localStorage.setItem('mailmind_last_user', JSON.stringify(devData.user));
-              } catch (_) {}
-              return;
-            }
-          } catch (_) {}
-        }
-
         setUser(null);
         setIsAuthenticated(false);
         setIsOffline(false);
@@ -126,7 +103,7 @@ export function useAuth() {
       try {
         const raw = localStorage.getItem('mailmind_last_user');
         cachedUser = raw ? JSON.parse(raw) : null;
-      } catch (_) {}
+      } catch (_) { }
 
       if (cachedUser) {
         // Backend temporarily unavailable / cold start -> preserve session in offline mode
@@ -160,7 +137,7 @@ export function useAuth() {
           if (channelRef.current) {
             channelRef.current.postMessage({ type: 'LOGIN', user: data.user });
           }
-        } catch (_) {}
+        } catch (_) { }
         return data;
       } else {
         throw new Error('Authentication response unauthenticated.');
@@ -176,7 +153,7 @@ export function useAuth() {
           setError(null);
           return status;
         }
-      } catch (_) {}
+      } catch (_) { }
 
       console.error('Failed to exchange handoff code:', err);
       setUser(null);
@@ -248,14 +225,14 @@ export function useAuth() {
   const switchAccount = useCallback(async () => {
     try {
       await apiLogout();
-    } catch (_) {}
+    } catch (_) { }
     clearClientCaches();
     setUser(null);
     setIsAuthenticated(false);
     if (channelRef.current) {
       try {
         channelRef.current.postMessage({ type: 'LOGOUT' });
-      } catch (_) {}
+      } catch (_) { }
     }
     // Google OAuth with prompt=select_account forces account selection screen
     try {
@@ -287,7 +264,7 @@ export function useAuth() {
     if (channelRef.current) {
       try {
         channelRef.current.postMessage({ type: 'LOGOUT' });
-      } catch (_) {}
+      } catch (_) { }
     }
   }, [clearClientCaches]);
 
@@ -305,7 +282,7 @@ export function useAuth() {
           if (channelRef.current) {
             channelRef.current.postMessage({ type: 'LOGIN', user: data.user });
           }
-        } catch (_) {}
+        } catch (_) { }
         return data;
       }
     } catch (err) {

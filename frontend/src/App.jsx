@@ -36,6 +36,7 @@ import {
 import { useAuth } from './hooks/useAuth';
 import { useEmails } from './hooks/useEmails';
 import { AuthCallback } from './components/auth/AuthCallback';
+import { ConnectAccountHero } from './components/auth/ConnectAccountHero';
 import { cleanSenderName, formatEmailDate, isItemInWindow } from './utils/formatting';
 import { submitFeedback, fetchEmailDetail } from './services/api';
 
@@ -53,214 +54,6 @@ const PRIORITIES = {
 const WINDOWS = [
   { id: 'this_month', label: 'This month', days: 30 },
   { id: 'last_3_months', label: 'Last 3 months', days: 90 }
-];
-
-// ============================================================================
-// CONCISE, NATURAL EMAIL DATASET (FALLBACK / DEMO / SAMPLE)
-// ============================================================================
-
-const INITIAL_EMAILS = [
-  {
-    id: 'e1',
-    sender: 'AWS CloudWatch',
-    email: 'no-reply@amazonaws.com',
-    initials: 'AW',
-    avatarBg: 'bg-stone-200/80 text-stone-700',
-    subject: 'Elevated 5xx latency on production API',
-    time: '10:42 AM',
-    fullDate: 'Nov 5, 10:42 AM',
-    date: '2026-11-05T10:42:00Z',
-    timestamp: Date.now() - 1000 * 60 * 18,
-    daysAgo: 0,
-    unread: true,
-    analyzed: true,
-    priority: 'P1',
-    needsAttention: true,
-    matched: '5xx, production, immediate',
-    note: 'Security alert stays pinned',
-    otp: null,
-    attachment: null,
-    paragraphs: [
-      'CloudWatch detected an elevated 5xx error rate (4.8%) on your primary API service in ap-south-1 over the last 10 minutes.',
-      'Database connection pool saturation reached 92% during peak sync traffic. Scaling the read replica or recycling idle workers will restore normal latency.',
-      'This alert remains active in your queue until marked done.'
-    ]
-  },
-  {
-    id: 'e2',
-    sender: 'GitHub',
-    email: 'noreply@github.com',
-    initials: 'GH',
-    avatarBg: 'bg-zinc-200/80 text-zinc-700',
-    subject: '849201 is your device verification code',
-    time: '10:38 AM',
-    fullDate: 'Nov 5, 10:38 AM',
-    date: '2026-11-05T10:38:00Z',
-    timestamp: Date.now() - 1000 * 60 * 22,
-    daysAgo: 0,
-    unread: true,
-    analyzed: true,
-    priority: 'P1',
-    needsAttention: true,
-    matched: 'verification code, expires',
-    note: 'Expires in 10 min',
-    otp: '849201',
-    attachment: null,
-    paragraphs: [
-      'A sign-in attempt from Ludhiana, IN requires verification before granting SSH access to Babul-Kumar/MailMind.',
-      'Enter code 849201 within the next 10 minutes to authorize this session. Once expired, this message automatically steps down to Routine.'
-    ]
-  },
-  {
-    id: 'e3',
-    sender: 'Prof. R. Sharma',
-    email: 'rajesh.sharma@lpu.co.in',
-    initials: 'RS',
-    avatarBg: 'bg-amber-100/70 text-amber-900',
-    subject: 'CSE472 final viva slot confirmation',
-    time: '9:15 AM',
-    fullDate: 'Nov 5, 9:15 AM',
-    date: '2026-11-05T09:15:00Z',
-    timestamp: Date.now() - 1000 * 60 * 105,
-    daysAgo: 0,
-    unread: true,
-    analyzed: true,
-    priority: 'P2',
-    needsAttention: true,
-    matched: 'viva, confirm by Friday',
-    note: 'Due Nov 8',
-    otp: null,
-    attachment: null,
-    paragraphs: [
-      'Hi Babul, the panel schedule for CSE472 Applied AI project evaluations has been finalized for next week.',
-      'Please confirm your 15-minute live demonstration slot by Friday, November 8, and ensure your repository README and test suite are up to date.'
-    ]
-  },
-  {
-    id: 'e4',
-    sender: 'LPU Examinations',
-    email: 'examinations@lpu.co.in',
-    initials: 'LP',
-    avatarBg: 'bg-emerald-100/60 text-emerald-900',
-    subject: 'Download provisional hall ticket for Autumn term',
-    time: 'Yesterday',
-    fullDate: 'Nov 4, 4:20 PM',
-    date: '2026-11-04T16:20:00Z',
-    timestamp: Date.now() - 1000 * 60 * 60 * 20,
-    daysAgo: 1,
-    unread: false,
-    analyzed: true,
-    priority: 'P3',
-    needsAttention: true,
-    matched: 'download, hall ticket',
-    note: 'Document action detected',
-    otp: null,
-    attachment: { name: 'Hall_Ticket_2026.pdf', size: '240 KB' },
-    paragraphs: [
-      'Provisional admit cards for the November end-term practical and theory examinations are now ready.',
-      'Download the attached PDF and carry a printed copy along with your university ID card to the examination venue.'
-    ]
-  },
-  {
-    id: 'e5',
-    sender: 'ByteByteGo',
-    email: 'bytebytego@substack.com',
-    initials: 'BB',
-    avatarBg: 'bg-indigo-100/70 text-indigo-900',
-    subject: 'The Hidden Work Behind Every Database Request',
-    time: 'Nov 3',
-    fullDate: 'Nov 3, 2:10 PM',
-    date: '2026-11-03T14:10:00Z',
-    timestamp: Date.now() - 1000 * 60 * 60 * 48,
-    daysAgo: 2,
-    unread: false,
-    analyzed: true,
-    priority: 'P3',
-    needsAttention: false,
-    matched: 'newsletter, architecture',
-    note: 'Tech digest',
-    otp: null,
-    attachment: null,
-    paragraphs: [
-      'When an application executes a simple SQL query, dozens of kernel and storage operations fire in parallel under the hood.',
-      'From buffer pool lookups and WAL synchronization to lock managers, understanding execution engine internals helps prevent database brownouts under peak loads.'
-    ]
-  },
-  {
-    id: 'e6',
-    sender: 'Stripe Billing',
-    email: 'invoices@stripe.com',
-    initials: 'ST',
-    avatarBg: 'bg-violet-100/70 text-violet-900',
-    subject: 'Your October subscription invoice and receipt',
-    time: 'Oct 12',
-    fullDate: 'Oct 12, 11:30 AM',
-    date: '2026-10-12T11:30:00Z',
-    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 36,
-    daysAgo: 36,
-    unread: false,
-    analyzed: true,
-    priority: 'P2',
-    needsAttention: false,
-    matched: 'invoice, subscription, payment receipt',
-    note: 'Paid invoice',
-    otp: null,
-    attachment: { name: 'Invoice_OCT_2026.pdf', size: '120 KB' },
-    paragraphs: [
-      'Your monthly invoice for Cloud Pro tier has been processed successfully.',
-      'A copy of receipt #INV-2026-10-848 is attached for your accounting records.'
-    ]
-  },
-  {
-    id: 'e7',
-    sender: 'DeepLearning.AI',
-    email: 'certs@deeplearning.ai',
-    initials: 'DL',
-    avatarBg: 'bg-sky-100/70 text-sky-900',
-    subject: 'Certificate of Completion: Applied Generative Models',
-    time: 'Sep 24',
-    fullDate: 'Sep 24, 4:15 PM',
-    date: '2026-09-24T16:15:00Z',
-    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 54,
-    daysAgo: 54,
-    unread: false,
-    analyzed: true,
-    priority: 'P3',
-    needsAttention: false,
-    matched: 'certificate, course completion',
-    note: 'Course certificate',
-    otp: null,
-    attachment: null,
-    paragraphs: [
-      'Congratulations on completing the specialization! Your verified certificate is ready to share on LinkedIn.',
-      'Review your capstone score and download your credentials from your learner dashboard.'
-    ]
-  },
-  {
-    id: 'e8',
-    sender: 'GitHub Security',
-    email: 'security-alerts@github.com',
-    initials: 'GH',
-    avatarBg: 'bg-rose-100/70 text-rose-900',
-    subject: 'Security Advisory: Dependabot alert resolved',
-    time: 'Aug 29',
-    fullDate: 'Aug 29, 3:00 PM',
-    date: '2026-08-29T15:00:00Z',
-    timestamp: Date.now() - 1000 * 60 * 60 * 24 * 80,
-    daysAgo: 80,
-    unread: false,
-    analyzed: true,
-    priority: 'P3',
-    needsAttention: false,
-    matched: 'dependabot, vulnerability resolved',
-    note: 'Advisory resolved',
-    otp: null,
-    attachment: null,
-    paragraphs: [
-      'Dependabot detected that advisory CVE-2026-3829 has been mitigated in your repository dependency manifest.',
-      'No further remediation steps are required at this time.'
-    ]
-  }
 ];
 
 // ============================================================================
@@ -719,7 +512,7 @@ export default function App() {
     }
   }, [emailsHook.isScanning, emailsHook.isRefreshing]);
 
-  // Combine real backend emails or fallback to concise INITIAL_EMAILS
+  // Combine real backend emails
   const emails = useMemo(() => {
     if (emailsHook.emails && emailsHook.emails.length > 0) {
       return emailsHook.emails.map((m, idx) => {
@@ -731,14 +524,7 @@ export default function App() {
         return formatted;
       });
     }
-    return INITIAL_EMAILS.map((m) => {
-      const copy = { ...m };
-      if (overridesMap[copy.id]) {
-        copy.priority = overridesMap[copy.id];
-        copy.needsAttention = overridesMap[copy.id] === 'P1' || overridesMap[copy.id] === 'P2';
-      }
-      return copy;
-    });
+    return [];
   }, [emailsHook.emails, overridesMap]);
 
   // Select first email on load
@@ -1096,6 +882,28 @@ export default function App() {
   // Render OAuth callback
   if (currentPath === '/auth/callback') {
     return <AuthCallback />;
+  }
+
+  // Render Login Page when unauthenticated
+  if (!auth.isAuthenticated) {
+    if (auth.isLoading) {
+      return (
+        <div className={`min-h-screen flex items-center justify-center ${dark ? 'bg-[#0F1219] text-white' : 'bg-[#F8FAFC] text-slate-800'}`}>
+          <div className="flex flex-col items-center gap-3">
+            <RefreshCw className="w-6 h-6 animate-spin text-[#7E22CE]" />
+            <span className="text-xs font-semibold tracking-wide text-slate-400">Verifying session...</span>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <ConnectAccountHero
+        onLogin={auth.login}
+        onDevLogin={auth.devLogin}
+        isLoading={auth.isLoading}
+        error={auth.error}
+      />
+    );
   }
 
   // Calculate Gmail pagination and counts
